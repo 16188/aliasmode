@@ -508,12 +508,12 @@ export async function handleUiRequest(
 
   if (pathname === "/ui/api/scripts" || pathname.startsWith("/ui/api/scripts/")) {
     const scripts = options.scripts;
-    if (!scripts) return noStoreJson({ ok: false, error: "Scripts require the desktop app" }, 503);
+    if (!scripts) return noStoreJson({ ok: false, error: "脚本功能需要桌面应用" }, 503);
     if (!validAgentAuthorization(req.headers.get("authorization"), scripts.nonce)) {
-      return noStoreJson({ ok: false, error: "Script authorization failed" }, 401);
+      return noStoreJson({ ok: false, error: "脚本授权失败" }, 401);
     }
     const origin = req.headers.get("origin");
-    if (origin && origin !== new URL(req.url).origin) return noStoreJson({ ok: false, error: "Cross-origin requests are forbidden" }, 403);
+    if (origin && origin !== new URL(req.url).origin) return noStoreJson({ ok: false, error: "禁止跨来源请求" }, 403);
     if (req.method !== "GET") {
       const rejected = rejectUntrustedJsonMutation(req);
       if (rejected) return rejected;
@@ -573,7 +573,7 @@ export async function handleUiRequest(
           return noStoreJson({ ok: true });
         }
       }
-      return noStoreJson({ ok: false, error: "Unknown script operation" }, 404);
+      return noStoreJson({ ok: false, error: "未知脚本操作" }, 404);
     } catch (error) {
       const status = error instanceof ScriptError || error instanceof CloudApiError ? error.status
         : error instanceof CloudRequestError ? 502 : error instanceof SyntaxError || error instanceof URIError ? 400 : 500;

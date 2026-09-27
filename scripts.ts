@@ -17,13 +17,13 @@ export function scriptInput(value: any): ScriptInput {
   if (!value || typeof value.name !== "string" || !value.name.trim()
     || typeof value.description !== "string" || typeof value.source !== "string" || !value.source.trim()
     || !["javascript", "python"].includes(value.language)) {
-    throw new ScriptError("A name, description, source, and supported language are required");
+    throw new ScriptError("必须填写名称、说明、源码并选择受支持的语言");
   }
   return { name: value.name.trim(), description: value.description, language: value.language, source: value.source };
 }
 
 function revision(value: unknown): asserts value is number {
-  if (!Number.isSafeInteger(value) || Number(value) < 1) throw new ScriptError("A valid expected revision is required");
+  if (!Number.isSafeInteger(value) || Number(value) < 1) throw new ScriptError("必须提供有效的预期修订版本");
 }
 
 export class ScriptLibrary {
@@ -37,12 +37,12 @@ export class ScriptLibrary {
   scope(): string {
     if (!this.cloudMode) return "local";
     const account = this.cloud?.accountId();
-    if (!account) throw new ScriptError("Sign in to AliasMode Cloud first", 401);
+    if (!account) throw new ScriptError("请先登录云端账号", 401);
     return `account-${createHash("sha256").update(account).digest("hex")}`;
   }
 
   assertScope(scope: string): void {
-    if (this.scope() !== scope) throw new ScriptError("The signed-in account changed", 409);
+    if (this.scope() !== scope) throw new ScriptError("当前登录账号已变更", 409);
   }
 
   private cached(scope: string): ScriptRecord[] {
@@ -80,12 +80,12 @@ export class ScriptLibrary {
   }
 
   async browse(query: PublishedScriptsQuery = {}): Promise<ListPublishedScriptsResponse> {
-    if (!this.catalog) throw new ScriptError("The public library URL is unavailable", 503);
+    if (!this.catalog) throw new ScriptError("公共脚本库地址不可用", 503);
     return this.catalog.listPublishedScripts(query);
   }
 
   async viewPublished(id: string): Promise<PublishedScript> {
-    if (!this.catalog) throw new ScriptError("The public library URL is unavailable", 503);
+    if (!this.catalog) throw new ScriptError("公共脚本库地址不可用", 503);
     return (await this.catalog.getPublishedScript(id)).script;
   }
 
@@ -97,7 +97,7 @@ export class ScriptLibrary {
   }
 
   async publish(id: string, input: PublishScriptInput): Promise<PublishedScript> {
-    if (!this.cloudMode) throw new ScriptError("Sign in using Cloud mode to publish scripts", 403);
+    if (!this.cloudMode) throw new ScriptError("请登录云端账号后发布脚本", 403);
     const scope = this.scope();
     const response = await this.cloud!.client.publishScript(id, input);
     this.assertScope(scope);
@@ -105,7 +105,7 @@ export class ScriptLibrary {
   }
 
   async unpublish(id: string): Promise<void> {
-    if (!this.cloudMode) throw new ScriptError("Sign in using Cloud mode to publish scripts", 403);
+    if (!this.cloudMode) throw new ScriptError("请登录云端账号后发布脚本", 403);
     const scope = this.scope();
     await this.cloud!.client.unpublishScript(id);
     this.assertScope(scope);
@@ -115,7 +115,7 @@ export class ScriptLibrary {
     const scope = this.scope();
     if (this.cloudMode) return this.cache(scope, (await this.cloud!.client.getScript(id)).script);
     const script = this.cached(scope).find((item) => item.id === id);
-    if (!script) throw new ScriptError("Script not found", 404);
+    if (!script) throw new ScriptError("未找到脚本", 404);
     return script;
   }
 
@@ -130,8 +130,8 @@ export class ScriptLibrary {
       return this.cache(scope, response.script);
     }
     const previous = id ? this.cached(scope).find((item) => item.id === id) : undefined;
-    if (id && !previous) throw new ScriptError("Script not found", 404);
-    if (previous && previous.revision !== expectedRevision) throw new ScriptError("Script changed; reload before saving", 409);
+    if (id && !previous) throw new ScriptError("未找到脚本", 404);
+    if (previous && previous.revision !== expectedRevision) throw new ScriptError("脚本已变更，请重新加载后保存", 409);
     const now = new Date().toISOString();
     return this.cache(scope, { ...input, id: id ?? randomUUID(), revision: (previous?.revision ?? 0) + 1, createdAt: previous?.createdAt ?? now, updatedAt: now });
   }
@@ -142,8 +142,8 @@ export class ScriptLibrary {
     if (this.cloudMode) await this.cloud!.client.deleteScript(id, expectedRevision);
     else {
       const script = this.cached(scope).find((item) => item.id === id);
-      if (!script) throw new ScriptError("Script not found", 404);
-      if (script.revision !== expectedRevision) throw new ScriptError("Script changed; reload before deleting", 409);
+      if (!script) throw new ScriptError("未找到脚本", 404);
+      if (script.revision !== expectedRevision) throw new ScriptError("脚本已变更，请重新加载后删除", 409);
     }
     this.write(scope, this.cached(scope).filter((script) => script.id !== id));
   }
@@ -190,7 +190,7 @@ function supportsSourceScripts(): boolean {
 
 export function resolveScriptRunner(language: ScriptLanguage, runtime = resolvePlaywrightRuntime()): ScriptRunner {
   if (runtime.kind === "source" && !supportsSourceScripts()) {
-    throw new ScriptError("Scripts require the packaged desktop runtime", 503);
+    throw new ScriptError("脚本功能需要已打包的桌面运行时", 503);
   }
   return {
     executable: runtime.kind === "source"
@@ -213,12 +213,12 @@ export async function verifyScriptRuntime(language: ScriptLanguage, options: Scr
   const runtime = options.runtime ?? resolvePlaywrightRuntime();
   const resolved = resolveScriptRunner(language, runtime);
   if (!existsSync(resolved.executable) && runtime.kind === "packaged") {
-    throw new ScriptError("The script runtime is missing; update AliasMode", 503);
+    throw new ScriptError("脚本运行时缺失，请更新 IDFRI", 503);
   }
   if (!existsSync(resolved.runner)) {
     throw new ScriptError(runtime.kind === "source"
-      ? "The source script runner is missing; restore the AliasMode source checkout"
-      : "The script runtime is missing; update AliasMode", 503);
+      ? "源码脚本运行器缺失，请恢复 IDFRI 源码检出"
+      : "脚本运行时缺失，请更新 IDFRI", 503);
   }
   if (runtime.kind !== "source") return resolved;
 
@@ -247,7 +247,7 @@ export const executeScript: ScriptExecution = async ({ scriptPath, language, inp
       if (!child.pid || child.exitCode !== null || child.signalCode !== null) return;
       if (process.platform === "win32") {
         const kill = Bun.spawn(["taskkill", "/PID", String(child.pid), "/T", "/F"], { stdout: "ignore", stderr: "ignore", windowsHide: true });
-        if (await kill.exited !== 0 && child.exitCode === null && child.signalCode === null) throw new Error("Script process termination was not confirmed");
+        if (await kill.exited !== 0 && child.exitCode === null && child.signalCode === null) throw new Error("无法确认脚本进程已终止");
       } else {
         try { process.kill(-child.pid, "SIGKILL"); } catch (error: any) { if (error.code !== "ESRCH") throw error; }
       }
@@ -304,19 +304,19 @@ export class ScriptSupervisor {
   }
 
   start(request: RunRequest): ScriptRun {
-    if (this.closing || this.pauses) throw new ScriptError("Script execution is paused while AliasMode changes accounts or shuts down", 409);
-    if (this.active && this.active.view.status !== "finished") throw new ScriptError("A script is already running", 409);
+    if (this.closing || this.pauses) throw new ScriptError("IDFRI 正在切换账号或关闭，脚本执行已暂停", 409);
+    if (this.active && this.active.view.status !== "finished") throw new ScriptError("已有脚本正在运行", 409);
     if (!request || typeof request.scriptId !== "string" || !request.scriptId
       || !Array.isArray(request.profileIds) || !request.profileIds.length || !request.profileIds.every((id) => typeof id === "string" && id)
       || !request.inputs || typeof request.inputs !== "object" || Array.isArray(request.inputs) || typeof request.useCredentials !== "boolean") {
-      throw new ScriptError("Choose a script, profiles, and a JSON object for inputs");
+      throw new ScriptError("请选择脚本和资料，并提供 JSON 对象作为输入");
     }
     const scope = this.options.library.scope();
     if (this.active) rmSync(this.active.directory, { recursive: true, force: true });
     mkdirSync(this.options.library.directory, { recursive: true });
     const directory = mkdtempSync(join(this.options.library.directory, "run-"));
     const run: ActiveRun = {
-      view: { id: randomUUID(), scriptName: "Script", status: "running", profiles: [...new Set(request.profileIds)].map((id) => ({ id, name: id, status: "queued" })) },
+      view: { id: randomUUID(), scriptName: "脚本", status: "running", profiles: [...new Set(request.profileIds)].map((id) => ({ id, name: id, status: "queued" })) },
       scope, directory, logPath: join(directory, "output.log"), abort: new AbortController(), done: Promise.resolve(),
     };
     writeFileSync(run.logPath, "", { mode: 0o600 });
@@ -345,8 +345,8 @@ export class ScriptSupervisor {
 
   log(id: string, offset: number): { text: string; nextOffset: number } {
     const run = this.active;
-    if (!run || run.scope !== this.options.library.scope() || run.view.id !== id) throw new ScriptError("Run not found", 404);
-    if (!Number.isSafeInteger(offset) || offset < 0) throw new ScriptError("Invalid log offset");
+    if (!run || run.scope !== this.options.library.scope() || run.view.id !== id) throw new ScriptError("未找到运行记录", 404);
+    if (!Number.isSafeInteger(offset) || offset < 0) throw new ScriptError("日志偏移量无效");
     const fd = openSync(run.logPath, "r");
     try {
       const buffer = Buffer.alloc(64 * 1024);
@@ -382,7 +382,7 @@ export class ScriptSupervisor {
             protocol: AGENT_CONTROL_PROTOCOL, id: 1, method,
             params: { profileId: item.id, ...(method === "browser.close" ? { expectedEndpoint: endpoint } : {}) },
           }));
-          if (!response.ok) throw new Error(response.error?.message ?? "Browser operation failed");
+          if (!response.ok) throw new Error(response.error?.message ?? "浏览器操作失败");
           return response.result as { ws: string; ownedByConnection: boolean; sync?: string };
         };
         try {
@@ -390,7 +390,7 @@ export class ScriptSupervisor {
           let cloudProfile;
           if (this.options.library.cloudMode) {
             const response = await this.options.cloudConnection!.client.getProfile(item.id);
-            if (response.profile.permission !== "edit") throw new ScriptError("Profile edit access is required", 403);
+            if (response.profile.permission !== "edit") throw new ScriptError("需要资料编辑权限", 403);
             cloudProfile = response.payload.profile;
           }
           signal.throwIfAborted();
@@ -402,7 +402,7 @@ export class ScriptSupervisor {
           signal.throwIfAborted();
           this.options.library.assertScope(run.scope);
           const profile = this.options.store.getProfile(item.id) ?? cloudProfile;
-          if (!profile) throw new ScriptError("Profile not found", 404);
+          if (!profile) throw new ScriptError("未找到资料", 404);
           item.name = profile.name;
           writeFileSync(fd, `\n--- ${profile.name || item.id} ---\n`);
           const input = {
@@ -412,9 +412,9 @@ export class ScriptSupervisor {
           };
           if (opened.engine === "firefox") {
             const launch = this.options.store.getLaunch(item.id) as { firefoxOwner?: FirefoxOwner } | null;
-            if (!launch?.firefoxOwner) throw new ScriptError("Firefox browser owner is unavailable", 503);
+            if (!launch?.firefoxOwner) throw new ScriptError("Firefox 浏览器所有者不可用", 503);
             const { endpoint } = await callFirefoxOwner<{ endpoint?: unknown }>(launch.firefoxOwner, "playwright-endpoint", {}, { signal });
-            if (typeof endpoint !== "string" || !endpoint) throw new ScriptError("Firefox browser endpoint is unavailable", 503);
+            if (typeof endpoint !== "string" || !endpoint) throw new ScriptError("Firefox 浏览器端点不可用", 503);
             await (this.options.execute ?? executeScript)({
               scriptPath: path, language: script.language, logFd: fd, signal,
               input: { endpoint, engine: "firefox", ...input },
@@ -428,14 +428,14 @@ export class ScriptSupervisor {
           item.status = signal.aborted ? "cancelled" : "succeeded";
         } catch (error) {
           item.status = signal.aborted ? "cancelled" : "failed";
-          if (!signal.aborted) item.error = error instanceof Error ? error.message : "Script failed";
+          if (!signal.aborted) item.error = error instanceof Error ? error.message : "脚本执行失败";
         } finally {
           if (owned) {
             try {
               const closed = await call("browser.close");
-              if (closed.sync && closed.sync !== "complete") item.warning = `Profile session save: ${closed.sync}`;
+              if (closed.sync && closed.sync !== "complete") item.warning = `资料会话保存：${closed.sync}`;
             } catch (error) {
-              item.warning = error instanceof Error ? error.message : "Browser cleanup was not confirmed";
+              item.warning = error instanceof Error ? error.message : "无法确认浏览器已清理";
               // Durable browser ownership remains with the launcher; do not retry against a replacement browser.
               await call("browser.detach").catch(() => {});
             }
@@ -446,7 +446,7 @@ export class ScriptSupervisor {
     } catch (error) {
       for (const item of run.view.profiles.filter((item) => item.status === "queued")) {
         item.status = signal.aborted ? "cancelled" : "failed";
-        if (!signal.aborted) item.error = error instanceof Error ? error.message : "Script could not start";
+        if (!signal.aborted) item.error = error instanceof Error ? error.message : "脚本无法启动";
       }
     } finally {
       closeSync(fd);

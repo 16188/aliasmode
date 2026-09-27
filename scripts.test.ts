@@ -72,7 +72,7 @@ test("a missing runtime fails before a script opens a profile", async () => {
     h.supervisor.start({ scriptId: script.id, profileIds: ["a"], inputs: {}, useCredentials: false });
     await h.supervisor.settled();
     expect(h.events).toEqual([]);
-    expect(h.supervisor.status()?.profiles[0]?.error).toContain("script runtime is missing");
+    expect(h.supervisor.status()?.profiles[0]?.error).toContain("脚本运行时缺失");
   } finally {
     if (previous === undefined) delete process.env.ALIASMODE_PLAYWRIGHT_RUNTIME;
     else process.env.ALIASMODE_PLAYWRIGHT_RUNTIME = previous;
@@ -442,7 +442,7 @@ test("Cloud run status and logs remain account-scoped after switching accounts",
   expect(h.supervisor.status()?.id).toBe(run.id);
   account = "account-b";
   expect(h.supervisor.status()).toBeNull();
-  expect(() => h.supervisor.log(run.id, 0)).toThrow("Run not found");
+  expect(() => h.supervisor.log(run.id, 0)).toThrow("未找到运行记录");
   account = undefined;
   expect(h.supervisor.status()).toBeNull();
   await h.supervisor.stop();
