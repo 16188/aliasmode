@@ -21,8 +21,8 @@ test("reachable navigation and profile actions are Chinese", () => {
   for (const label of ["资料", "脚本", "扩展", "代理", "回收站", "设置", "新建资料", "导入资料"]) {
     expect(app).toContain(label);
   }
-  expect(app).toContain('label: "Chromium"');
-  expect(app).toContain('runtime: "实验兼容内核"');
+  expect(app).toContain('label: "IDFRI Browser"');
+  expect(app).toContain('runtime: "IDFRI Chromium 内核"');
   expect(app).toContain('label: "Firefox"');
   expect(app).toContain('runtime: "AliasMode Firefox"');
 });
@@ -45,7 +45,7 @@ test("profile forms retain proxy checking and both browser engines", () => {
     expect(modal).toContain("<ProxyCheckFeedback");
     expect(modal).toContain('value="https"');
   }
-  expect(createModal).toContain('engine: "chromium", label: "Chromium", runtime: "实验兼容内核"');
+  expect(createModal).toContain('engine: "chromium", label: "IDFRI Browser", runtime: "IDFRI Chromium 内核"');
   expect(createModal).toContain('engine: "firefox", label: "Firefox", runtime: "AliasMode Firefox"');
 });
 

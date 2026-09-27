@@ -127,7 +127,7 @@ test("profile export rejects streamed errors and incomplete files", async () => 
       headers: { "content-type": "application/x-ndjson" },
     })) as unknown as typeof fetch;
     await expect(exportProfiles(["p1", "p2"], "txt")).rejects.toThrow(
-      body.includes('"error"') ? "Cloud export failed" : "Export interrupted",
+      body.includes('"error"') ? "Cloud export failed" : "导出已中断",
     );
   }
 });
@@ -215,7 +215,7 @@ test("proxy check client rejects errors and malformed results without exposing c
     .catch((error) => error);
   expect(invalid).toMatchObject({
     name: "ProxyCheckError",
-    message: "Proxy check failed",
+    message: "代理检查失败",
     kind: "invalid",
   });
 
@@ -226,7 +226,7 @@ test("proxy check client rejects errors and malformed results without exposing c
   const unavailable = await checkProxy({ host: "proxy.example", port: "8080" }).catch((error) => error);
   expect(unavailable).toMatchObject({
     name: "ProxyCheckError",
-    message: "Proxy check failed",
+    message: "代理检查失败",
     kind: "unavailable",
   });
 
@@ -238,7 +238,7 @@ test("proxy check client rejects errors and malformed results without exposing c
     password: "private-password",
   })) as unknown as typeof fetch;
   await expect(checkProxy({ host: "proxy.example", port: "8080" }))
-    .rejects.toThrow("Proxy check returned invalid data");
+    .rejects.toThrow("代理检查返回了无效数据");
 });
 
 test("app mode client reads first-launch state", async () => {
@@ -267,12 +267,12 @@ test("Cloud diagnostics client accepts only the fixed event schema", async () =>
   globalThis.fetch = (async () => Response.json({
     events: [{ timestamp: 123, type: "open_failed", message: "raw server secret" }],
   })) as unknown as typeof fetch;
-  await expect(fetchCloudEvents()).rejects.toThrow("invalid data");
+  await expect(fetchCloudEvents()).rejects.toThrow("无效数据");
 
   globalThis.fetch = (async () => Response.json({
     events: [{ timestamp: 123, type: "unknown" }],
   })) as unknown as typeof fetch;
-  await expect(fetchCloudEvents()).rejects.toThrow("invalid data");
+  await expect(fetchCloudEvents()).rejects.toThrow("无效数据");
 });
 
 test("Cloud auth client reads status and sends credentials as JSON", async () => {

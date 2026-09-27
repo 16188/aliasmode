@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Add the reproducible `16188/idfri-browser` Chromium source build, apply IDFRI branding and Chinese browser UI, force managed Chromium launches to `zh-CN`, point the visible developer identity to the IDFRI project, and translate the remaining proxy tools, scripts, Trash, diagnostics, client-side errors, proxy-input validation, and matching UI test fixtures into Chinese.
+- Add the reproducible `16188/idfri-browser` Chromium source build, apply IDFRI branding and Chinese browser UI, force managed Chromium launches to `zh-CN`, point the visible developer identity to the IDFRI project, and translate the remaining proxy tools, scripts, Trash, diagnostics, client-side errors, proxy-input validation, and matching UI/API test fixtures into Chinese.
 - Secure the Local API with a per-launch 256-bit bearer token plus strict loopback Host and same-origin validation.
 - Encrypt profile credentials, proxy authentication, cookies, and session state with AES-256-GCM using a master key held by Windows Credential Manager.
 - Make the Community Edition local-only: migrate legacy mode selections to Local, keep Cloud clients, sync, and remote MCP unavailable at runtime, and close legacy Cloud HTTP routes.
