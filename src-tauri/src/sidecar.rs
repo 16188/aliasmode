@@ -247,7 +247,12 @@ fn verify_health_record(record: &HealthRecord, nonce: &str, root: &Path) -> Resu
     Ok(())
 }
 
-async fn wait_for_health(port: u16, nonce: &str, root: &Path) -> Result<(), String> {
+async fn wait_for_health(
+    port: u16,
+    nonce: &str,
+    agent_nonce: &str,
+    root: &Path,
+) -> Result<(), String> {
     let client = Client::builder()
         .no_proxy()
         .redirect(Policy::none())
@@ -258,7 +263,7 @@ async fn wait_for_health(port: u16, nonce: &str, root: &Path) -> Result<(), Stri
     let url = format!("http://127.0.0.1:{port}/ui/api/health");
     let deadline = tokio::time::Instant::now() + Duration::from_secs(5);
     loop {
-        if let Ok(response) = client.get(&url).send().await {
+        if let Ok(response) = client.get(&url).bearer_auth(agent_nonce).send().await {
             if response.status().is_success() && response.content_length().unwrap_or(0) <= 16 * 1024
             {
                 if let Ok(bytes) = response.bytes().await {
@@ -460,7 +465,7 @@ pub async fn launch_and_verify(
             return Err(error);
         }
     };
-    if let Err(error) = wait_for_health(port, nonce, data_dir).await {
+    if let Err(error) = wait_for_health(port, nonce, agent_nonce, data_dir).await {
         let _ = child.kill();
         return Err(error);
     }

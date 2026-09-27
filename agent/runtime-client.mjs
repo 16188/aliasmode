@@ -37,6 +37,10 @@ export function validateRuntimeDescriptor(value, expectedVersion = VERSION) {
   return value;
 }
 
+export function runtimeAuthorizationHeaders(descriptor) {
+  return { Authorization: `Bearer ${descriptor.nonce}` };
+}
+
 export function defaultRuntimeDescriptorPath(env = process.env) {
   if (env.ALIASMODE_RUNTIME_DESCRIPTOR) return env.ALIASMODE_RUNTIME_DESCRIPTOR;
   if (!env.APPDATA) throw new Error("APPDATA is required to discover AliasMode");
@@ -95,6 +99,7 @@ async function verifyHealth(descriptor) {
     throw new Error("AliasMode desktop process identity changed");
   }
   const response = await fetch(`http://127.0.0.1:${descriptor.port}/ui/api/health`, {
+    headers: runtimeAuthorizationHeaders(descriptor),
     signal: AbortSignal.timeout(2_000),
     redirect: "error",
   });
@@ -221,10 +226,10 @@ async function connectAgent(descriptor) {
   const socket = bunNative
     ? new globalThis.WebSocket(url, {
         protocol: AGENT_PROTOCOL,
-        headers: { Authorization: `Bearer ${descriptor.nonce}` },
+        headers: runtimeAuthorizationHeaders(descriptor),
       })
     : new NodeWebSocket(url, AGENT_PROTOCOL, {
-        headers: { Authorization: `Bearer ${descriptor.nonce}` },
+        headers: runtimeAuthorizationHeaders(descriptor),
         maxPayload: 1024 * 1024,
         handshakeTimeout: 5_000,
         followRedirects: false,

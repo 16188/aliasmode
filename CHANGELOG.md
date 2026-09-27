@@ -35,3 +35,4 @@
 - Align the installed-runtime background-window contract tests with the IDFRI name.
 - Apply the Rust formatter output required by CI.
 - Stabilize Windows CI cleanup and Python runner timing under parallel build load.
+- Authenticate desktop and Agent readiness probes against the protected Local API.

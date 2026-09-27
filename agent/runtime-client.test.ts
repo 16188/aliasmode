@@ -5,6 +5,7 @@ import {
   AgentRuntimeClient,
   RUNTIME_PROTOCOL,
   defaultRuntimeDescriptorPath,
+  runtimeAuthorizationHeaders,
   validateRuntimeDescriptor,
   windowsProcessIdentityCommand,
 } from "./runtime-client.mjs";
@@ -34,6 +35,12 @@ test("runtime descriptor validation binds protocol, version, process, and nonce"
     .toThrow("did not match");
   expect(() => validateRuntimeDescriptor({ ...descriptor(), desktopStartedAt: "" }))
     .toThrow("did not match");
+});
+
+test("runtime requests authenticate with the descriptor nonce", () => {
+  expect(runtimeAuthorizationHeaders(descriptor())).toEqual({
+    Authorization: `Bearer ${"b".repeat(64)}`,
+  });
 });
 
 test("invalid agent responses terminate their WebSocket", () => {
