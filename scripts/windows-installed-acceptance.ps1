@@ -2073,6 +2073,16 @@ try {
   if ($automationPortBlocker) {
     try { $automationPortBlocker.Stop() } catch { $cleanupFailures.Add("automation port fixture cleanup failed") }
   }
+  if ($primaryFailure -and $Shard -in @("runtime-protocol", "runtime-ownership", "runtime-desktop")) {
+    $sidecarLog = Get-ChildItem (Join-Path $appDataRoot "logs\idfri-*.log") -File -ErrorAction SilentlyContinue |
+      Sort-Object LastWriteTime -Descending |
+      Select-Object -First 1
+    if ($sidecarLog) {
+      $diagnosticsRoot = Split-Path $DiagnosticsPath -Parent
+      if ($diagnosticsRoot) { New-Item -ItemType Directory -Force $diagnosticsRoot | Out-Null }
+      Copy-Item -LiteralPath $sidecarLog.FullName -Destination (Join-Path $diagnosticsRoot "$Shard-sidecar.log")
+    }
+  }
   $cleanupDataRoot = if ($acceptanceStateOwned) { $appDataRoot } else { "" }
   try { Stop-AcceptanceProcesses $installRoot $runRoot $cleanupDataRoot } catch {
     $cleanupFailures.Add("acceptance process cleanup failed")

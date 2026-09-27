@@ -36,3 +36,4 @@
 - Apply the Rust formatter output required by CI.
 - Stabilize Windows CI cleanup and Python runner timing under parallel build load.
 - Authenticate desktop and Agent readiness probes against the protected Local API.
+- Preserve sidecar logs when installed runtime acceptance fails so startup faults remain diagnosable.
