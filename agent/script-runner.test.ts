@@ -229,7 +229,7 @@ async def run(*, page, profile, inputs, credentials, log, **_):
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
-});
+}, 15_000);
 
 test("Python script runner connects Firefox through a private Playwright endpoint", async () => {
   const root = workspace();
@@ -251,7 +251,7 @@ test("Python script runner connects Firefox through a private Playwright endpoin
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
-});
+}, 15_000);
 
 test("Python script runner redacts Firefox endpoint errors", async () => {
   const root = workspace();

@@ -16,7 +16,9 @@ afterEach(() => {
   while (stores.length) stores.pop()!.close();
   // Bun's transaction statements release file handles only after collection.
   Bun.gc(true);
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true });
+  for (const root of roots.splice(0)) {
+    rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+  }
 });
 function fixture(fileDatabase = false) {
   const dir = mkdtempSync(join(tmpdir(), "aliasmode-trash-"));
