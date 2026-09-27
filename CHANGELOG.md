@@ -37,4 +37,4 @@
 - Stabilize Windows CI cleanup and Python runner timing under parallel build load.
 - Authenticate desktop and Agent readiness probes against the protected Local API.
 - Preserve sidecar logs when installed runtime acceptance fails so startup faults remain diagnosable.
-- Publish the local runtime descriptor after sidecar verification instead of depending on blocked WebView creation or page-load timing.
+- Publish the local runtime descriptor immediately after sidecar verification instead of depending on dynamic capability or WebView initialization.

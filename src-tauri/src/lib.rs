@@ -478,6 +478,9 @@ pub fn run() {
                     let _ = runtime.remove_owned();
                 }
             });
+            let runtime = app.state::<runtime_descriptor::RuntimeDescriptorState>();
+            runtime.activate();
+            runtime.publish("local").map_err(boxed)?;
 
             let origin = format!("http://127.0.0.1:{port}");
             app.manage(CredentialOrigin(origin.clone()));
@@ -494,9 +497,6 @@ pub fn run() {
             ) {
                 return Err(error.into());
             }
-            let runtime = app.state::<runtime_descriptor::RuntimeDescriptorState>();
-            runtime.activate();
-            runtime.publish("local").map_err(boxed)?;
 
             let allowed_port = port;
             let shell_handle = handle.clone();
