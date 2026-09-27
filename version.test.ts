@@ -248,7 +248,7 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(previousUpgradeJob).toContain('"--role", "candidate"');
   expect(previousUpgradeJob).toContain('-FullInstallerPath ".\\candidate\\IDFRI_');
   expect(previousUpgradeJob).not.toContain("sign_current");
-  expect(previousUpgradeJob).not.toContain("aliasmode-signed-current");
+  expect(previousUpgradeJob).not.toContain("idfri-signed-current");
   expect(releaseWorkflow).toContain(
     "exact_updater_acceptance:\n    name: Exact in-app updater acceptance\n    needs: [provenance, sign_successor]",
   );
@@ -259,7 +259,7 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(exactUpdaterJob).not.toContain("dtolnay/rust-toolchain");
   expect(exactUpdaterJob).not.toContain("Swatinem/rust-cache");
   expect(exactUpdaterJob).not.toContain("cargo run");
-  expect(exactUpdaterJob).not.toContain("aliasmode-signed-current");
+  expect(exactUpdaterJob).not.toContain("idfri-signed-current");
   expect(releaseWorkflow).toContain(
     "publish_release:\n    name: Publish verified prerelease\n    needs: [provenance, sign_current, previous_upgrade_acceptance, exact_updater_acceptance]",
   );
@@ -276,7 +276,7 @@ test("release version and updater trust stay aligned across the desktop bundle",
     "          )",
     "",
   ].join("\n"));
-  expect(releaseWorkflow).toContain("name: aliasmode-signed-current");
+  expect(releaseWorkflow).toContain("name: idfri-signed-current");
   expect(releaseWorkflow).toContain("name: idfri-synthetic-successor");
   expect(releaseWorkflow.match(/TAURI_SIGNING_PRIVATE_KEY: \$\{\{ secrets\.TAURI_SIGNING_PRIVATE_KEY \}\}/g)).toHaveLength(2);
   expect(releaseWorkflow.match(/Remove-Item Env:TAURI_SIGNING_PRIVATE_KEY\b/g)).toHaveLength(2);

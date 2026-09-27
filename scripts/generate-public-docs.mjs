@@ -35,7 +35,7 @@ export function serialize(value) {
 }
 
 export function sha256(text) {
-  return createHash("sha256").update(text).digest("hex");
+  return createHash("sha256").update(text.replace(/\r\n?/g, "\n")).digest("hex");
 }
 
 function readJson(path) {

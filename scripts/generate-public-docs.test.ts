@@ -46,6 +46,10 @@ const read = (path: string) => readFileSync(join(PUBLIC_DOCS_DIR, path), "utf8")
 const openapi = JSON.parse(read(OPENAPI_PATH));
 const manifest = JSON.parse(read(MANIFEST_PATH));
 
+test("public document hashes are independent of checkout line endings", () => {
+  expect(sha256("first\r\nsecond\r\n")).toBe(sha256("first\nsecond\n"));
+});
+
 function operations(): Array<{ method: string; path: string; op: any }> {
   const out: Array<{ method: string; path: string; op: any }> = [];
   for (const [path, methods] of Object.entries<any>(openapi.paths)) {

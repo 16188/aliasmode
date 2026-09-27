@@ -30,3 +30,4 @@
 - Localize durable updater results and remaining reachable desktop errors; rename logs and exports to IDFRI.
 - Prevent profile-encryption keys and other `IDFRI_*` secrets from reaching user Playwright scripts.
 - Align release and managed-browser contract tests with the IDFRI artifact and Chromium names.
+- Make public-document hashes stable across LF and CRLF checkouts.
