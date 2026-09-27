@@ -9,9 +9,9 @@ export function filterTrash(profiles: TrashProfileView[], groups: string[] | nul
 }
 
 async function trashJson(response: Response): Promise<any> {
-  if (!response.ok) throw new Error("Trash could not be loaded or updated. Refresh and try again.");
+  if (!response.ok) throw new Error("无法加载或更新回收站，请刷新后重试。");
   const body = await response.json();
-  if (!body || body.ok !== true) throw new Error("Trash returned an incomplete response.");
+  if (!body || body.ok !== true) throw new Error("回收站返回了不完整的数据。");
   return body;
 }
 
@@ -38,7 +38,7 @@ export function TrashPage({ active, onChanged }: { active: boolean; onChanged: (
 
   const load = async (signal: AbortSignal) => {
     const body = await trashJson(await fetch("/ui/api/trash", { signal, cache: "no-store" }));
-    if (!Array.isArray(body.profiles)) throw new Error("Trash returned an incomplete response.");
+    if (!Array.isArray(body.profiles)) throw new Error("回收站返回了不完整的数据。");
     if (!signal.aborted) {
       setProfiles(body.profiles);
       const ids = new Set(body.profiles.map((profile: TrashProfileView) => profile.id));
@@ -52,35 +52,35 @@ export function TrashPage({ active, onChanged }: { active: boolean; onChanged: (
     const current = new AbortController(); controller.current = current;
     setBusy("load"); setError("");
     try { await load(current.signal); }
-    catch { if (!current.signal.aborted) setError("Trash could not be loaded. Check your connection and try again."); }
+    catch { if (!current.signal.aborted) setError("无法加载回收站，请检查连接后重试。"); }
     finally { if (controller.current === current) { controller.current = null; setBusy(null); } }
   };
   useEffect(() => { if (active) void refresh(); }, [active]);
 
   const mutate = async (action: "restore" | "purge", targets = chosen) => {
     if (controller.current || !targets.length) return;
-    if (action === "purge" && !confirm(`Permanently delete ${targets.length} profiles and their saved data? This cannot be undone.`)) return;
+    if (action === "purge" && !confirm(`确定永久删除 ${targets.length} 个资料及其保存的数据吗？此操作无法撤销。`)) return;
     const current = new AbortController(); controller.current = current;
     setBusy(action); setError("");
-    setNotice(`${action === "restore" ? "Restoring" : "Permanently deleting"} ${targets.length.toLocaleString()} profiles…`);
+    setNotice(`${action === "restore" ? "正在恢复" : "正在永久删除"} ${targets.length.toLocaleString()} 个资料…`);
     try {
       const result = await trashJson(await fetch(`/ui/api/trash/${action}`, {
         method: "POST", headers: { "Content-Type": "application/json" }, signal: current.signal,
         body: JSON.stringify({ ids: targets.map((profile) => profile.id) }),
       })) as TrashMutationResult;
       if (current.signal.aborted) return;
-      if (!Array.isArray(result.results) || result.results.length !== targets.length) throw new Error("Incomplete result");
+      if (!Array.isArray(result.results) || result.results.length !== targets.length) throw new Error("操作结果不完整");
       const failed = result.results.filter((row) => row.status === "failed");
       setSelected(new Set(failed.map((row) => row.id)));
       if (failed.length) { setSearch(""); setPage(0); }
-      setNotice(`${(targets.length - failed.length).toLocaleString()} profiles ${action === "restore" ? "restored to their original folders" : "permanently deleted"}.`);
-      if (failed.length) setError(`${failed.length.toLocaleString()} profiles could not be ${action === "restore" ? "restored" : "deleted"}. They remain selected. Check folder permissions and close open profiles before retrying.`);
+      setNotice(`已${action === "restore" ? "恢复" : "永久删除"} ${(targets.length - failed.length).toLocaleString()} 个资料。`);
+      if (failed.length) setError(`${failed.length.toLocaleString()} 个资料无法${action === "restore" ? "恢复" : "删除"}，这些资料仍保持选中。请检查分组权限并关闭已打开的资料后重试。`);
       await load(current.signal);
       await onChanged();
     } catch {
       if (!current.signal.aborted) {
         setNotice("");
-        setError("The operation stopped. Some profiles may already be updated. Refresh Trash before retrying.");
+        setError("操作已停止，部分资料可能已更新。请刷新回收站后重试。");
         await load(current.signal).catch(() => {});
       }
     } finally { if (controller.current === current) { controller.current = null; setBusy(null); } }
@@ -92,71 +92,71 @@ export function TrashPage({ active, onChanged }: { active: boolean; onChanged: (
 
   return <div className="workspace proxy-page trash-page" hidden={!active}>
     <div className="tools-intro">
-      <div><span className="tools-eyebrow">PROFILE RECOVERY</span><h2>Pick up where you left off.</h2>
-        <p>Restore profiles with their saved identity and session, right back to their original folders.</p></div>
-      <span className="tools-count"><strong>{profiles.length.toLocaleString()}</strong> profiles in Trash</span>
+      <div><span className="tools-eyebrow">资料恢复</span><h2>恢复已删除的资料</h2>
+        <p>将资料连同保存的身份和会话恢复到原分组。</p></div>
+      <span className="tools-count">回收站中有 <strong>{profiles.length.toLocaleString()}</strong> 个资料</span>
     </div>
     {error && <div className="tools-alert" role="alert">{error}</div>}
     {notice && <div className="tools-notice" role="status">{notice}</div>}
     <div className="trash-layout">
-      <aside className="tools-panel trash-folders" aria-label="Trash folders">
-        <div className="tools-panel-head"><h3>Restore by folder</h3><span>{groups.length}</span></div>
-        <p className="tools-hint">Choose folders to restore all their profiles at once.</p>
+      <aside className="tools-panel trash-folders" aria-label="回收站分组">
+        <div className="tools-panel-head"><h3>按分组恢复</h3><span>{groups.length}</span></div>
+        <p className="tools-hint">选择分组可一次恢复其中的所有资料。</p>
         <button className={`folder-all${!folders.length ? " selected" : ""}`} disabled={!!busy} onClick={() => changeFolders([])}>
-          All deleted profiles <span>{profiles.length.toLocaleString()}</span>
+          全部已删除资料 <span>{profiles.length.toLocaleString()}</span>
         </button>
         <div className="trash-folder-list">
           {groups.map((name) => <label className={`folder-choice${folders.includes(name) ? " selected" : ""}`} key={name}>
-            <input type="checkbox" aria-label={`Folder ${name || "Ungrouped"}`} disabled={!!busy} checked={folders.includes(name)} onChange={(event) => changeFolders(event.target.checked ? [...folders, name] : folders.filter((group) => group !== name))} />
-            <span>{name || "Ungrouped"}</span><small>{profiles.filter((profile) => profile.group === name).length.toLocaleString()}</small>
+            <input type="checkbox" aria-label={`分组 ${name || "未分组"}`} disabled={!!busy} checked={folders.includes(name)} onChange={(event) => changeFolders(event.target.checked ? [...folders, name] : folders.filter((group) => group !== name))} />
+            <span>{name || "未分组"}</span><small>{profiles.filter((profile) => profile.group === name).length.toLocaleString()}</small>
           </label>)}
-          {!groups.length && <p className="tools-hint">Deleted folders appear here.</p>}
+          {!groups.length && <p className="tools-hint">包含已删除资料的分组会显示在这里。</p>}
         </div>
         <div className="trash-folder-action">
           <button className="btn primary" disabled={!!busy || !folderProfiles.length || folderProfiles.some((profile) => !profile.canRestore)} onClick={() => void mutate("restore", folderProfiles)}>
-            {folders.length ? `Restore all ${folderProfiles.length.toLocaleString()} profiles` : "Restore selected folders"}
+            {folders.length ? `恢复全部 ${folderProfiles.length.toLocaleString()} 个资料` : "恢复所选分组"}
           </button>
-          <p className="tools-hint">{folders.length ? `Includes every profile in ${folders.length} selected ${folders.length === 1 ? "folder" : "folders"}, even outside the search results.` : "Select one or more folders above."}</p>
-          {folderProfiles.some((profile) => !profile.canRestore) && <p className="tools-hint">You need edit access to all selected folders.</p>}
+          <p className="tools-hint">{folders.length ? `包含所选 ${folders.length} 个分组中的全部资料，包括搜索结果之外的资料。` : "请在上方选择一个或多个分组。"}</p>
+          {folderProfiles.some((profile) => !profile.canRestore) && <p className="tools-hint">你需要拥有所有所选分组的编辑权限。</p>}
         </div>
       </aside>
-      <section className="tools-panel trash-results" aria-label="Deleted profiles">
-        <div className="tools-panel-head"><div><h3>{folders.length ? "Selected folders" : "All deleted profiles"}</h3><p>{filtered.length.toLocaleString()} {search ? "matching " : ""}profiles</p></div>
-          <button className="btn ghost" disabled={!!busy} onClick={() => void refresh()}>{busy === "load" ? "Loading…" : "Refresh"}</button></div>
+      <section className="tools-panel trash-results" aria-label="已删除资料">
+        <div className="tools-panel-head"><div><h3>{folders.length ? "所选分组" : "全部已删除资料"}</h3><p>{filtered.length.toLocaleString()} 个{search ? "匹配的" : ""}资料</p></div>
+          <button className="btn ghost" disabled={!!busy} onClick={() => void refresh()}>{busy === "load" ? "加载中…" : "刷新"}</button></div>
         <div className="trash-search">
-          <input className="input" aria-label="Search Trash" type="search" placeholder="Search by name, ID, or folder…" value={search} disabled={!!busy} onChange={(event) => { setSearch(event.target.value); setPage(0); setSelected(new Set()); }} />
+          <input className="input" aria-label="搜索回收站" type="search" placeholder="按名称、ID 或分组搜索…" value={search} disabled={!!busy} onChange={(event) => { setSearch(event.target.value); setPage(0); setSelected(new Set()); }} />
           <button className="btn" disabled={!!busy || !filtered.length || allResultsSelected} onClick={() => setSelected(new Set(filtered.map((profile) => profile.id)))}>
-            {allResultsSelected ? `All ${filtered.length.toLocaleString()} selected` : `Select all ${filtered.length.toLocaleString()} results`}
+            {allResultsSelected ? `已选择全部 ${filtered.length.toLocaleString()} 项` : `选择全部 ${filtered.length.toLocaleString()} 项结果`}
           </button>
         </div>
         {!!chosen.length && <div className="trash-selection">
-          <div className="proxy-actions"><strong>{chosen.length.toLocaleString()} selected</strong><button className="tlink" disabled={!!busy} onClick={() => setSelected(new Set())}>Clear</button></div>
+          <div className="proxy-actions"><strong>已选择 {chosen.length.toLocaleString()} 项</strong><button className="tlink" disabled={!!busy} onClick={() => setSelected(new Set())}>清除</button></div>
           <div className="proxy-actions">
-            <button className="btn primary" disabled={!!busy || restoreDenied} onClick={() => void mutate("restore")}>{busy === "restore" ? "Restoring…" : `Restore ${chosen.length.toLocaleString()} profiles`}</button>
-            <button className="btn ghost trash-purge" disabled={!!busy || purgeDenied} onClick={() => void mutate("purge")}>Delete permanently</button>
+            <button className="btn primary" disabled={!!busy || restoreDenied} onClick={() => void mutate("restore")}>{busy === "restore" ? "恢复中…" : `恢复 ${chosen.length.toLocaleString()} 个资料`}</button>
+            <button className="btn ghost trash-purge" disabled={!!busy || purgeDenied} onClick={() => void mutate("purge")}>永久删除</button>
           </div>
-          {(restoreDenied || purgeDenied) && <p className="tools-hint">{restoreDenied ? "Restore requires edit access to every selected folder. " : ""}{purgeDenied ? "Only the workspace owner can permanently delete profiles." : ""}</p>}
+          {(restoreDenied || purgeDenied) && <p className="tools-hint">{restoreDenied ? "恢复操作需要所有所选分组的编辑权限。" : ""}{purgeDenied ? "只有工作区所有者可以永久删除资料。" : ""}</p>}
         </div>}
         {filtered.length > 0 ? <>
           <div className="proxy-table-wrap"><table className="profile-table proxy-table trash-table"><thead><tr>
-            <th className="tools-checkbox"><input type="checkbox" aria-label="Select this page" disabled={!!busy} checked={pageSelected === paged.items.length} ref={(input) => { if (input) input.indeterminate = pageSelected > 0 && pageSelected < paged.items.length; }} onChange={(event) => {
+            <th className="tools-checkbox"><input type="checkbox" aria-label="选择本页" disabled={!!busy} checked={pageSelected === paged.items.length} ref={(input) => { if (input) input.indeterminate = pageSelected > 0 && pageSelected < paged.items.length; }} onChange={(event) => {
               const checked = event.target.checked;
               setSelected((previous) => { const next = new Set(previous); for (const profile of paged.items) checked ? next.add(profile.id) : next.delete(profile.id); return next; });
-            }} /></th><th>Profile</th><th>Original folder</th><th>Deleted</th></tr></thead>
+            }} /></th><th>资料</th><th>原分组</th><th>删除时间</th></tr></thead>
             <tbody>{paged.items.map((profile) => <tr key={profile.id} className={selected.has(profile.id) ? "is-selected" : ""}>
-              <td className="tools-checkbox"><input type="checkbox" aria-label={`Select ${profile.name || profile.id}`} disabled={!!busy} checked={selected.has(profile.id)} onChange={(event) => { const checked = event.target.checked; setSelected((previous) => { const next = new Set(previous); checked ? next.add(profile.id) : next.delete(profile.id); return next; }); }} /></td>
+              <td className="tools-checkbox"><input type="checkbox" aria-label={`选择 ${profile.name || profile.id}`} disabled={!!busy} checked={selected.has(profile.id)} onChange={(event) => { const checked = event.target.checked; setSelected((previous) => { const next = new Set(previous); checked ? next.add(profile.id) : next.delete(profile.id); return next; }); }} /></td>
               <td><strong>{profile.name || profile.id}</strong><small className="tools-mono">{profile.id}</small></td>
-              <td><span className="tools-folder-tag">{profile.group || "Ungrouped"}</span></td>
+              <td><span className="tools-folder-tag">{profile.group || "未分组"}</span></td>
               <td><time dateTime={new Date(profile.trashedAt).toISOString()} title={new Date(profile.trashedAt).toLocaleString()}>{new Date(profile.trashedAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</time><small>{new Date(profile.trashedAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}</small></td>
             </tr>)}</tbody></table></div>
-          <div className="proxy-pager"><span>{(paged.page * 50 + 1).toLocaleString()}–{Math.min((paged.page + 1) * 50, filtered.length).toLocaleString()} of {filtered.length.toLocaleString()}</span>
-            <button className="btn" disabled={paged.page === 0} onClick={() => setPage(paged.page - 1)}>Previous</button>
+          <div className="proxy-pager"><span>{(paged.page * 50 + 1).toLocaleString()}–{Math.min((paged.page + 1) * 50, filtered.length).toLocaleString()}，共 {filtered.length.toLocaleString()} 项</span>
+            <button className="btn" disabled={paged.page === 0} onClick={() => setPage(paged.page - 1)}>上一页</button>
             <span>{paged.page + 1} / {paged.pages}</span>
-            <button className="btn" disabled={paged.page + 1 >= paged.pages} onClick={() => setPage(paged.page + 1)}>Next</button>
+            <button className="btn" disabled={paged.page + 1 >= paged.pages} onClick={() => setPage(paged.page + 1)}>下一页</button>
           </div>
-        </> : <div className="tools-empty"><span className="tools-empty-symbol" aria-hidden="true">↶</span><h3>{busy === "load" ? "Loading Trash…" : profiles.length ? "No matching profiles" : "Trash is empty"}</h3><p>{profiles.length ? "Try another folder or search term." : "Profiles you move to Trash will appear here. You can restore them at any time."}</p></div>}
+        </> : <div className="tools-empty"><span className="tools-empty-symbol" aria-hidden="true">↶</span><h3>{busy === "load" ? "正在加载回收站…" : profiles.length ? "没有匹配的资料" : "回收站为空"}</h3><p>{profiles.length ? "请尝试其他分组或搜索词。" : "移入回收站的资料会显示在这里，并可随时恢复。"}</p></div>}
       </section>
     </div>
-    <p className="tools-footnote">Restoring keeps saved profile data. Permanent deletion removes it and cannot be undone.</p>
+    <p className="tools-footnote">恢复操作会保留已保存的资料数据；永久删除会移除数据且无法撤销。</p>
   </div>;
 }

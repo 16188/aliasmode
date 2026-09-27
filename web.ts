@@ -94,10 +94,10 @@ function renderProfileCard(store: ProfileStore, id: string): Response {
   const p = store.getProfile(id);
   if (!p) return new Response("unknown profile", { status: 404, headers: { "content-type": "text/plain" } });
   const engine = typeof p === "object" && "engine" in p && p.engine === "firefox" ? "firefox" : "chromium";
-  const browser = engine === "firefox" ? "AliasMode Firefox" : "Chromium（实验兼容内核）";
+  const browser = engine === "firefox" ? "AliasMode Firefox" : "IDFRI Browser";
   const capabilities = engine === "firefox"
     ? "原生 Firefox 资料 · 不支持 CDP、PDF 或 Chrome 扩展"
-    : "实验兼容内核 · 支持 CDP、PDF 和 Chrome 扩展";
+    : "IDFRI Chromium 内核 · 支持 CDP、PDF 和 Chrome 扩展";
   // Same number the browser window title and identity bookmark show: the
   // operator's custom NO. first, the store serial as fallback.
   const no = profileDisplayNo(p.customNo, store.getSerial(id)) ?? "?";

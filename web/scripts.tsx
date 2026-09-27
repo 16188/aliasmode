@@ -48,6 +48,14 @@ function languageName(language: ScriptLanguage): string {
   return language === "python" ? "Python" : "JavaScript";
 }
 
+function runStatusName(status: ScriptRun["status"]): string {
+  return { running: "运行中", stopping: "正在停止", finished: "已完成" }[status];
+}
+
+function profileRunStatusName(status: ScriptRun["profiles"][number]["status"]): string {
+  return { queued: "排队中", running: "运行中", succeeded: "成功", failed: "失败", cancelled: "已取消" }[status];
+}
+
 function publicationPending(script: ScriptRecord): boolean {
   return script.publishedRevision !== null && script.publishedRevision !== undefined && script.publishedRevision !== script.revision;
 }
@@ -110,7 +118,7 @@ export function ScriptsPage({ onViewRun }: { onViewRun: () => void }) {
 
   const importFile = async (file: File) => {
     const language = languageFor(file);
-    if (!language) { setError("Choose a .js, .mjs, or .py file."); return; }
+    if (!language) { setError("请选择 .js、.mjs 或 .py 文件。"); return; }
     setBusy(true);
     setError(null);
     try {
@@ -124,7 +132,7 @@ export function ScriptsPage({ onViewRun }: { onViewRun: () => void }) {
   const replaceFile = async (file: File) => {
     if (!script) return;
     const language = languageFor(file);
-    if (!language) { setError("Choose a .js, .mjs, or .py file."); return; }
+    if (!language) { setError("请选择 .js、.mjs 或 .py 文件。"); return; }
     setBusy(true);
     setError(null);
     try {
@@ -150,7 +158,7 @@ export function ScriptsPage({ onViewRun }: { onViewRun: () => void }) {
   const remove = async () => {
     if (!script) return;
     const alsoUnpublishes = script.publishedRevision !== null && script.publishedRevision !== undefined;
-    if (!window.confirm(`Delete ${script.name}?${alsoUnpublishes ? " This also removes its public listing." : ""}`)) return;
+    if (!window.confirm(`确定删除“${script.name}”吗？${alsoUnpublishes ? "公开列表中的对应项目也会被移除。" : ""}`)) return;
     setBusy(true);
     setError(null);
     try {
@@ -214,19 +222,19 @@ export function ScriptsPage({ onViewRun }: { onViewRun: () => void }) {
   return (
     <div className="workspace scripts-page">
       <div className="scripts-head">
-        <div><h2 className="sect-title">Scripts</h2><p className="formnote">Private scripts sync with your account in Cloud mode. Runs and logs stay on this computer.</p></div>
-        {tab === "mine" && <button className="btn primary" type="button" disabled={busy} onClick={() => importRef.current?.click()}>Import script</button>}
+        <div><h2 className="sect-title">脚本</h2><p className="formnote">本地版脚本保存在这台电脑上，运行记录和日志不会上传。</p></div>
+        {tab === "mine" && <button className="btn primary" type="button" disabled={busy} onClick={() => importRef.current?.click()}>导入脚本</button>}
       </div>
-      <div className="tabs scripts-tabs" role="tablist" aria-label="Script library">
-        <button className={`tab${tab === "mine" ? " active" : ""}`} role="tab" aria-selected={tab === "mine"} type="button" onClick={() => setTab("mine")}>My scripts</button>
-        <button className={`tab${tab === "library" ? " active" : ""}`} role="tab" aria-selected={tab === "library"} type="button" onClick={() => setTab("library")}>Public library</button>
+      <div className="tabs scripts-tabs" role="tablist" aria-label="脚本库">
+        <button className={`tab${tab === "mine" ? " active" : ""}`} role="tab" aria-selected={tab === "mine"} type="button" onClick={() => setTab("mine")}>我的脚本</button>
+        <button className={`tab${tab === "library" ? " active" : ""}`} role="tab" aria-selected={tab === "library"} type="button" onClick={() => setTab("library")}>公共脚本库</button>
       </div>
       {error && <div className="modal-err" role="alert">{error}</div>}
       {tab === "library" ? <PublicLibrary onImported={imported} /> : <>
-        {currentRun && <button className="scripts-run-note" type="button" onClick={onViewRun}>{currentRun.scriptName}: {currentRun.status}. View run</button>}
+        {currentRun && <button className="scripts-run-note" type="button" onClick={onViewRun}>{currentRun.scriptName}：{runStatusName(currentRun.status)}，查看运行详情</button>}
         <div className="scripts-layout">
-          <div className="scripts-list" aria-label="Saved scripts">
-            {scripts.length === 0 ? <p className="formnote">No scripts yet.</p> : scripts.map((item) => (
+          <div className="scripts-list" aria-label="已保存的脚本">
+            {scripts.length === 0 ? <p className="formnote">还没有脚本。</p> : scripts.map((item) => (
               <button className={`script-row${script?.id === item.id ? " active" : ""}`} type="button" key={item.id} disabled={busy} onClick={() => void select(item.id)}>
                 <b>{item.name}</b><span>{languageName(item.language)}</span>
                 {item.description && <small>{item.description}</small>}
@@ -235,31 +243,31 @@ export function ScriptsPage({ onViewRun }: { onViewRun: () => void }) {
           </div>
           {script ? (
             <section className="settings-card script-detail">
-              <header><h2>{script.name}</h2><span className="chip">{languageName(script.language)}</span>{isPublished && <span className="chip">{publicationPending(script) ? "Published, private changes pending" : "Published"}</span>}</header>
+              <header><h2>{script.name}</h2><span className="chip">{languageName(script.language)}</span>{isPublished && <span className="chip">{publicationPending(script) ? "已发布，有未公开的修改" : "已发布"}</span>}</header>
               <div className="card-body">
-                <label className="fld"><span>Title</span><input className="input" value={script.name} onChange={(event) => setScript({ ...script, name: event.target.value })} /></label>
-                <label className="fld"><span>Description</span><input className="input" value={script.description} onChange={(event) => setScript({ ...script, description: event.target.value })} /></label>
+                <label className="fld"><span>标题</span><input className="input" value={script.name} onChange={(event) => setScript({ ...script, name: event.target.value })} /></label>
+                <label className="fld"><span>说明</span><input className="input" value={script.description} onChange={(event) => setScript({ ...script, description: event.target.value })} /></label>
                 <div className="script-actions">
-                  <button className="btn primary" type="button" disabled={busy} onClick={() => void saveDetails()}>{busy ? "Saving…" : "Save details"}</button>
-                  <button className="btn" type="button" disabled={busy} onClick={() => replaceRef.current?.click()}>Replace file</button>
-                  <button className="btn danger" type="button" disabled={busy} onClick={() => void remove()}>Delete</button>
+                  <button className="btn primary" type="button" disabled={busy} onClick={() => void saveDetails()}>{busy ? "保存中…" : "保存详情"}</button>
+                  <button className="btn" type="button" disabled={busy} onClick={() => replaceRef.current?.click()}>替换文件</button>
+                  <button className="btn danger" type="button" disabled={busy} onClick={() => void remove()}>删除</button>
                 </div>
                 <div className="script-actions">
-                  <button className="btn" type="button" disabled={busy || !canPublish || detailsChanged} onClick={openPublication}>{isPublished ? "Update publication" : "Publish"}</button>
-                  {isPublished && <button className="btn danger" type="button" disabled={busy || !canPublish} onClick={() => void unpublish()}>Unpublish</button>}
+                  <button className="btn" type="button" disabled={busy || !canPublish || detailsChanged} onClick={openPublication}>{isPublished ? "更新发布" : "发布"}</button>
+                  {isPublished && <button className="btn danger" type="button" disabled={busy || !canPublish} onClick={() => void unpublish()}>取消发布</button>}
                 </div>
-                {canPublish && detailsChanged && <p className="formnote">Save details before publishing.</p>}
-                {!canPublish && <p className="formnote">Publishing is available after you sign in to Cloud mode.</p>}
+                {canPublish && detailsChanged && <p className="formnote">请先保存详情再发布。</p>}
+                {!canPublish && <p className="formnote">纯本地版不提供公共发布功能。</p>}
                 {publicationOpen && <form className="script-publication" onSubmit={(event) => { event.preventDefault(); void publish(); }}>
-                  <label className="fld"><span>Author name</span><input className="input" value={authorName} onChange={(event) => setAuthorName(event.target.value)} disabled={busy} /></label>
-                  <label className="script-credentials"><input type="checkbox" checked={showEmail} onChange={(event) => setShowEmail(event.target.checked)} disabled={busy} />Show my account email</label>
-                  <div className="script-publication-preview"><b>{script.name}</b><span>{script.description || "No description"}</span><span>{languageName(script.language)}</span></div>
-                  <div className="script-actions"><button className="btn primary" type="submit" disabled={busy || detailsChanged}>{busy ? "Publishing…" : isPublished ? "Update publication" : "Publish"}</button><button className="btn" type="button" disabled={busy} onClick={() => setPublicationOpen(false)}>Cancel</button></div>
+                  <label className="fld"><span>作者名称</span><input className="input" value={authorName} onChange={(event) => setAuthorName(event.target.value)} disabled={busy} /></label>
+                  <label className="script-credentials"><input type="checkbox" checked={showEmail} onChange={(event) => setShowEmail(event.target.checked)} disabled={busy} />显示我的账号邮箱</label>
+                  <div className="script-publication-preview"><b>{script.name}</b><span>{script.description || "暂无说明"}</span><span>{languageName(script.language)}</span></div>
+                  <div className="script-actions"><button className="btn primary" type="submit" disabled={busy || detailsChanged}>{busy ? "发布中…" : isPublished ? "更新发布" : "发布"}</button><button className="btn" type="button" disabled={busy} onClick={() => setPublicationOpen(false)}>取消</button></div>
                 </form>}
-                <label className="fld"><span>Source</span><pre className="script-source">{script.source}</pre></label>
+                <label className="fld"><span>源代码</span><pre className="script-source">{script.source}</pre></label>
               </div>
             </section>
-          ) : <div className="emptystate"><b>Select a script</b><p>Import a .js, .mjs, or .py file to begin.</p></div>}
+          ) : <div className="emptystate"><b>请选择脚本</b><p>导入 .js、.mjs 或 .py 文件即可开始。</p></div>}
         </div>
       </>}
       <input ref={importRef} type="file" accept=".js,.mjs,.py,text/javascript,text/x-python" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void importFile(file); event.target.value = ""; }} />
@@ -335,32 +343,32 @@ function PublicLibrary({ onImported }: { onImported: (script: ScriptRecord) => P
 
   return <div className="scripts-library">
     <form className="scripts-library-search" onSubmit={(event) => { event.preventDefault(); search(); }}>
-      <input className="input" aria-label="Search public scripts" placeholder="Search scripts" value={queryInput} onChange={(event) => setQueryInput(event.target.value)} />
-      <select className="select" aria-label="Script language" value={language} onChange={(event) => { setOffset(0); setLanguage(event.target.value as ScriptLanguage | ""); }}>
-        <option value="">All languages</option><option value="javascript">JavaScript</option><option value="python">Python</option>
+      <input className="input" aria-label="搜索公共脚本" placeholder="搜索脚本" value={queryInput} onChange={(event) => setQueryInput(event.target.value)} />
+      <select className="select" aria-label="脚本语言" value={language} onChange={(event) => { setOffset(0); setLanguage(event.target.value as ScriptLanguage | ""); }}>
+        <option value="">全部语言</option><option value="javascript">JavaScript</option><option value="python">Python</option>
       </select>
-      <button className="btn primary" type="submit" disabled={busy}>Search</button>
+      <button className="btn primary" type="submit" disabled={busy}>搜索</button>
     </form>
     {error && <div className="modal-err" role="alert">{error}</div>}
     <div className="scripts-layout">
-      <div className="scripts-list" aria-label="Public scripts">
-        {busy && scripts.length === 0 ? <p className="formnote">Loading scripts…</p> : scripts.length === 0 ? <p className="formnote">No public scripts found.</p> : scripts.map((item) => (
+      <div className="scripts-list" aria-label="公共脚本">
+        {busy && scripts.length === 0 ? <p className="formnote">正在加载脚本…</p> : scripts.length === 0 ? <p className="formnote">没有找到公共脚本。</p> : scripts.map((item) => (
           <button className={`script-row${script?.id === item.id ? " active" : ""}`} type="button" key={item.id} disabled={busy} onClick={() => void select(item.id)}>
             <b>{item.name}</b><span>{item.authorName} · {languageName(item.language)} · {new Date(item.updatedAt).toLocaleDateString()}</span>
             {item.description && <small>{item.description}</small>}
           </button>
         ))}
-        <div className="script-library-pager"><button className="btn" type="button" disabled={busy || offset === 0} onClick={() => setOffset(Math.max(0, offset - 50))}>Previous</button><button className="btn" type="button" disabled={busy || nextOffset === null} onClick={() => setOffset(nextOffset ?? offset)}>Next</button></div>
+        <div className="script-library-pager"><button className="btn" type="button" disabled={busy || offset === 0} onClick={() => setOffset(Math.max(0, offset - 50))}>上一页</button><button className="btn" type="button" disabled={busy || nextOffset === null} onClick={() => setOffset(nextOffset ?? offset)}>下一页</button></div>
       </div>
       {script ? <section className="settings-card script-detail">
         <header><h2>{script.name}</h2><span className="chip">{languageName(script.language)}</span></header>
         <div className="card-body">
-          <p>{script.description || "No description"}</p>
-          <p className="formnote">By {script.authorName}{script.authorEmail && <> · {script.authorEmail}</>} · {new Date(script.updatedAt).toLocaleDateString()}</p>
-          <button className="btn primary" type="button" disabled={busy} onClick={() => void importScript()}>Add to my scripts</button>
-          <label className="fld"><span>Source</span><pre className="script-source">{script.source}</pre></label>
+          <p>{script.description || "暂无说明"}</p>
+          <p className="formnote">作者：{script.authorName}{script.authorEmail && <> · {script.authorEmail}</>} · {new Date(script.updatedAt).toLocaleDateString()}</p>
+          <button className="btn primary" type="button" disabled={busy} onClick={() => void importScript()}>添加到我的脚本</button>
+          <label className="fld"><span>源代码</span><pre className="script-source">{script.source}</pre></label>
         </div>
-      </section> : <div className="emptystate"><b>Select a public script</b><p>Choose a script to view its details and source.</p></div>}
+      </section> : <div className="emptystate"><b>请选择公共脚本</b><p>选择脚本以查看详情和源代码。</p></div>}
     </div>
   </div>;
 }
@@ -422,8 +430,8 @@ export function ScriptRunPanel({ open, selectedProfiles, onClose }: {
   const start = async () => {
     let parsed: unknown;
     try { parsed = JSON.parse(inputs); }
-    catch { setError("Inputs must be valid JSON."); return; }
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) { setError("Inputs must be a JSON object."); return; }
+    catch { setError("输入内容必须是有效的 JSON。"); return; }
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) { setError("输入内容必须是 JSON 对象。"); return; }
     if (!scriptId || selectedProfiles.length === 0) return;
     setBusy(true);
     setError(null);
@@ -447,20 +455,20 @@ export function ScriptRunPanel({ open, selectedProfiles, onClose }: {
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal script-run-modal" role="dialog" aria-modal="true" aria-labelledby="script-run-title" onClick={(event) => event.stopPropagation()}>
-        <div className="modal-head" id="script-run-title">Run script<button type="button" className="modal-close" aria-label="Close" onClick={onClose}>×</button></div>
+        <div className="modal-head" id="script-run-title">运行脚本<button type="button" className="modal-close" aria-label="关闭" onClick={onClose}>×</button></div>
         <div className="modal-body">
-          {!desktop ? <div className="modal-err">Scripts require the desktop app.</div> : <>
-            <p className="formnote">Scripts run locally with your computer permissions.</p>
+          {!desktop ? <div className="modal-err">脚本功能需要桌面应用。</div> : <>
+            <p className="formnote">脚本在本机运行，并使用当前电脑权限。</p>
             {error && <div className="modal-err" role="alert">{error}</div>}
-            <label className="fld"><span>Script</span><select className="select" value={scriptId} onChange={(event) => setScriptId(event.target.value)} disabled={busy || runActive}><option value="">Choose a script…</option>{scripts.map((script) => <option key={script.id} value={script.id}>{script.name}</option>)}</select></label>
-            <label className="fld"><span>JSON inputs</span><textarea className="input script-inputs" value={inputs} onChange={(event) => setInputs(event.target.value)} disabled={busy || runActive} /></label>
-            <label className="script-credentials"><input type="checkbox" checked={useCredentials} onChange={(event) => setUseCredentials(event.target.checked)} disabled={busy || runActive} />Use saved profile login details</label>
-            <p className="formnote">{selectedProfiles.length} selected profile{selectedProfiles.length === 1 ? "" : "s"} will run sequentially.</p>
-            {run && <div className="script-progress"><b>{run.scriptName} · {run.status}</b>{run.profiles.map((profile) => <div key={profile.id} className={`script-profile ${profile.status}`}><span>{profile.name}</span><span>{profile.status}</span>{profile.error && <small>{profile.error}</small>}{profile.warning && <small className="warning">{profile.warning}</small>}</div>)}</div>}
-            {run && <pre className="script-log" aria-label="Script log">{log || "Waiting for log output…"}</pre>}
+            <label className="fld"><span>脚本</span><select className="select" value={scriptId} onChange={(event) => setScriptId(event.target.value)} disabled={busy || runActive}><option value="">请选择脚本…</option>{scripts.map((script) => <option key={script.id} value={script.id}>{script.name}</option>)}</select></label>
+            <label className="fld"><span>JSON 输入</span><textarea className="input script-inputs" value={inputs} onChange={(event) => setInputs(event.target.value)} disabled={busy || runActive} /></label>
+            <label className="script-credentials"><input type="checkbox" checked={useCredentials} onChange={(event) => setUseCredentials(event.target.checked)} disabled={busy || runActive} />使用资料中保存的登录信息</label>
+            <p className="formnote">已选择 {selectedProfiles.length} 个资料，将依次执行。</p>
+            {run && <div className="script-progress"><b>{run.scriptName} · {runStatusName(run.status)}</b>{run.profiles.map((profile) => <div key={profile.id} className={`script-profile ${profile.status}`}><span>{profile.name}</span><span>{profileRunStatusName(profile.status)}</span>{profile.error && <small>{profile.error}</small>}{profile.warning && <small className="warning">{profile.warning}</small>}</div>)}</div>}
+            {run && <pre className="script-log" aria-label="脚本日志">{log || "正在等待日志输出…"}</pre>}
           </>}
         </div>
-        <div className="modal-foot"><button className="btn ghost" type="button" onClick={onClose}>Close</button>{desktop && !runActive && <button className="btn primary" type="button" disabled={busy || !scriptId || selectedProfiles.length === 0} onClick={() => void start()}>{busy ? "Starting…" : "Run script"}</button>}{desktop && runActive && <button className="btn solid-danger" type="button" disabled={busy || run?.status === "stopping"} onClick={() => void stop()}>{run?.status === "stopping" ? "Stopping…" : busy ? "Stopping…" : "Stop"}</button>}</div>
+        <div className="modal-foot"><button className="btn ghost" type="button" onClick={onClose}>关闭</button>{desktop && !runActive && <button className="btn primary" type="button" disabled={busy || !scriptId || selectedProfiles.length === 0} onClick={() => void start()}>{busy ? "启动中…" : "运行脚本"}</button>}{desktop && runActive && <button className="btn solid-danger" type="button" disabled={busy || run?.status === "stopping"} onClick={() => void stop()}>{run?.status === "stopping" ? "正在停止…" : busy ? "正在停止…" : "停止"}</button>}</div>
       </div>
     </div>
   );

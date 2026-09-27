@@ -1782,6 +1782,7 @@ test("buildArgs never forwards startup URLs to chromium argv", () => {
   const args = launcher.buildArgs(profile, 9333, "/data", ["--disable-sync", "https://x.com/home"]);
   expect(args).toContain("--disable-sync");
   expect(args).toContain("--no-first-run");
+  expect(args).toContain("--lang=zh-CN");
   expect(args).toContain("--no-default-browser-check");
   expect(args).not.toContain("https://x.com/home");
   store.close();

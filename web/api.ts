@@ -132,11 +132,11 @@ export async function fetchCloudEvents(): Promise<CloudDiagnosticEvent[]> {
   const response = await fetch(path);
   const body = await apiJson(response, path);
   if (!response.ok || !Array.isArray(body.events)) {
-    throw new Error("Cloud diagnostics are unavailable");
+    throw new Error("Cloud 诊断不可用");
   }
   const knownTypes = new Set<string>(CLOUD_DIAGNOSTIC_TYPES);
   return body.events.map((event: unknown) => {
-    if (!event || typeof event !== "object") throw new Error("Cloud diagnostics returned invalid data");
+    if (!event || typeof event !== "object") throw new Error("Cloud 诊断返回了无效数据");
     const keys = Object.keys(event as object).sort();
     const timestamp = (event as any).timestamp;
     const type = (event as any).type;
@@ -146,7 +146,7 @@ export async function fetchCloudEvents(): Promise<CloudDiagnosticEvent[]> {
       !Number.isFinite(new Date(timestamp).getTime()) ||
       !knownTypes.has(type)
     ) {
-      throw new Error("Cloud diagnostics returned invalid data");
+      throw new Error("Cloud 诊断返回了无效数据");
     }
     return { timestamp, type } as CloudDiagnosticEvent;
   });
@@ -181,7 +181,7 @@ export async function fetchCloudAuth(): Promise<CloudAuthState> {
   const path = "/ui/api/cloud-auth";
   const response = await fetch(path);
   const body = await apiJson(response, path);
-  if (!response.ok || body.ok !== true) throw new Error(body.error || "Cloud authentication is unavailable");
+  if (!response.ok || body.ok !== true) throw new Error(body.error || "Cloud 身份验证不可用");
   return {
     authenticated: body.authenticated === true,
     expiresAt: body.expiresAt,
@@ -248,7 +248,7 @@ async function cloudAuthAction(action: string, input: Record<string, string | bo
     ) {
       throw new CloudSessionRestoreError(body.error, body.stage, body.retryable, body.category, body.code);
     }
-    throw new Error(body.error || "Cloud authentication failed");
+    throw new Error(body.error || "Cloud 身份验证失败");
   }
   return body;
 }
@@ -296,7 +296,7 @@ async function cloudConnectorAction(
     body: JSON.stringify({ action, ...(connectorId ? { connectorId } : {}) }),
   });
   const body = await apiJson(response, path);
-  if (!response.ok || body.ok !== true) throw new Error(body.error || "Remote MCP settings are unavailable");
+  if (!response.ok || body.ok !== true) throw new Error(body.error || "Remote MCP 设置不可用");
   return body as CloudConnectorResult;
 }
 
@@ -325,7 +325,7 @@ export async function fetchCloudTeam(): Promise<CloudTeamState> {
   const path = "/ui/api/cloud-workspace";
   const response = await fetch(path);
   const body = await apiJson(response, path);
-  if (!response.ok || body.ok !== true) throw new Error(body.error || "Cloud team is unavailable");
+  if (!response.ok || body.ok !== true) throw new Error(body.error || "Cloud 团队不可用");
   return { folders: body.folders, members: body.members, invitations: body.invitations };
 }
 
@@ -336,7 +336,7 @@ export async function cloudWorkspaceAction(action: string, input: Record<string,
     body: JSON.stringify({ action, ...input }),
   });
   const body = await apiJson(response, path);
-  if (!response.ok || body.ok !== true) throw new Error(body.error || "Cloud workspace action failed");
+  if (!response.ok || body.ok !== true) throw new Error(body.error || "Cloud 工作区操作失败");
   return body;
 }
 
@@ -344,7 +344,7 @@ export async function fetchLogs(): Promise<{ file: string; content: string }> {
   const path = "/ui/api/logs";
   const response = await fetch(path);
   const body = await apiJson(response, path);
-  if (body.ok !== true) throw new Error(body.error || "logs are unavailable");
+  if (body.ok !== true) throw new Error(body.error || "日志不可用");
   return { file: String(body.file), content: String(body.content ?? "") };
 }
 
@@ -477,7 +477,7 @@ export async function fetchGroupExtensionDefaults(): Promise<GroupExtensionDefau
   const response = await fetch(path);
   const body = await apiJson(response, path);
   if (!response.ok || body.ok !== true || !Array.isArray(body.groups)) {
-    throw new Error(body.error || "group extension defaults are unavailable");
+    throw new Error(body.error || "分组扩展默认设置不可用");
   }
   return body.groups;
 }
@@ -578,7 +578,7 @@ function proxyCheckResult(body: any): ProxyCheckResult {
     || ["ip", "country", "region", "city"].some((field) => body[field] !== undefined && typeof body[field] !== "string")
     || (body.rotating !== undefined && typeof body.rotating !== "boolean")
   ) {
-    throw new Error("Proxy check returned invalid data");
+    throw new Error("代理检查返回了无效数据");
   }
   return {
     status: body.status,
@@ -595,7 +595,7 @@ function proxyCheckResult(body: any): ProxyCheckResult {
 
 export class ProxyCheckError extends Error {
   constructor(readonly kind: "invalid" | "unavailable") {
-    super("Proxy check failed");
+    super("代理检查失败");
     this.name = "ProxyCheckError";
   }
 }
@@ -701,7 +701,7 @@ export async function fetchProfileEdit(id: string): Promise<EditProfile> {
   const path = `/ui/api/profiles/${encodeURIComponent(id)}`;
   const r = await fetch(path);
   const body = await apiJson(r, path);
-  if (!body.ok) throw new Error(body.error || "load failed");
+  if (!body.ok) throw new Error(body.error || "加载失败");
   return body.profile;
 }
 
@@ -724,7 +724,7 @@ export async function refreshProfileTimezone(id: string): Promise<{ timezone: st
   });
   const body = await apiJson(response, path);
   if (!response.ok || body.ok !== true || typeof body.timezone !== "string") {
-    throw new Error(body.error || "timezone lookup failed");
+    throw new Error(body.error || "时区查询失败");
   }
   return { timezone: body.timezone };
 }
@@ -748,7 +748,7 @@ export async function exportProfiles(
   });
   if (!r.ok) {
     const body = await apiJson(r, path);
-    throw new Error(body.error || "export failed");
+    throw new Error(body.error || "导出失败");
   }
   let blob: Blob | undefined;
   if (r.headers.get("content-type")?.includes("application/x-ndjson")) {
@@ -771,7 +771,7 @@ export async function exportProfiles(
           }
         }
       }
-      if (!blob || pending.trim()) throw new Error("Export interrupted before the file was complete. Please try again.");
+      if (!blob || pending.trim()) throw new Error("文件完成前导出已中断，请重试。");
     } finally {
       await reader.cancel().catch(() => {});
       reader.releaseLock();
@@ -838,15 +838,15 @@ export function scriptsDesktopAvailable(): boolean {
 
 async function scriptRequest(path: string, init: RequestInit = {}): Promise<any> {
   const invoke = (window as any).__TAURI_INTERNALS__?.invoke as ScriptInvoke | undefined;
-  if (!invoke) throw new Error("Scripts require the desktop app.");
+  if (!invoke) throw new Error("脚本功能需要桌面应用。");
   const capability = await invoke("script_capability");
-  if (typeof capability !== "string" || !capability) throw new Error("Scripts are unavailable in this desktop app.");
+  if (typeof capability !== "string" || !capability) throw new Error("此桌面应用无法使用脚本功能。");
   const headers = new Headers(init.headers);
   headers.set("Authorization", `Bearer ${capability}`);
   if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
   const response = await fetch(path, { ...init, headers });
   const body = await apiJson(response, path);
-  if (!response.ok || body.ok !== true) throw new Error(body.error || "Scripts request failed");
+  if (!response.ok || body.ok !== true) throw new Error(body.error || "脚本请求失败");
   return body;
 }
 
@@ -859,12 +859,12 @@ export interface ScriptLibraryInfo {
 export async function fetchScriptLibraryInfo(): Promise<ScriptLibraryInfo> {
   const body = await scriptRequest("/ui/api/scripts");
   if (!Array.isArray(body.scripts)) {
-    throw new Error("Scripts returned invalid data");
+    throw new Error("脚本功能返回了无效数据");
   }
   if (body.publicationDefaults !== undefined && (
     !body.publicationDefaults || typeof body.publicationDefaults.authorName !== "string"
   )) {
-    throw new Error("Scripts returned invalid publication defaults");
+    throw new Error("脚本功能返回了无效的发布默认值");
   }
   return {
     scripts: body.scripts as ScriptSummary[],
@@ -879,7 +879,7 @@ export async function fetchScripts(): Promise<ScriptSummary[]> {
 
 export async function fetchScript(id: string): Promise<ScriptRecord> {
   const body = await scriptRequest(`/ui/api/scripts/${encodeURIComponent(id)}`);
-  if (!body.script || typeof body.script !== "object") throw new Error("Script returned invalid data");
+  if (!body.script || typeof body.script !== "object") throw new Error("脚本功能返回了无效数据");
   return body.script as ScriptRecord;
 }
 
@@ -912,7 +912,7 @@ export async function fetchPublishedScripts(input: {
   const suffix = query.size ? `?${query}` : "";
   const body = await scriptRequest(`/ui/api/scripts/library${suffix}`);
   if (!Array.isArray(body.scripts) || (body.nextOffset !== null && !Number.isFinite(body.nextOffset))) {
-    throw new Error("Public library returned invalid data");
+    throw new Error("公共脚本库返回了无效数据");
   }
   return { scripts: body.scripts as PublishedScriptSummary[], nextOffset: body.nextOffset };
 }
@@ -920,14 +920,14 @@ export async function fetchPublishedScripts(input: {
 export async function fetchPublishedScript(id: string): Promise<PublishedScript> {
   const body = await scriptRequest(`/ui/api/scripts/library/${encodeURIComponent(id)}`);
   if (!body.script || typeof body.script !== "object" || typeof body.script.source !== "string") {
-    throw new Error("Public script returned invalid data");
+    throw new Error("公共脚本返回了无效数据");
   }
   return body.script as PublishedScript;
 }
 
 export async function importPublishedScript(id: string): Promise<ScriptRecord> {
   const body = await scriptRequest(`/ui/api/scripts/library/${encodeURIComponent(id)}/import`, { method: "POST", body: "{}" });
-  if (!body.script || typeof body.script !== "object") throw new Error("Imported script returned invalid data");
+  if (!body.script || typeof body.script !== "object") throw new Error("导入的脚本返回了无效数据");
   return body.script as ScriptRecord;
 }
 
@@ -935,7 +935,7 @@ export async function publishScript(id: string, input: PublishScriptInput): Prom
   const body = await scriptRequest(`/ui/api/scripts/${encodeURIComponent(id)}/publication`, {
     method: "PUT", body: JSON.stringify(input),
   });
-  if (!body.script || typeof body.script !== "object") throw new Error("Published script returned invalid data");
+  if (!body.script || typeof body.script !== "object") throw new Error("发布的脚本返回了无效数据");
   return body.script as PublishedScript;
 }
 
@@ -958,6 +958,6 @@ export async function stopScriptRun(): Promise<ScriptRun> {
 
 export async function fetchScriptLog(runId: string, offset: number): Promise<{ text: string; nextOffset: number }> {
   const body = await scriptRequest(`/ui/api/scripts/log?runId=${encodeURIComponent(runId)}&offset=${offset}`);
-  if (typeof body.text !== "string" || !Number.isFinite(body.nextOffset)) throw new Error("Script log returned invalid data");
+  if (typeof body.text !== "string" || !Number.isFinite(body.nextOffset)) throw new Error("脚本日志返回了无效数据");
   return { text: body.text, nextOffset: body.nextOffset };
 }

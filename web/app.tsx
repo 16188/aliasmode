@@ -236,57 +236,57 @@ function writeSetting(key: string, value: string): void {
 }
 
 const CLOUD_DIAGNOSTIC_LABELS: Record<CloudDiagnosticEvent["type"], string> = {
-  open_started: "Cloud open started",
-  cloud_registered: "Cloud session registered",
-  browser_started: "Chromium（实验兼容内核） started",
-  browser_launch_preflight_failed: "Browser profile preparation failed",
-  browser_launch_relay_setup_failed: "Proxy relay setup failed",
-  browser_launch_process_spawn_failed: "Chromium（实验兼容内核） process could not start",
-  browser_launch_cdp_readiness_failed: "Chromium（实验兼容内核） debugging connection was not ready",
-  session_restore_started: "Session restore started",
-  session_restore_completed: "Session restore completed",
-  session_restore_unclassified_failed: "Session restore failed before classification",
-  session_restore_invalid_bundle_failed: "Session data was invalid",
-  session_restore_invalid_bundle_timeout: "Session data validation timed out",
-  session_restore_connect_failed: "Browser connection failed",
-  session_restore_connect_timeout: "Browser connection timed out",
-  session_restore_context_failed: "Persistent browser context was unavailable",
-  session_restore_context_timeout: "Persistent browser context timed out",
-  session_restore_origin_storage_failed: "Website storage restore failed",
-  session_restore_origin_storage_timeout: "Website storage restore timed out",
-  session_restore_cookie_clear_failed: "Cookie clear failed",
-  session_restore_cookie_clear_timeout: "Cookie clear timed out",
-  session_restore_cookie_add_failed: "Cookie restore failed",
-  session_restore_cookie_add_timeout: "Cookie restore timed out",
-  session_restore_navigation_failed: "Startup navigation failed",
-  session_restore_navigation_timeout: "Startup navigation timed out",
-  session_restore_disconnect_failed: "Browser connection cleanup failed",
-  session_restore_disconnect_timeout: "Browser connection cleanup timed out",
-  open_running: "Cloud profile is running",
-  open_failed: "Cloud profile open failed",
-  close_started: "Cloud close started",
-  session_captured: "Session captured",
-  browser_stopped: "Chromium（实验兼容内核） stopped",
-  session_synced: "Session synchronized",
-  checkpoint_saved: "Session checkpoint saved",
-  checkpoint_unchanged: "Session checkpoint unchanged",
-  checkpoint_capture_failed: "Session checkpoint capture failed",
-  checkpoint_invalid: "Session checkpoint was invalid",
-  manual_stop_detected: "Manual browser close detected",
-  session_sync_pending: "Session synchronization is pending",
-  dirty_monitor_unavailable: "Fast session monitoring is unavailable",
-  cloud_registration_released: "Cloud session registration released",
-  cleanup_retained: "Browser or recovery state was retained",
-  heartbeat_failed: "Cloud heartbeat failed",
-  heartbeat_terminal_conflict: "Cloud lease ended after a version conflict",
-  heartbeat_terminal_access_ended: "Cloud lease ended after access was revoked",
-  no_page_observed: "Browser has no visible page",
-  no_page_close_requested: "Browser close requested after pages disappeared",
-  browser_death_confirmed: "Browser process exit confirmed",
-  browser_teardown_unconfirmed: "Browser teardown could not be confirmed",
-  session_sync_conflict: "Session synchronization has a terminal conflict",
-  access_ended: "Cloud access ended",
-  parked_session_restored: "Saved session restored to Cloud",
+  open_started: "开始打开 Cloud 资料",
+  cloud_registered: "Cloud 会话已注册",
+  browser_started: "IDFRI Browser 已启动",
+  browser_launch_preflight_failed: "浏览器资料准备失败",
+  browser_launch_relay_setup_failed: "代理中继初始化失败",
+  browser_launch_process_spawn_failed: "IDFRI Browser 进程无法启动",
+  browser_launch_cdp_readiness_failed: "IDFRI Browser 调试连接尚未就绪",
+  session_restore_started: "开始恢复会话",
+  session_restore_completed: "会话恢复完成",
+  session_restore_unclassified_failed: "会话恢复在分类前失败",
+  session_restore_invalid_bundle_failed: "会话数据无效",
+  session_restore_invalid_bundle_timeout: "会话数据校验超时",
+  session_restore_connect_failed: "浏览器连接失败",
+  session_restore_connect_timeout: "浏览器连接超时",
+  session_restore_context_failed: "持久浏览器上下文不可用",
+  session_restore_context_timeout: "持久浏览器上下文超时",
+  session_restore_origin_storage_failed: "网站存储恢复失败",
+  session_restore_origin_storage_timeout: "网站存储恢复超时",
+  session_restore_cookie_clear_failed: "Cookie 清除失败",
+  session_restore_cookie_clear_timeout: "Cookie 清除超时",
+  session_restore_cookie_add_failed: "Cookie 恢复失败",
+  session_restore_cookie_add_timeout: "Cookie 恢复超时",
+  session_restore_navigation_failed: "启动页面导航失败",
+  session_restore_navigation_timeout: "启动页面导航超时",
+  session_restore_disconnect_failed: "浏览器连接清理失败",
+  session_restore_disconnect_timeout: "浏览器连接清理超时",
+  open_running: "Cloud 资料正在运行",
+  open_failed: "Cloud 资料打开失败",
+  close_started: "开始关闭 Cloud 资料",
+  session_captured: "会话已捕获",
+  browser_stopped: "IDFRI Browser 已停止",
+  session_synced: "会话已同步",
+  checkpoint_saved: "会话检查点已保存",
+  checkpoint_unchanged: "会话检查点未变化",
+  checkpoint_capture_failed: "会话检查点捕获失败",
+  checkpoint_invalid: "会话检查点无效",
+  manual_stop_detected: "检测到手动关闭浏览器",
+  session_sync_pending: "会话正在等待同步",
+  dirty_monitor_unavailable: "快速会话监控不可用",
+  cloud_registration_released: "Cloud 会话注册已释放",
+  cleanup_retained: "浏览器或恢复状态已保留",
+  heartbeat_failed: "Cloud 心跳失败",
+  heartbeat_terminal_conflict: "版本冲突导致 Cloud 租约结束",
+  heartbeat_terminal_access_ended: "访问权限被撤销，Cloud 租约已结束",
+  no_page_observed: "浏览器没有可见页面",
+  no_page_close_requested: "页面消失后已请求关闭浏览器",
+  browser_death_confirmed: "已确认浏览器进程退出",
+  browser_teardown_unconfirmed: "无法确认浏览器已完全关闭",
+  session_sync_conflict: "会话同步发生终止性冲突",
+  access_ended: "Cloud 访问已结束",
+  parked_session_restored: "已保存的会话已恢复到 Cloud",
 };
 
 function cloudDiagnosticFailed(type: CloudDiagnosticEvent["type"]): boolean {
@@ -432,23 +432,23 @@ function FingerprintBadge({ p }: { p: UiProfile }) {
   if (!v) return null;
   if (v.verdict === "match") {
     return (
-      <span className="fpbadge ok" title={`Fingerprint verified against the import${p.fpCapturedAt ? ` — measured ${p.fpCapturedAt}` : ""}`}>
+      <span className="fpbadge ok" title={`指纹与导入记录一致${p.fpCapturedAt ? ` · 测量于 ${p.fpCapturedAt}` : ""}`}>
         verified
       </span>
     );
   }
   const detail = v.differences
-    .map((d) => `${d.field}: ${d.expected || "(none)"} → ${d.observed || "(none)"}`)
+    .map((d) => `${d.field}：${d.expected || "（无）"} → ${d.observed || "（无）"}`)
     .join("; ");
   return (
-    <span className="fpbadge warn" title={`This browser no longer matches the imported fingerprint — ${detail}`}>
+    <span className="fpbadge warn" title={`此浏览器与导入的指纹不再一致 · ${detail}`}>
       identity changed
     </span>
   );
 }
 
 function StatusDot({ running }: { running: boolean }) {
-  return <span className={`dot ${running ? "on" : ""}`} title={running ? "running" : "stopped"} />;
+  return <span className={`dot ${running ? "on" : ""}`} title={running ? "运行中" : "已停止"} />;
 }
 
 function HealthSources({ sources }: { sources: HealthSource[] }) {
@@ -462,7 +462,7 @@ function HealthSources({ sources }: { sources: HealthSource[] }) {
           title={`Last snapshot ${new Date(source.lastSnapshotAt).toLocaleString()}`}
         >
           <Icon name="activity" className="sm" />
-          {source.sourceId} · {source.stale ? "stale" : "fresh"} · {new Date(source.lastSnapshotAt).toLocaleTimeString()}
+          {source.sourceId} · {source.stale ? "已过期" : "最新"} · {new Date(source.lastSnapshotAt).toLocaleTimeString()}
         </span>
       ))}
     </div>
@@ -507,7 +507,7 @@ const PLATFORM_MARKS: Record<string, { key: string; path: string }> = {
 };
 
 const KNOWN_PLATFORMS: { value: string; label: string }[] = [
-  { value: "", label: "(none)" },
+  { value: "", label: "（无）" },
   { value: "x.com", label: "Twitter / X" },
   { value: "instagram.com", label: "Instagram" },
   { value: "facebook.com", label: "Facebook" },
@@ -595,7 +595,7 @@ async function copyPlainText(value: string): Promise<void> {
   textarea.select();
   const copied = document.execCommand("copy");
   textarea.remove();
-  if (!copied) throw new Error("copy failed");
+  if (!copied) throw new Error("复制失败");
 }
 
 function CopyField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
@@ -637,7 +637,7 @@ const AUTOMATIC_FINGERPRINT_FIELDS = [
   ["GPU", "自动"],
   ["CPU", "自动"],
   ["内存", "自动"],
-  ["Fingerprint seed", "自动 · 唯一且稳定"],
+  ["指纹种子", "自动 · 唯一且稳定"],
   ["时区", "已保存 · 可按代理设置"],
   ["Canvas / WebGL / 音频", "自动"],
   ["WebRTC", "自动 · 感知代理"],
@@ -661,7 +661,7 @@ function FingerprintSettings({
       <div className="fingerprint-grid">
         <label className="fld">
           <span>浏览器</span>
-          <input value={engine === "firefox" ? "AliasMode Firefox" : "Chromium（实验兼容内核）"} readOnly tabIndex={-1} className="ro" />
+          <input value={engine === "firefox" ? "AliasMode Firefox" : "IDFRI Browser"} readOnly tabIndex={-1} className="ro" />
         </label>
         {engine === "chromium" && (
           <label className="fld">
@@ -677,7 +677,7 @@ function FingerprintSettings({
         ))}
         <div className="hint">{engine === "firefox"
           ? "AliasMode Firefox 使用原生资料，不支持 CDP、PDF 和 Chrome 扩展。"
-          : "Chromium（实验兼容内核）会协调锁定的指纹值；屏幕尺寸是唯一可覆盖的指纹设置。"}</div>
+          : "IDFRI Browser 会协调锁定的指纹值；屏幕尺寸是唯一可覆盖的指纹设置。"}</div>
       </div>
     </details>
   );
@@ -708,7 +708,7 @@ interface RemoteMcpSettings {
 
 function parseRemoteMcpCredential(value: string): RemoteMcpCredential {
   const parsed = JSON.parse(value) as Record<string, unknown>;
-  if (parsed.version !== 1) throw new Error("Stored Remote MCP settings are invalid.");
+  if (parsed.version !== 1) throw new Error("已保存的 Remote MCP 设置无效。");
   if (parsed.state === "disabled") return { version: 1, state: "disabled" };
   if (
     parsed.state === "active" &&
@@ -724,7 +724,7 @@ function parseRemoteMcpCredential(value: string): RemoteMcpCredential {
       token: parsed.token,
     };
   }
-  throw new Error("Stored Remote MCP settings are invalid.");
+  throw new Error("已保存的 Remote MCP 设置无效。");
 }
 
 async function readDesktopRemoteMcpCredential(): Promise<RemoteMcpCredential | null | undefined> {
@@ -732,13 +732,13 @@ async function readDesktopRemoteMcpCredential(): Promise<RemoteMcpCredential | n
   if (!invoke) return undefined;
   const value = await invoke("credential_get", { key: "remote_mcp_connector" });
   if (value === null || value === undefined) return null;
-  if (typeof value !== "string") throw new Error("Stored Remote MCP settings are invalid.");
+  if (typeof value !== "string") throw new Error("已保存的 Remote MCP 设置无效。");
   return parseRemoteMcpCredential(value);
 }
 
 async function storeDesktopRemoteMcpCredential(value: RemoteMcpCredential): Promise<void> {
   const invoke = desktopInvoke();
-  if (!invoke) throw new Error("Remote MCP settings are available in the Windows app.");
+  if (!invoke) throw new Error("Remote MCP 设置仅可在 Windows 应用中使用。");
   await invoke("credential_set", { key: "remote_mcp_connector", secret: JSON.stringify(value) });
 }
 
@@ -752,7 +752,7 @@ function isUpdateHighlights(value: unknown): value is string[] {
 }
 
 function parseDesktopUpdateStatus(value: unknown): DesktopUpdateStatus {
-  if (!value || typeof value !== "object") throw new Error("IDFRI returned an invalid update status.");
+  if (!value || typeof value !== "object") throw new Error("IDFRI 返回了无效的更新状态。");
   const status = value as Record<string, unknown>;
   if (status.state === "upToDate" && typeof status.currentVersion === "string") {
     return { state: "upToDate", currentVersion: status.currentVersion };
@@ -770,11 +770,11 @@ function parseDesktopUpdateStatus(value: unknown): DesktopUpdateStatus {
       highlights: status.highlights,
     };
   }
-  throw new Error("IDFRI returned an invalid update status.");
+  throw new Error("IDFRI 返回了无效的更新状态。");
 }
 
 function parseDesktopUpdateMessage(value: unknown): DesktopUpdateMessage {
-  if (!value || typeof value !== "object") throw new Error("IDFRI returned invalid update progress.");
+  if (!value || typeof value !== "object") throw new Error("IDFRI 返回了无效的更新进度。");
   const progress = value as Record<string, unknown>;
   if (progress.phase === "ready" && typeof progress.version === "string" && isUpdateHighlights(progress.highlights)) {
     return { phase: "ready", version: progress.version, highlights: progress.highlights };
@@ -1173,7 +1173,7 @@ function App() {
     try {
       setCloudEvents((await fetchCloudEvents()).slice().reverse());
     } catch {
-      setCloudEventsErr("Recent diagnostics could not be loaded.");
+      setCloudEventsErr("无法加载最近的诊断记录。");
     } finally {
       setCloudEventsBusy(false);
     }
@@ -1205,14 +1205,14 @@ function App() {
 
   const inviteTeamMember = async () => {
     const email = teamEmail.trim();
-    const ok = await runTeamAction("invite", { email, role: teamRole }, `Invitation sent to ${email}`);
+    const ok = await runTeamAction("invite", { email, role: teamRole }, `邀请已发送至 ${email}`);
     if (ok) setTeamEmail("");
   };
 
   const checkDesktopUpdate = async (manual: boolean) => {
     const invoke = desktopInvoke();
     if (!invoke) {
-      if (manual) setDesktopUpdateErr("Updates are available only in the Windows desktop app.");
+      if (manual) setDesktopUpdateErr("更新功能仅可在 Windows 桌面应用中使用。");
       return;
     }
     setDesktopUpdateChecking(true);
@@ -1263,7 +1263,7 @@ function App() {
       typeof created.url !== "string" || !created.url ||
       typeof created.token !== "string" || !created.token
     ) {
-      throw new Error("IDFRI Cloud returned invalid Remote MCP settings.");
+      throw new Error("IDFRI Cloud 返回了无效的 Remote MCP 设置。");
     }
     try {
       await storeDesktopRemoteMcpCredential({
@@ -1275,7 +1275,7 @@ function App() {
       });
     } catch {
       await revokeCloudConnector(created.connectorId).catch(() => undefined);
-      throw new Error("The Remote MCP access key could not be stored securely.");
+      throw new Error("无法安全保存 Remote MCP 访问密钥。");
     }
     return {
       state: "active",
@@ -1307,7 +1307,7 @@ function App() {
     try {
       const stored = await readDesktopRemoteMcpCredential();
       if (stored === undefined) {
-        throw new Error("Remote MCP settings are available in the Windows desktop app.");
+        throw new Error("Remote MCP 设置仅可在 Windows 桌面应用中使用。");
       }
       if (stored?.state === "disabled") {
         setRemoteMcp({ state: "disabled" });
@@ -1344,7 +1344,7 @@ function App() {
 
   const disableRemoteMcp = async () => {
     if (remoteMcp.state !== "active" || !remoteMcp.connectorId) return;
-    if (!window.confirm("Disable this Remote MCP connection? Connected clients will stop working.")) return;
+    if (!window.confirm("确定禁用此 Remote MCP 连接吗？已连接的客户端将停止工作。")) return;
     await runRemoteMcpTask(async () => {
       setRemoteMcp({ state: "loading" });
       setRemoteMcpTokenVisible(false);
@@ -1360,7 +1360,7 @@ function App() {
 
   const regenerateRemoteMcp = async () => {
     if (remoteMcp.state !== "active" || !remoteMcp.connectorId) return;
-    if (!window.confirm("Generate a new Remote MCP access key? Existing clients will disconnect.")) return;
+    if (!window.confirm("确定生成新的 Remote MCP 访问密钥吗？现有客户端将断开连接。")) return;
     await runRemoteMcpTask(async () => {
       setRemoteMcp({ state: "loading" });
       setRemoteMcpTokenVisible(false);
@@ -1380,7 +1380,7 @@ function App() {
       setRemoteMcpCopied(kind);
       window.setTimeout(() => setRemoteMcpCopied((current) => current === kind ? null : current), 1200);
     } catch {
-      setRemoteMcp((current) => ({ ...current, error: "Remote MCP connection details could not be copied." }));
+      setRemoteMcp((current) => ({ ...current, error: "无法复制 Remote MCP 连接信息。" }));
     }
   };
 
@@ -1463,7 +1463,7 @@ function App() {
           );
           if (generation !== authGeneration.current || !savedSessionRestoreEnabled.current) return;
           if (typeof result.refreshToken !== "string" || !result.refreshToken) {
-            throw new Error("Cloud did not return a refresh token");
+            throw new Error("Cloud 未返回刷新令牌");
           }
           await storeDesktopCloudCredentials(result.refreshToken, stored.deviceCredential);
           if (generation !== authGeneration.current || !savedSessionRestoreEnabled.current) return;
@@ -1493,7 +1493,7 @@ function App() {
           if (attempt === 0) continue;
           const message = error instanceof CloudSessionRestoreError
             ? error.message
-            : "Saved Cloud session could not be restored. Try again when the connection is available.";
+            : "无法恢复已保存的 Cloud 会话，请在网络连接可用后重试。";
           setAuthErr(message);
           if (startup) setSavedSessionPhase("retryable-failure");
           else setScheduledRefreshPending(true);
@@ -1546,8 +1546,8 @@ function App() {
       if (authView === "signup") {
         const result = await signUpCloud(authEmail, authPassword);
         setAuthNotice(result.verificationRequired
-          ? "Check your email, verify the account, then sign in."
-          : "Account created. You can sign in now.");
+          ? "请检查邮箱、验证账号，然后登录。"
+          : "账号已创建，现在可以登录。");
         setConfirmationEmail(result.verificationRequired ? authEmail : "");
         setAuthView("signin");
       } else {
@@ -1555,17 +1555,17 @@ function App() {
         const result = await signInCloud(authEmail, authPassword, stored?.queueKey);
         if (generation !== authGeneration.current) return;
         if (typeof result.refreshToken !== "string" || !result.refreshToken) {
-          throw new Error("Cloud did not return a refresh token");
+          throw new Error("Cloud 未返回刷新令牌");
         }
         if (typeof result.deviceCredential !== "string" || !result.deviceCredential) {
-          throw new Error("Cloud did not return a device credential");
+          throw new Error("Cloud 未返回设备凭据");
         }
         if (
           !stored?.queueKey &&
           result.queueKeyPersisted !== true &&
           (typeof result.queueKey !== "string" || !result.queueKey)
         ) {
-          throw new Error("Cloud did not initialize encrypted pending sync");
+          throw new Error("Cloud 未初始化加密的待同步队列");
         }
         const persisted = await storeDesktopCloudCredentials(
           result.refreshToken,
@@ -1584,7 +1584,7 @@ function App() {
         setSavedSessionPhase("manual-signin");
         setScheduledRefreshPending(false);
         setAuthPassword("");
-        if (!persisted) setAuthNotice("Signed in for this run; desktop credential storage is unavailable.");
+        if (!persisted) setAuthNotice("本次运行已登录，但桌面凭据存储不可用。");
       }
     } catch (error) {
       if (generation === authGeneration.current) {
@@ -1628,7 +1628,7 @@ function App() {
     setAuthErr(null);
     try {
       await resendCloudSignUp(confirmationEmail);
-      setAuthNotice("Confirmation email sent again.");
+      setAuthNotice("确认邮件已重新发送。");
     } catch (error) {
       setAuthErr(error instanceof Error ? error.message : String(error));
     } finally {
@@ -1642,7 +1642,7 @@ function App() {
     try {
       await acceptCloudInvitation(invitationCode);
       setInvitationCode("");
-      setAuthNotice("Invitation accepted.");
+      setAuthNotice("邀请已接受。");
       setCloudAuth(await fetchCloudAuth());
       await Promise.all([load(), loadTeam()]);
     } catch (error) {
@@ -1983,7 +1983,7 @@ function App() {
   const selectedFilteredCount = filtered.filter((p) => selected.has(p.id)).length;
   const selectedOutsideFilter = selected.size - selectedFilteredCount;
   const allFilteredSelected = filtered.length > 0 && selectedFilteredCount === filtered.length && selectedOutsideFilter === 0;
-  const selectionScope = `${filtered.length.toLocaleString()} ${q ? "matching profiles" : "profiles"}${group === "all" ? "" : ` in “${group}”`}`;
+  const selectionScope = `${filtered.length.toLocaleString()} 个${q ? "匹配的资料" : "资料"}${group === "all" ? "" : `，位于“${group}”`}`;
   const selectAllFiltered = () => setSelected(new Set(filtered.map((p) => p.id)));
   const toggleAll = () =>
     setSelected((s) => {
@@ -2002,7 +2002,7 @@ function App() {
       if (isCloudMode && newMode) await cloudWorkspaceAction("create-folder", { name: group });
       const r = await moveProfiles(ids, group);
       if (r.ok === false) {
-        setActionErr(r.error || "move failed");
+        setActionErr(r.error || "移动失败");
         return;
       }
       setSelected(new Set());
@@ -2019,8 +2019,8 @@ function App() {
     const ids = [...selected];
     if (ids.length === 0 || deleteInFlight.current) return;
     if (!confirm(appMode?.legacyRemote
-      ? `Delete ${ids.length} profile(s)? This removes them from the roster (and any saved session). This can't be undone.`
-      : `Move all ${ids.length.toLocaleString()} selected profiles to Trash? This includes every selected page. You can restore them with their saved data.`)) return;
+      ? `确定删除 ${ids.length} 个资料吗？资料及其已保存会话会从列表中移除，且无法撤销。`
+      : `确定将选中的 ${ids.length.toLocaleString()} 个资料全部移至回收站吗？这包括所有已选择的页面，之后可连同已保存数据一起恢复。`)) return;
     deleteInFlight.current = true;
     setDeleting(true);
     setActionErr(null);
@@ -2029,16 +2029,16 @@ function App() {
       const r = await deleteProfiles(ids);
       if (generation !== authGeneration.current) return;
       if (r.ok === false) {
-        setActionErr(r.error || "delete failed");
+        setActionErr(r.error || "删除失败");
         return;
       }
       const problems = [
-        r.locked?.length && `${r.locked.length} in use, not deleted`,
-        r.failed?.length && `${r.failed.length} failed`,
+        r.locked?.length && `${r.locked.length} 个正在使用，未删除`,
+        r.failed?.length && `${r.failed.length} 个失败`,
       ].filter(Boolean);
-      if (problems.length) setActionErr(`${problems.join("; ")}. These profiles remain selected.`);
+      if (problems.length) setActionErr(`${problems.join("；")}。这些资料仍保持选中。`);
       setSelected(new Set([...(r.locked ?? []), ...(r.failed ?? [])]));
-      flash(`${r.deleted.toLocaleString()} profiles ${appMode?.legacyRemote ? "deleted" : "moved to Trash"}`);
+      flash(`${r.deleted.toLocaleString()} 个资料已${appMode?.legacyRemote ? "删除" : "移至回收站"}`);
       await load();
     } catch (e) {
       if (generation === authGeneration.current) setActionErr(String(e));
@@ -2054,7 +2054,7 @@ function App() {
     try {
       const r = await fn(id);
       await load(); // refresh first; load() no longer clears action errors
-      if (r && r.ok === false) setActionErr(r.error || "action failed");
+      if (r && r.ok === false) setActionErr(r.error || "操作失败");
       else if (r && r.warning) setActionErr(r.warning);
     } catch (e) {
       await load().catch(() => {});
@@ -2073,9 +2073,9 @@ function App() {
       ? new Date(profile.parkedSession.savedAt).toLocaleString()
       : "";
     if (!confirm(
-      `Restore the session saved on this device for ${profile.name} (${savedAt})?\n\n` +
-      "Its cookies and logins replace the ones Cloud has for this profile. " +
-      "Everything else keeps its current Cloud values.",
+      `确定恢复此设备上为 ${profile.name} 保存的会话吗？（${savedAt}）\n\n` +
+      "该会话的 Cookie 和登录状态会替换此资料在 Cloud 中的对应数据，" +
+      "其他内容仍保留当前 Cloud 值。",
     )) return;
     void act(profile.id, restoreParkedSession);
   };
@@ -2099,13 +2099,13 @@ function App() {
     try {
       const result = await addProfileCookie(cookieProfile.id, cookieForm);
       if (result.ok !== true) {
-        setCookieErr(result.error || "Cookie could not be added.");
+        setCookieErr(result.error || "无法添加 Cookie。");
         return;
       }
       closeCookie();
-      flash("Cookie added to the open browser.");
+      flash("Cookie 已添加到打开的浏览器。");
     } catch (error) {
-      setCookieErr(error instanceof Error ? error.message : "Cookie could not be added.");
+      setCookieErr(error instanceof Error ? error.message : "无法添加 Cookie。");
     } finally {
       setCookieSaving(false);
     }
@@ -2119,10 +2119,10 @@ function App() {
       const r = await uploadExports(list);
       await load();
       if (r.ok) {
-        const issues = r.errors?.length ? ` Reported ${r.errors.length} invalid record(s); invalid proxies were quarantined for repair.` : "";
-        alert(`Imported ${r.profiles} profile(s) from ${r.files} file(s).${issues}`);
+        const issues = r.errors?.length ? ` 发现 ${r.errors.length} 条无效记录；无效代理已隔离，等待修复。` : "";
+        alert(`已从 ${r.files} 个文件导入 ${r.profiles} 个资料。${issues}`);
       }
-      else setActionErr(r.error || "import failed");
+      else setActionErr(r.error || "导入失败");
     } catch (e) {
       setActionErr(String(e));
     }
@@ -2151,15 +2151,15 @@ function App() {
     try {
       const uploads = [...bulkFiles];
       if (bulkText.trim()) uploads.push(new File([bulkText], "pasted-adspower.txt", { type: "text/plain" }));
-      if (!uploads.length) throw new Error("no rows found in the file(s)");
+      if (!uploads.length) throw new Error("文件中没有找到记录");
       const r = await uploadExports(uploads, { group: bulkGroup.trim(), platform: bulkPlatform });
       if (r.ok) {
         closeBulk();
         await load();
-        const issues = r.errors?.length ? ` Reported ${r.errors.length} invalid record(s); invalid proxies were quarantined for repair.` : "";
-        alert(`Imported ${r.profiles} profile(s) from ${r.files} file(s).${issues}`);
+        const issues = r.errors?.length ? ` 发现 ${r.errors.length} 条无效记录；无效代理已隔离，等待修复。` : "";
+        alert(`已从 ${r.files} 个文件导入 ${r.profiles} 个资料。${issues}`);
       }
-      else setBulkErr(r.error || "import failed");
+      else setBulkErr(r.error || "导入失败");
     } catch (e) {
       setBulkErr(String(e));
     } finally {
@@ -2208,7 +2208,7 @@ function App() {
         pass: parsed.pass,
       }));
       setProxyPaste("");
-      setProxyPasteOk(`✓ ${parsed.type.toUpperCase()} proxy fields filled`);
+      setProxyPasteOk(`✓ 已填入 ${parsed.type.toUpperCase()} 代理字段`);
       setCreateErr(null);
     } catch (error) {
       setProxyPasteOk(null);
@@ -2266,7 +2266,7 @@ function App() {
         closeCreate();
         await load();
       } else {
-        setCreateErr(r.error || "create failed"); // shown inside the modal
+        setCreateErr(r.error || "创建失败"); // shown inside the modal
       }
     } catch (e) {
       setCreateErr(String(e));
@@ -2393,7 +2393,7 @@ function App() {
     setEditSaving(true);
     setEditErr(null);
     try {
-      if (isCloudMode && !editLive && editExpectedVersion === null) throw new Error("Cloud profile version is missing; close and reopen Edit");
+      if (isCloudMode && !editLive && editExpectedVersion === null) throw new Error("Cloud 资料版本缺失，请关闭并重新打开编辑窗口");
       const r = await updateProfile(editId, {
         name: editForm.name ?? "", group: editForm.group ?? "", platform: editForm.platform ?? "",
         proxy: editForm.proxy ?? "", proxyType: editForm.proxyType ?? "http",
@@ -2405,10 +2405,10 @@ function App() {
       }, isCloudMode && !editLive ? editExpectedVersion ?? undefined : undefined);
       if (r.ok) { closeEdit(); await load(); }
       else if (r.status === 409) {
-        const message = r.error || "Cloud profile changed; reopen Edit before saving";
+        const message = r.error || "Cloud 资料已更改，请重新打开编辑窗口后再保存";
         closeEdit();
         setActionErr(message);
-      } else setEditErr(r.error || "save failed");
+      } else setEditErr(r.error || "保存失败");
     } catch (e) {
       setEditErr(String(e));
     } finally {
@@ -2418,20 +2418,20 @@ function App() {
   const convertEditedMobile = async () => {
     if (!editId || !editMobile) return;
     const platform = editMobile.platform === "macos" ? "macOS" : "Windows";
-    const screenNote = editMobile.screenChanged ? ` Its mobile-sized screen will become ${editMobile.resolution}.` : " Its existing desktop-sized screen will be kept.";
+    const screenNote = editMobile.screenChanged ? ` 移动端屏幕尺寸将改为 ${editMobile.resolution}。` : " 将保留现有的桌面屏幕尺寸。";
     if (!confirm(
-      `Convert this imported mobile persona to a stable ${platform} desktop persona?\n\n` +
-      `Cookies, login/session, credentials, proxy, timezone, fingerprint seed, tags and extensions are preserved.${screenNote}\n\n` +
-      "The website may treat the first launch as a new desktop device and request verification. Other unsaved edits in this dialog are not included.",
+      `确定将导入的移动端身份转换为稳定的 ${platform} 桌面身份吗？\n\n` +
+      `Cookie、登录/会话、凭据、代理、时区、指纹种子、标签和扩展都会保留。${screenNote}\n\n` +
+      "网站可能会将首次启动识别为新桌面设备并要求验证。此窗口中其他未保存的修改不会包含在内。",
     )) return;
     setEditSaving(true);
     setEditErr(null);
     try {
       const r = await convertMobileProfile(editId);
-      if (!r.ok) { setEditErr(r.error || "conversion failed"); return; }
+      if (!r.ok) { setEditErr(r.error || "转换失败"); return; }
       closeEdit();
       await load();
-      flash(`Converted profile to a stable ${platform} desktop persona`);
+      flash(`资料已转换为稳定的 ${platform} 桌面身份`);
     } catch (e) {
       setEditErr(String(e));
     } finally {
@@ -2446,18 +2446,18 @@ function App() {
   const applyGroupExtensionDefault = async () => {
     if (!groupDefaultName) return;
     if (!confirm(
-      `Apply this extension default to “${groupDefaultName}”?\n\n` +
-      `This replaces extension assignments on ${groupDefaultProfileCount} current profile(s). ` +
-      "New and moved profiles inherit this selection. Individual profile edits can differ later. " +
-      "Reopen browsers to apply the change.",
+      `确定将此扩展默认值应用到“${groupDefaultName}”吗？\n\n` +
+      `这会替换当前 ${groupDefaultProfileCount} 个资料的扩展分配。` +
+      "新建和移入的资料会继承此选择，之后仍可单独修改资料。" +
+      "请重新打开浏览器以应用更改。",
     )) return;
     setGroupDefaultBusy(true);
     setExtErr(null);
     try {
       const result = await setGroupExtensionDefaults(groupDefaultName, groupDefaultExts);
-      if (result.ok === false) { setExtErr(result.error || "group default update failed"); return; }
+      if (result.ok === false) { setExtErr(result.error || "分组默认值更新失败"); return; }
       await Promise.all([reloadGroupExtensionDefaults(), load()]);
-      flash(`Updated extension defaults for “${groupDefaultName}” on ${result.updatedCount} profile(s)`);
+      flash(`已更新“${groupDefaultName}”中 ${result.updatedCount} 个资料的扩展默认值`);
     } catch (error) {
       setExtErr(error instanceof Error ? error.message : String(error));
     } finally {
@@ -2466,15 +2466,15 @@ function App() {
   };
   const doInstallWebStoreExtension = async () => {
     const source = extSource.trim();
-    if (!source) { setExtErr("Paste a Chrome Web Store URL or extension ID"); return; }
+    if (!source) { setExtErr("请粘贴 Chrome 应用商店 URL 或扩展 ID"); return; }
     setExtInstallBusy(true);
     setExtErr(null);
     try {
       const r = await installWebStoreExtension(source);
-      if (!r.ok) { setExtErr(r.error || "installation failed"); return; }
+      if (!r.ok) { setExtErr(r.error || "安装失败"); return; }
       setExtSource("");
       await reloadExtensions();
-      flash(r.alreadyInstalled ? `${r.installed.name} is already installed` : `Installed ${r.installed.name}`);
+      flash(r.alreadyInstalled ? `${r.installed.name} 已安装` : `已安装 ${r.installed.name}`);
     } catch (e) {
       setExtErr(String(e));
     } finally {
@@ -2488,7 +2488,7 @@ function App() {
     setExtErr(null);
     try {
       const r = await uploadExtensions(list);
-      if (!r.ok) setExtErr(r.error || "upload failed");
+      if (!r.ok) setExtErr(r.error || "上传失败");
       await reloadExtensions();
     } catch (e) {
       setExtErr(String(e));
@@ -2498,13 +2498,13 @@ function App() {
   };
   const doRemoveExtension = async (id: string, name: string) => {
     const message = isCloudMode
-      ? `Remove extension "${name}" from this device? Cloud assignments remain and will show as not installed here.`
-      : `Remove extension "${name}"? It will be unassigned from all profiles.`;
+      ? `确定从此设备移除扩展“${name}”吗？Cloud 分配会保留，并在此处显示为未安装。`
+      : `确定移除扩展“${name}”吗？它将从所有资料中取消分配。`;
     if (!confirm(message)) return;
     setExtErr(null);
     try {
       const r = await removeExtension(id);
-      if (!r.ok) setExtErr(r.error || "remove failed");
+      if (!r.ok) setExtErr(r.error || "移除失败");
       setEditExts((xs) => xs.filter((x) => x !== id));
       await Promise.all([reloadExtensions(), reloadGroupExtensionDefaults()]);
     } catch (e) {
@@ -2519,10 +2519,10 @@ function App() {
     setActionErr(null);
     try {
       const r = await assignExtensionBulk(ids, bulkExt, op);
-      if (r.ok === false) { setActionErr(r.error || "extension assign failed"); return; }
+      if (r.ok === false) { setActionErr(r.error || "扩展分配失败"); return; }
       await load();
-      const name = extensions.find((x) => x.id === bulkExt)?.name ?? "extension";
-      flash(`${op === "add" ? "Added" : "Removed"} “${name}” ${op === "add" ? "to" : "from"} ${r.updated} profile(s)`);
+      const name = extensions.find((x) => x.id === bulkExt)?.name ?? "扩展";
+      flash(`已为 ${r.updated} 个资料${op === "add" ? "添加" : "移除"}“${name}”`);
     } catch (e) {
       setActionErr(String(e));
     }
@@ -2533,7 +2533,7 @@ function App() {
     setActionErr(null);
     try {
       const r = await fetchTotp(id);
-      if (!r.code) { setActionErr("no 2FA secret on this profile"); return; }
+      if (!r.code) { setActionErr("此资料没有 2FA 密钥"); return; }
       try { await navigator.clipboard.writeText(r.code); } catch {}
       setTwoFaFlash({ id, code: r.code });
       setTimeout(() => setTwoFaFlash((f) => (f && f.id === id ? null : f)), 4000);
@@ -2552,7 +2552,7 @@ function App() {
     await runPool(ids, 4, async (id) => {
       try {
         const r = await op(id);
-        if (r?.ok === false) issues.push(`${id}: ${r.error || "action failed"}`);
+        if (r?.ok === false) issues.push(`${id}：${r.error || "操作失败"}`);
         else if (r?.warning) issues.push(`${id}: ${r.warning}`);
       } catch (error) {
         issues.push(`${id}: ${String(error)}`);
@@ -2568,8 +2568,8 @@ function App() {
     const ids = [...selected].filter((id) => profiles.find((p) => p.id === id)?.mobilePersona);
     if (!ids.length) return;
     if (!confirm(
-      `Convert ${ids.length} selected mobile persona(s) to stable desktop personas?\n\n` +
-      "Account data, sessions, proxies, timezones and fingerprint seeds are preserved. Android keeps the Windows desktop family used by older IDFRI; iPhone/iPad keeps macOS. A website may request device verification on first launch.",
+      `确定将选中的 ${ids.length} 个移动端身份转换为稳定的桌面身份吗？\n\n` +
+      "账号数据、会话、代理、时区和指纹种子都会保留。Android 会沿用旧版 IDFRI 使用的 Windows 桌面系列，iPhone/iPad 会沿用 macOS。网站可能在首次启动时要求设备验证。",
     )) return;
     setActionErr(null);
     setBusy((b) => { const n = { ...b }; ids.forEach((id) => (n[id] = true)); return n; });
@@ -2577,15 +2577,15 @@ function App() {
     await runPool(ids, 4, async (id) => {
       try {
         const r = await convertMobileProfile(id);
-        if (!r.ok) failed.push(`${id}: ${r.error || "conversion failed"}`);
+        if (!r.ok) failed.push(`${id}：${r.error || "转换失败"}`);
       } catch (e) {
         failed.push(`${id}: ${String(e)}`);
       }
     });
     await load().catch(() => {});
     setBusy((b) => { const n = { ...b }; ids.forEach((id) => delete n[id]); return n; });
-    if (failed.length) setActionErr(`${ids.length - failed.length} converted; ${failed.length} failed — ${failed.join("; ")}`);
-    else flash(`Converted ${ids.length} mobile persona(s) to stable desktop personas`);
+    if (failed.length) setActionErr(`${ids.length - failed.length} 个已转换，${failed.length} 个失败 · ${failed.join("；")}`);
+    else flash(`已将 ${ids.length} 个移动端身份转换为稳定的桌面身份`);
   };
 
   // ---- Export selected → file ----
@@ -2597,7 +2597,7 @@ function App() {
     setExportProgress({ completed: 0, total: ids.length });
     try {
       await exportProfiles(ids, format, (progress) => setExportProgress(progress));
-      flash(`Exported ${ids.length.toLocaleString()} profile${ids.length === 1 ? "" : "s"} as ${format.toUpperCase()}`);
+      flash(`已将 ${ids.length.toLocaleString()} 个资料导出为 ${format.toUpperCase()}`);
     } catch (e) {
       setActionErr(String(e));
     } finally {
@@ -2618,12 +2618,12 @@ function App() {
       if (!r.ok) {
         setUpdateErr(r.errors?.length
           ? r.errors.map((item: { id: string; error: string }) => `${item.id}: ${item.error}`).join(" · ")
-          : r.error || "update failed");
+          : r.error || "更新失败");
         if (typeof r.updated !== "number") return;
       }
-      let m = `Updated ${r.updated} profile(s)`;
-      if (r.notFound?.length) m += ` · ${r.notFound.length} id(s) in the file matched no profile`;
-      if (r.skipped) m += ` · ${r.skipped} row(s) skipped (no id)`;
+      let m = `已更新 ${r.updated} 个资料`;
+      if (r.notFound?.length) m += ` · 文件中有 ${r.notFound.length} 个 ID 未匹配到资料`;
+      if (r.skipped) m += ` · 已跳过 ${r.skipped} 行（没有 ID）`;
       setUpdateResult(m);
       await load();
     } catch (e) {
@@ -2638,7 +2638,7 @@ function App() {
     const name = sidebarGroupName.trim();
     if (!name) return;
     if (name === "all") {
-      setActionErr("This name is reserved.");
+      setActionErr("此名称为保留名称。");
       return;
     }
     setActionErr(null);
@@ -2647,7 +2647,7 @@ function App() {
         ? await cloudWorkspaceAction("create-folder", { name })
         : await createGroup(name);
       if (result.ok === false) {
-        setActionErr(result.error || "create failed");
+        setActionErr(result.error || "创建失败");
         return;
       }
       await Promise.all([load(), isCloudMode ? loadTeam() : Promise.resolve()]);
@@ -2666,7 +2666,7 @@ function App() {
     setActionErr(null);
     try {
       const r = await renameGroup(from, to);
-      if (r.ok === false) setActionErr(r.error || "rename failed");
+      if (r.ok === false) setActionErr(r.error || "重命名失败");
       else {
         if (group === from) setGroup(to);
         await Promise.all([load(), isCloudMode ? loadTeam() : Promise.resolve()]);
@@ -2678,15 +2678,15 @@ function App() {
   const removeGroup = async (g: string) => {
     const n = countFor(g);
     const prompt = isCloudMode
-      ? `Permanently delete folder "${g}"? Only an empty folder can be deleted.`
-      : `Delete group "${g}"?${n ? ` Its ${n} profile(s) move to Ungrouped (not deleted).` : ""}`;
+      ? `确定永久删除文件夹“${g}”吗？只有空文件夹可以删除。`
+      : `确定删除分组“${g}”吗？${n ? `其中 ${n} 个资料会移至“未分组”，不会被删除。` : ""}`;
     if (!confirm(prompt)) return;
     setActionErr(null);
     try {
       const r = isCloudMode
         ? await cloudWorkspaceAction("delete-folder", { name: g })
         : await deleteGroup(g);
-      if (r.ok === false) setActionErr(r.error || "delete failed");
+      if (r.ok === false) setActionErr(r.error || "删除失败");
       else {
         if (group === g) setGroup("all");
         await Promise.all([load(), isCloudMode ? loadTeam() : Promise.resolve()]);
@@ -2716,12 +2716,12 @@ function App() {
           ) : appMode?.mode === "cloud" ? (
             cloudAuth?.authenticated ? (
               <>
-                <h1 id="onboarding-title">Review the Cloud terms</h1>
-                <p>Accept the current policies before synchronizing this workspace.</p>
+                <h1 id="onboarding-title">查看 Cloud 条款</h1>
+                <p>同步此工作区前，请接受当前政策。</p>
                 <div className="auth-actions">
-                  <a href="https://aliasmode.com/terms/" target="_blank" rel="noreferrer">Terms</a>
-                  <a href="https://aliasmode.com/privacy/" target="_blank" rel="noreferrer">Privacy</a>
-                  <a href="https://aliasmode.com/acceptable-use/" target="_blank" rel="noreferrer">Acceptable Use</a>
+                  <a href="https://aliasmode.com/terms/" target="_blank" rel="noreferrer">服务条款</a>
+                  <a href="https://aliasmode.com/privacy/" target="_blank" rel="noreferrer">隐私政策</a>
+                  <a href="https://aliasmode.com/acceptable-use/" target="_blank" rel="noreferrer">可接受使用政策</a>
                 </div>
                 {authErr && <div className="mode-error" role="alert">{authErr}</div>}
                 <button
@@ -2730,32 +2730,32 @@ function App() {
                   disabled={authBusy || !cloudAuth.legal}
                   onClick={() => void acceptCurrentLegal()}
                 >
-                  {authBusy ? "Working…" : cloudAuth.legal ? "Accept and continue to Cloud" : "Checking workspace…"}
+                  {authBusy ? "正在处理…" : cloudAuth.legal ? "接受并进入 Cloud" : "正在检查工作区…"}
                 </button>
                 {modeErr && <div className="mode-error" role="alert">{modeErr}</div>}
               </>
             ) : savedSessionPhase === "restoring" ? (
               <>
-                <h1 id="onboarding-title">Restoring saved session</h1>
-                <p role="status">Checking the saved Cloud session on this device…</p>
+                <h1 id="onboarding-title">正在恢复已保存的会话</h1>
+                <p role="status">正在检查此设备上保存的 Cloud 会话…</p>
               </>
             ) : savedSessionPhase === "retryable-failure" ? (
               <>
-                <h1 id="onboarding-title">Restoring saved session</h1>
-                <p>The saved session is still on this device. Reconnect and try again.</p>
+                <h1 id="onboarding-title">正在恢复已保存的会话</h1>
+                <p>已保存的会话仍在此设备上，请恢复网络后重试。</p>
                 {authErr && <div className="mode-error" role="alert">{authErr}</div>}
                 <div className="auth-actions">
                   <button className="mode-primary" type="button" disabled={authBusy} onClick={() => void restoreSavedSession(true)}>重试</button>
-                  <button className="mode-secondary" type="button" disabled={authBusy} onClick={() => void signInInstead()}>Sign in instead</button>
+                  <button className="mode-secondary" type="button" disabled={authBusy} onClick={() => void signInInstead()}>改为登录</button>
                 </div>
               </>
             ) : (
               <>
-                <h1 id="onboarding-title">{authView === "signin" ? "Sign in to IDFRI Cloud" : "Create your Cloud account"}</h1>
-                <p>Verified accounts can synchronize portable profiles across authorized devices.</p>
+                <h1 id="onboarding-title">{authView === "signin" ? "登录 IDFRI Cloud" : "创建 Cloud 账号"}</h1>
+                <p>已验证的账号可在授权设备间同步可移植资料。</p>
                 <form className="auth-form" onSubmit={(event) => { event.preventDefault(); void submitCloudAuth(); }}>
-                  <label>Email<input type="email" autoComplete="email" required value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} /></label>
-                  <label>Password<input type="password" autoComplete={authView === "signin" ? "current-password" : "new-password"} required value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} /></label>
+                  <label>邮箱<input type="email" autoComplete="email" required value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} /></label>
+                  <label>密码<input type="password" autoComplete={authView === "signin" ? "current-password" : "new-password"} required value={authPassword} onChange={(event) => setAuthPassword(event.target.value)} /></label>
                   {authErr && <div className="mode-error" role="alert">{authErr}</div>}
                   {authNotice && <div className="auth-notice" role="status">{authNotice}</div>}
                   {confirmationEmail && (
@@ -2763,11 +2763,11 @@ function App() {
                       Resend confirmation
                     </button>
                   )}
-                  <button className="mode-primary" type="submit" disabled={authBusy}>{authBusy ? "Working…" : authView === "signin" ? "Sign in" : "Create account"}</button>
+                  <button className="mode-primary" type="submit" disabled={authBusy}>{authBusy ? "正在处理…" : authView === "signin" ? "登录" : "创建账号"}</button>
                 </form>
                 <div className="auth-actions">
                   <button type="button" onClick={() => { setAuthErr(null); setAuthNotice(null); setAuthView(authView === "signin" ? "signup" : "signin"); }}>
-                    {authView === "signin" ? "Create an account" : "Back to sign in"}
+                    {authView === "signin" ? "创建账号" : "返回登录"}
                   </button>
                 </div>
                 {modeErr && <div className="mode-error" role="alert">{modeErr}</div>}
@@ -2809,7 +2809,7 @@ function App() {
     // The Action column carries no header text: its buttons explain themselves,
     // and a floating "ACTION" label over a right-aligned cluster read as an
     // empty column. The column chooser still lists it by its registry label.
-    const label = column.key === "action" ? "" : column.key === "group" && isCloudMode ? "Folder" : column.label;
+    const label = column.key === "action" ? "" : column.key === "group" && isCloudMode ? "文件夹" : column.label;
     // Every column declares its width, so a wide window's extra space spreads
     // proportionally across all of them — an even layout, no dead gap.
     const style = { width: column.width } as CSSProperties;
@@ -2964,12 +2964,12 @@ function App() {
                     {(canEditGroup(g) || (isCloudMode && canManageCloudFolders)) && (
                       <span className="gactions">
                         {canEditGroup(g) && (
-                          <button title={isCloudMode ? "Rename folder" : "Rename group"} onClick={(e) => { e.stopPropagation(); startRename(g); }}>
+                          <button title={isCloudMode ? "重命名文件夹" : "重命名分组"} onClick={(e) => { e.stopPropagation(); startRename(g); }}>
                             <Icon name="edit" className="sm" />
                           </button>
                         )}
                         {(!isCloudMode || canManageCloudFolders) && (
-                          <button className="danger" title={isCloudMode ? "Delete folder" : "Delete group"} onClick={(e) => { e.stopPropagation(); removeGroup(g); }}>
+                          <button className="danger" title={isCloudMode ? "删除文件夹" : "删除分组"} onClick={(e) => { e.stopPropagation(); removeGroup(g); }}>
                             <Icon name="trash" className="sm" />
                           </button>
                         )}
@@ -3012,10 +3012,9 @@ function App() {
             <Icon name="settings" /><span className="navlabel">设置</span>
           </button>
           <div className="sidecredit">
-            {/* The author link and the project's GitHub link are intentionally separate. */}
             <span className="watermark">
               开发者
-              <a href="https://xreacher.com/" target="_blank" rel="noreferrer" title="xreacher.com">Xreacher</a>
+              <a href="https://github.com/16188/aliasmode" target="_blank" rel="noreferrer" title="IDFRI GitHub">IDFRI</a>
             </span>
             <div className="projectlinks">
               {PROJECT_LINKS.map((link) => (
@@ -3108,8 +3107,8 @@ function App() {
           >
             <span className="avatar"><Icon name="user" /></span>
             <span className="who">
-              <b>{isCloudMode ? cloudAuth?.user?.email ?? "Cloud account" : "本地工作区"}</b>
-              <span>{isCloudMode ? cloudAuth?.workspace?.role ?? "member" : "无需账号"}</span>
+              <b>{isCloudMode ? cloudAuth?.user?.email ?? "Cloud 账号" : "本地工作区"}</b>
+              <span>{isCloudMode ? cloudAuth?.workspace?.role === "owner" ? "所有者" : cloudAuth?.workspace?.role === "admin" ? "管理员" : "成员" : "无需账号"}</span>
             </span>
             <Icon name="chevronRight" className="sm" />
           </button>
@@ -3350,8 +3349,8 @@ function App() {
                         <span className="n">{p.name}<FingerprintBadge p={p} /></span>
                         <span className="sub">
                           {p.id}
-                          <span title={p.engine === "firefox" ? "原生 Firefox 资料 · 不支持 CDP、PDF 或 Chrome 扩展" : "Chromium（实验兼容内核）· 支持 CDP、PDF 和 Chrome 扩展"}>
-                            {p.engine === "firefox" ? "AliasMode Firefox" : "Chromium（实验兼容内核）"}
+                          <span title={p.engine === "firefox" ? "原生 Firefox 资料 · 不支持 CDP、PDF 或 Chrome 扩展" : "IDFRI Chromium 内核 · 支持 CDP、PDF 和 Chrome 扩展"}>
+                            {p.engine === "firefox" ? "AliasMode Firefox" : "IDFRI Browser"}
                           </span>
                           {p.running && <span className="live"><StatusDot running />运行中</span>}
                           {p.lockedBy && (
@@ -3556,12 +3555,12 @@ function App() {
                   onChange={(event) => setExtSource(event.target.value)}
                 />
                 <button className="btn primary" type="submit" disabled={extInstallBusy || extBusy}>
-                  <Icon name="plus" className="sm" />{extInstallBusy ? "安装中…" : "Install"}
+                  <Icon name="plus" className="sm" />{extInstallBusy ? "安装中…" : "安装"}
                 </button>
               </form>
             </div>
           </section>
-          <p className="formnote">Chromium（实验兼容内核）中的应用商店按钮不可用。请在上方粘贴商店链接，或上传 ZIP/CRX 文件。Chrome 扩展仅适用于 Chromium 资料。</p>
+          <p className="formnote">IDFRI Browser 中的应用商店按钮不可用。请在上方粘贴商店链接，或上传 ZIP/CRX 文件。Chrome 扩展仅适用于 IDFRI Browser 资料。</p>
           <ol className="steps">
             <li>先在此安装扩展；新安装的扩展默认不分配。</li>
             <li>在<b>编辑 → 扩展</b>中分配给资料{!isCloudMode && "，也可在资料工具栏中批量分配"}。</li>
@@ -3615,7 +3614,7 @@ function App() {
                     disabled={groupDefaultBusy || !groupDefaultName}
                     onClick={applyGroupExtensionDefault}
                   >
-                    {groupDefaultBusy ? "Applying…" : "Apply group default"}
+                    {groupDefaultBusy ? "正在应用…" : "应用分组默认值"}
                   </button>
                 </>
               )}
@@ -3672,7 +3671,7 @@ function App() {
               className={`tab${settingsTab === tab.key ? " active" : ""}`}
               onClick={() => setSettingsTab(tab.key)}
             >
-              {tab.key === "team" && isCloudMode ? "Team" : tab.label}
+              {tab.key === "team" && isCloudMode ? "团队" : tab.label}
             </button>
           ))}
         </div>
@@ -3683,19 +3682,19 @@ function App() {
               <div className="identity-card">
                 <span className="identity-avatar"><Icon name="user" className="lg" /></span>
                 <span className="identity-lines">
-                  <b>{isCloudMode ? cloudAuth?.user?.email ?? "Cloud account" : "本地工作区"}</b>
+                  <b>{isCloudMode ? cloudAuth?.user?.email ?? "Cloud 账号" : "本地工作区"}</b>
                   <span>
                     {isCloudMode
-                      ? `${cloudAuth?.workspace?.role ?? "member"} · ${cloudAuth?.workspace?.name ?? "Cloud workspace"}`
+                      ? `${cloudAuth?.workspace?.role ?? "成员"} · ${cloudAuth?.workspace?.name ?? "Cloud 工作区"}`
                       : "无需账号 · 资料仅保存在本机"}
                   </span>
                 </span>
-                <span className="chip">{isCloudMode ? "Cloud" : "Local"}</span>
+                <span className="chip">{isCloudMode ? "Cloud" : "本地"}</span>
               </div>
 <section className="settings-card">
             <header><Icon name="user" className="sm" /><h2>账号</h2></header>
             <div className="card-body">
-            <div className="settings-row"><span>当前身份</span><strong>{isCloudMode ? cloudAuth?.user?.email ?? "Cloud account" : "本地 · 无需账号"}</strong></div>
+            <div className="settings-row"><span>当前身份</span><strong>{isCloudMode ? cloudAuth?.user?.email ?? "Cloud 账号" : "本地 · 无需账号"}</strong></div>
             <div className="settings-row"><span>已保存资料</span><strong>{profiles.length}</strong></div>
             {isCloudMode && cloudAuth?.authenticated && (
               <button className="btn danger" type="button" disabled={authBusy} onClick={() => void signOut()}>
@@ -3709,54 +3708,54 @@ function App() {
           {isCloudMode && cloudAuth?.authenticated && (
             <section className="settings-card remote-mcp-settings">
               <header>
-                <Icon name="cloud" className="sm" /><h2>Remote MCP</h2>
+                <Icon name="cloud" className="sm" /><h2>远程 MCP</h2>
                 <span className={`remote-mcp-status ${remoteMcp.state}`}>
-                  {remoteMcp.state === "active" ? "Ready" : remoteMcp.state === "disabled" ? "Disabled" : remoteMcp.state === "loading" ? "Preparing" : remoteMcp.state === "error" ? "Unavailable" : "Not ready"}
+                  {remoteMcp.state === "active" ? "就绪" : remoteMcp.state === "disabled" ? "已禁用" : remoteMcp.state === "loading" ? "正在准备" : remoteMcp.state === "error" ? "不可用" : "未就绪"}
                 </span>
               </header>
               <div className="card-body">
-                <p>Connect an AI client on another computer. Browser windows open on this Windows PC, so keep IDFRI running.</p>
-                {remoteMcp.state === "loading" && <p className="hint" role="status">Preparing your secure connection…</p>}
+                <p>连接另一台电脑上的 AI 客户端。浏览器窗口会在这台 Windows 电脑上打开，因此请保持 IDFRI 运行。</p>
+                {remoteMcp.state === "loading" && <p className="hint" role="status">正在准备安全连接…</p>}
                 {remoteMcp.state === "active" && remoteMcp.url && remoteMcp.token && (
                   <>
                     <label className="fld remote-mcp-field">
-                      <span>MCP server URL</span>
+                      <span>MCP 服务器 URL</span>
                       <span className="remote-mcp-value">
                         <input className="mono" value={remoteMcp.url} readOnly />
-                        <button className="btn" type="button" disabled={authBusy} onClick={() => void copyRemoteMcp("url", remoteMcp.url!)}>{remoteMcpCopied === "url" ? "Copied" : "Copy"}</button>
+                        <button className="btn" type="button" disabled={authBusy} onClick={() => void copyRemoteMcp("url", remoteMcp.url!)}>{remoteMcpCopied === "url" ? "已复制" : "复制"}</button>
                       </span>
                     </label>
                     <label className="fld remote-mcp-field">
-                      <span>Access key</span>
+                      <span>访问密钥</span>
                       <span className="remote-mcp-value">
-                        <input className="mono" value={remoteMcpTokenVisible ? remoteMcp.token : "••••••••••••••••••••••••"} readOnly aria-label="Remote MCP access key" />
-                        <button className="btn" type="button" disabled={authBusy} onClick={() => setRemoteMcpTokenVisible((visible) => !visible)}>{remoteMcpTokenVisible ? "Hide" : "Reveal"}</button>
-                        <button className="btn" type="button" disabled={authBusy} onClick={() => void copyRemoteMcp("token", remoteMcp.token!)}>{remoteMcpCopied === "token" ? "Copied" : "Copy"}</button>
+                        <input className="mono" value={remoteMcpTokenVisible ? remoteMcp.token : "••••••••••••••••••••••••"} readOnly aria-label="Remote MCP 访问密钥" />
+                        <button className="btn" type="button" disabled={authBusy} onClick={() => setRemoteMcpTokenVisible((visible) => !visible)}>{remoteMcpTokenVisible ? "隐藏" : "显示"}</button>
+                        <button className="btn" type="button" disabled={authBusy} onClick={() => void copyRemoteMcp("token", remoteMcp.token!)}>{remoteMcpCopied === "token" ? "已复制" : "复制"}</button>
                       </span>
                     </label>
                     <div className="hint remote-mcp-guide">
-                      <strong>Connect Claude.ai or ChatGPT</strong>
+                      <strong>连接 Claude.ai 或 ChatGPT</strong>
                       <ol>
-                        <li>Add a custom MCP connector or app.</li>
-                        <li>Paste the MCP server URL and select Connect.</li>
-                        <li>Sign into IDFRI and select Allow.</li>
+                        <li>添加自定义 MCP 连接器或应用。</li>
+                        <li>粘贴 MCP 服务器 URL，然后选择“连接”。</li>
+                        <li>登录 IDFRI，然后选择“允许”。</li>
                       </ol>
                       <details>
-                        <summary>Claude Code and other clients</summary>
-                        <p>Claude Code uses an HTTP entry in <code>.mcp.json</code>. Keep the access key in an environment variable. Other bearer-capable MCP clients can use the same URL and secret header.</p>
-                        <p>Claude.ai and ChatGPT use OAuth and do not need the access key.</p>
+                        <summary>Claude Code 和其他客户端</summary>
+                        <p>Claude Code 使用 <code>.mcp.json</code> 中的 HTTP 配置。请将访问密钥保存在环境变量中。其他支持 Bearer 身份验证的 MCP 客户端可使用相同的 URL 和密钥请求头。</p>
+                        <p>Claude.ai 和 ChatGPT 使用 OAuth，不需要访问密钥。</p>
                       </details>
                     </div>
                     <div className="update-actions">
-                      <button className="btn" type="button" disabled={authBusy} onClick={() => void regenerateRemoteMcp()}>Regenerate key</button>
-                      <button className="btn danger" type="button" disabled={authBusy} onClick={() => void disableRemoteMcp()}>Disable</button>
+                      <button className="btn" type="button" disabled={authBusy} onClick={() => void regenerateRemoteMcp()}>重新生成密钥</button>
+                      <button className="btn danger" type="button" disabled={authBusy} onClick={() => void disableRemoteMcp()}>禁用</button>
                     </div>
                   </>
                 )}
                 {remoteMcp.state === "disabled" && (
                   <>
-                    <p>Remote connections are disabled for this Windows device.</p>
-                    <button className="btn" type="button" disabled={authBusy} onClick={() => void enableRemoteMcp()}>Enable Remote MCP</button>
+                    <p>此 Windows 设备已禁用远程连接。</p>
+                    <button className="btn" type="button" disabled={authBusy} onClick={() => void enableRemoteMcp()}>启用远程 MCP</button>
                   </>
                 )}
                 {remoteMcp.error && <div className="modal-err" role="alert">{remoteMcp.error}</div>}
@@ -3790,23 +3789,23 @@ function App() {
           )}
           {settingsTab === "team" && (
             <>
-              <h2 className="sect-title">{isCloudMode ? "Team and folder access" : "Workspace"}</h2>
+              <h2 className="sect-title">{isCloudMode ? "团队与分组权限" : "工作区"}</h2>
 <section className="settings-card">
-            <header><Icon name="folders" className="sm" /><h2>{isCloudMode ? "Team" : "Workspace"}</h2></header>
+            <header><Icon name="folders" className="sm" /><h2>{isCloudMode ? "团队" : "工作区"}</h2></header>
             <div className="card-body">
             {isCloudMode ? (
               <>
-                <div className="settings-row"><span>Workspace</span><strong>{cloudAuth?.workspace?.name ?? "Cloud workspace"}</strong></div>
-                <div className="settings-row"><span>Role</span><strong>{cloudAuth?.workspace?.role ?? "member"}</strong></div>
-                {teamBusy && !team && <p className="hint" role="status">Loading team…</p>}
-                <h3 className="settings-subhead">Members</h3>
+                <div className="settings-row"><span>工作区</span><strong>{cloudAuth?.workspace?.name ?? "Cloud 工作区"}</strong></div>
+                <div className="settings-row"><span>角色</span><strong>{cloudAuth?.workspace?.role === "owner" ? "所有者" : cloudAuth?.workspace?.role === "admin" ? "管理员" : "成员"}</strong></div>
+                {teamBusy && !team && <p className="hint" role="status">正在加载团队…</p>}
+                <h3 className="settings-subhead">成员</h3>
                 {team?.members.map((member) => (
                   <div className="team-member" key={member.accountId}>
                     <div className="settings-row">
-                      <span>{member.email}<small> · {member.grants.map((grant) => `${grant.folderName}: ${grant.permission}`).join(", ") || "No folder access"}</small></span>
-                      {member.role === "owner" || cloudAuth?.workspace?.role !== "owner" ? <strong>{member.role}</strong> : (
-                        <select className="select" aria-label={`Role for ${member.email}`} value={member.role} disabled={teamBusy} onChange={(event) => void runTeamAction("role", { accountId: member.accountId, role: event.target.value })}>
-                          <option value="member">member</option><option value="admin">admin</option>
+                      <span>{member.email}<small> · {member.grants.map((grant) => `${grant.folderName}：${grant.permission === "edit" ? "编辑" : "查看"}`).join("，") || "无分组权限"}</small></span>
+                      {member.role === "owner" || cloudAuth?.workspace?.role !== "owner" ? <strong>{member.role === "owner" ? "所有者" : member.role === "admin" ? "管理员" : "成员"}</strong> : (
+                        <select className="select" aria-label={`${member.email} 的角色`} value={member.role} disabled={teamBusy} onChange={(event) => void runTeamAction("role", { accountId: member.accountId, role: event.target.value })}>
+                          <option value="member">成员</option><option value="admin">管理员</option>
                         </select>
                       )}
                     </div>
@@ -3814,41 +3813,42 @@ function App() {
                       <div className="team-grants">
                         {team.folders.filter((folder) => !folder.archivedAt).map((folder) => {
                           const permission = member.grants.find((grant) => grant.folderName === folder.name)?.permission ?? "";
-                          return <label key={folder.name}>{folder.name}<select className="select" aria-label={`${folder.name} access for ${member.email}`} value={permission} disabled={teamBusy} onChange={(event) => void runTeamAction(event.target.value ? "grant" : "remove-grant", { folderName: folder.name, accountId: member.accountId, permission: event.target.value })}><option value="">No access</option><option value="view">View</option><option value="edit">Edit</option></select></label>;
+                          return <label key={folder.name}>{folder.name}<select className="select" aria-label={`${member.email} 对 ${folder.name} 的权限`} value={permission} disabled={teamBusy} onChange={(event) => void runTeamAction(event.target.value ? "grant" : "remove-grant", { folderName: folder.name, accountId: member.accountId, permission: event.target.value })}><option value="">无权限</option><option value="view">查看</option><option value="edit">编辑</option></select></label>;
                         })}
-                        <button className="btn xs danger" type="button" aria-label={`Remove ${member.email}`} disabled={teamBusy} onClick={() => void runTeamAction("remove-member", { accountId: member.accountId }, `Removed ${member.email}`)}>Remove</button>
+                        <button className="btn xs danger" type="button" aria-label={`移除 ${member.email}`} disabled={teamBusy} onClick={() => void runTeamAction("remove-member", { accountId: member.accountId }, `已移除 ${member.email}`)}>移除</button>
                       </div>
                     )}
                   </div>
                 ))}
                 {(cloudAuth?.workspace?.role === "owner" || cloudAuth?.workspace?.role === "admin") && (
                   <>
-                    <h3 className="settings-subhead">Invitations</h3>
+                    <h3 className="settings-subhead">邀请</h3>
                     <form className="team-code" onSubmit={(event) => { event.preventDefault(); void inviteTeamMember(); }}>
-                      <input className="input" type="email" aria-label="Invite email" aria-describedby="invite-team-help" placeholder="Staff email address" value={teamEmail} disabled={teamBusy} onChange={(event) => setTeamEmail(event.target.value)} />
-                      {cloudAuth?.workspace?.role === "owner" && <select className="select" aria-label="Invitation role" value={teamRole} disabled={teamBusy} onChange={(event) => setTeamRole(event.target.value as "admin" | "member")}><option value="member">Member</option><option value="admin">Admin</option></select>}
-                      <button className="btn primary" type="submit" disabled={teamBusy || !teamEmail.trim()}>Send invite</button>
+                      <input className="input" type="email" aria-label="邀请邮箱" aria-describedby="invite-team-help" placeholder="成员邮箱地址" value={teamEmail} disabled={teamBusy} onChange={(event) => setTeamEmail(event.target.value)} />
+                      {cloudAuth?.workspace?.role === "owner" && <select className="select" aria-label="邀请角色" value={teamRole} disabled={teamBusy} onChange={(event) => setTeamRole(event.target.value as "admin" | "member")}><option value="member">成员</option><option value="admin">管理员</option></select>}
+                      <button className="btn primary" type="submit" disabled={teamBusy || !teamEmail.trim()}>发送邀请</button>
                     </form>
-                    <p className="hint" id="invite-team-help">Invitations go to that exact verified email. New members see no folders until you grant access here.</p>
+                    <p className="hint" id="invite-team-help">邀请会发送到该已验证邮箱。新成员在这里获得权限前看不到任何分组。</p>
                     {team?.invitations.filter((invite) => !invite.acceptedAt && !invite.revokedAt).map((invite) => {
-                      const status = invite.expiresAt <= Date.now() ? "Expired" : "Pending";
+                      const expired = invite.expiresAt <= Date.now();
+                      const status = expired ? "已过期" : "待接受";
                       return <div className="settings-row" key={invite.id}>
                         <span>{invite.email}<small>{invite.role}</small></span>
                         <span>
-                          <span className={`team-tag ${status.toLowerCase()}`}>{status}</span>
-                          {(cloudAuth?.workspace?.role === "owner" || invite.role === "member") && <> <button className="btn xs" type="button" aria-label={`Resend invitation to ${invite.email}`} disabled={teamBusy} onClick={() => void runTeamAction("resend", { id: invite.id }, "Invitation resent")}>Resend</button> <button className="btn xs danger" type="button" aria-label={`Revoke invitation to ${invite.email}`} disabled={teamBusy} onClick={() => void runTeamAction("revoke", { id: invite.id }, "Invitation revoked")}>Revoke</button></>}
+                          <span className={`team-tag ${expired ? "expired" : "pending"}`}>{status}</span>
+                          {(cloudAuth?.workspace?.role === "owner" || invite.role === "member") && <> <button className="btn xs" type="button" aria-label={`重新发送给 ${invite.email}`} disabled={teamBusy} onClick={() => void runTeamAction("resend", { id: invite.id }, "邀请已重新发送")}>重新发送</button> <button className="btn xs danger" type="button" aria-label={`撤销对 ${invite.email} 的邀请`} disabled={teamBusy} onClick={() => void runTeamAction("revoke", { id: invite.id }, "邀请已撤销")}>撤销</button></>}
                         </span>
                       </div>;
                     })}
                   </>
                 )}
                 {teamErr && <p className="modal-err" role="alert">{teamErr}</p>}
-                <h3 className="settings-subhead">Join another workspace</h3>
+                <h3 className="settings-subhead">加入其他工作区</h3>
                 <form className="team-code" onSubmit={(event) => { event.preventDefault(); void acceptInvitation(); }}>
-                  <input className="input" aria-label="Invitation code" placeholder="Paste invitation code" value={invitationCode} onChange={(event) => setInvitationCode(event.target.value)} />
-                  <button className="btn primary" type="submit" disabled={authBusy || !invitationCode.trim()}>Accept</button>
+                  <input className="input" aria-label="邀请码" placeholder="粘贴邀请码" value={invitationCode} onChange={(event) => setInvitationCode(event.target.value)} />
+                  <button className="btn primary" type="submit" disabled={authBusy || !invitationCode.trim()}>接受</button>
                 </form>
-                <p className="hint">Paste the code from your invitation email. It works only for the email you signed in with.</p>
+                <p className="hint">粘贴邀请邮件中的代码。该代码仅适用于当前登录邮箱。</p>
                 {authNotice && <p className="hint" role="status">{authNotice}</p>}
                 {authErr && <p className="modal-err" role="alert">{authErr}</p>}
               </>
@@ -3877,7 +3877,7 @@ function App() {
             {desktopUpdate?.state === "upToDate" && <p role="status">IDFRI 已是最新版本。</p>}
             {desktopUpdate?.state === "available" && (
               <>
-                <p role="status">Version {desktopUpdate.version} is ready. Active browsers will be saved and closed.</p>
+                <p role="status">版本 {desktopUpdate.version} 已就绪。正在运行的浏览器将保存并关闭。</p>
                 <UpdateHighlights version={desktopUpdate.version} highlights={desktopUpdate.highlights} />
               </>
             )}
@@ -3900,18 +3900,18 @@ function App() {
 {isCloudMode && (
             <section className="settings-card diagnostics-section">
               <header>
-                <Icon name="activity" className="sm" /><h2>Recent diagnostics</h2>
+                <Icon name="activity" className="sm" /><h2>最近的诊断记录</h2>
                 <button className="btn xs" type="button" disabled={cloudEventsBusy} onClick={() => void loadCloudEvents()}>
-                  {cloudEventsBusy ? "Loading…" : "Refresh"}
+                  {cloudEventsBusy ? "正在加载…" : "刷新"}
                 </button>
               </header>
               <div className="card-body">
               {cloudEventsErr && <div className="diagnostics-error" role="alert">{cloudEventsErr}</div>}
               {!cloudEventsErr && cloudEvents.length === 0 && (
-                <p>{cloudEventsBusy ? "Loading recent Cloud events…" : "No Cloud lifecycle events in this run."}</p>
+                <p>{cloudEventsBusy ? "正在加载最近的 Cloud 事件…" : "本次运行没有 Cloud 生命周期事件。"}</p>
               )}
               {cloudEvents.length > 0 && (
-                <div className="diagnostics-list" role="log" aria-label="Recent Cloud diagnostics">
+                <div className="diagnostics-list" role="log" aria-label="最近的 Cloud 诊断记录">
                   {cloudEvents.map((event, index) => (
                     <div className={`diagnostics-row${cloudDiagnosticFailed(event.type) ? " failed" : ""}`} key={`${event.timestamp}-${index}`}>
                       <time dateTime={new Date(event.timestamp).toISOString()}>{new Date(event.timestamp).toLocaleTimeString()}</time>
@@ -3920,7 +3920,7 @@ function App() {
                   ))}
                 </div>
               )}
-              <p>Diagnostics contain fixed lifecycle labels only. They exclude profile data and credentials.</p>
+              <p>诊断记录仅包含固定的生命周期标签，不含资料数据和账号凭据。</p>
               </div>
             </section>
           )}
@@ -4112,7 +4112,7 @@ function App() {
               <div className="browser-options" role="radiogroup" aria-label="浏览器">
                 {([
                   {
-                    engine: "chromium", label: "Chromium", runtime: "实验兼容内核",
+                    engine: "chromium", label: "IDFRI Browser", runtime: "IDFRI Chromium 内核",
                     path: "M12 0C8.21 0 4.831 1.757 2.632 4.501l3.953 6.848A5.454 5.454 0 0 1 12 6.545h10.691A12 12 0 0 0 12 0zM1.931 5.47A11.943 11.943 0 0 0 0 12c0 6.012 4.42 10.991 10.189 11.864l3.953-6.847a5.45 5.45 0 0 1-6.865-2.29zm13.342 2.166a5.446 5.446 0 0 1 1.45 7.09l.002.001h-.002l-5.344 9.257c.206.01.413.016.621.016 6.627 0 12-5.373 12-12 0-1.54-.29-3.011-.818-4.364zM12 16.364a4.364 4.364 0 1 1 0-8.728 4.364 4.364 0 0 1 0 8.728Z",
                   },
                   {
@@ -4154,26 +4154,26 @@ function App() {
                 <p className="hint" role="status">正在加载资料…</p>
               ) : (
                 <>
-                  {editForm.proxyError && <div className="modal-err"><Icon name="alert" className="sm" />Stored proxy quarantined: {editForm.proxyError}. Replace it below or clear the field.</div>}
+                  {editForm.proxyError && <div className="modal-err"><Icon name="alert" className="sm" />已保存的代理已隔离：{editForm.proxyError}。请在下方更换代理或清空此字段。</div>}
                   {(editLive || (!isCloudMode && editRunning)) && (
                     <p className="hint" role="status">
                       {editLive
-                        ? "This browser is open. Changes save to this device now and sync to Cloud when it closes."
-                        : "This browser is open. Changes save now and apply the next time it launches."}
+                        ? "此浏览器已打开。更改会立即保存到此设备，并在浏览器关闭时同步到 Cloud。"
+                        : "此浏览器已打开。更改会立即保存，并在下次启动时应用。"}
                     </p>
                   )}
                   {!isCloudMode && editMobile && (
                     <div className="persona-warning">
                       <strong><Icon name="warning" className="sm" />导入的移动端身份无法安全打开</strong>
                       <span>
-                        Older IDFRI opened it as a desktop browser anyway: Android became Windows; iPhone/iPad became macOS. That looked usable, but it was not coherent mobile emulation.
+                        旧版 IDFRI 会将其作为桌面浏览器打开：Android 转为 Windows，iPhone/iPad 转为 macOS。虽然看似可用，但并非一致的移动端模拟。
                       </span>
                       <span>
-                        Convert it once to {editMobile.platform === "macos" ? "macOS" : "Windows"} desktop. Cookies, login/session, proxy, timezone, credentials and fingerprint seed stay intact
-                        {editMobile.screenChanged ? `; the mobile-sized screen becomes ${editMobile.resolution}` : "; the existing desktop-sized screen stays intact"}.
+                        请将其一次性转换为 {editMobile.platform === "macos" ? "macOS" : "Windows"} 桌面身份。Cookie、登录/会话、代理、时区、凭据和指纹种子都会保留
+                        {editMobile.screenChanged ? `；移动端屏幕尺寸将改为 ${editMobile.resolution}` : "；现有桌面屏幕尺寸会保留"}。
                       </span>
                       <button className="btn persona-convert" disabled={editSaving} onClick={convertEditedMobile}>
-                        {editSaving ? "Converting…" : `Convert to ${editMobile.platform === "macos" ? "macOS" : "Windows"} desktop`}
+                        {editSaving ? "正在转换…" : `转换为 ${editMobile.platform === "macos" ? "macOS" : "Windows"} 桌面身份`}
                       </button>
                     </div>
                   )}
@@ -4208,14 +4208,14 @@ function App() {
                   </div>
                   <label className="fld">
                     <span>浏览器</span>
-                    <input value={editEngine === "firefox" ? "AliasMode Firefox" : "Chromium（实验兼容内核）"} readOnly className="ro" />
+                    <input value={editEngine === "firefox" ? "AliasMode Firefox" : "IDFRI Browser"} readOnly className="ro" />
                     <small>{editEngine === "firefox"
                       ? "原生 Firefox 资料 · 不支持 CDP、PDF 或 Chrome 扩展."
                       : "支持 CDP、PDF 和 Chrome 扩展。"}</small>
                   </label>
                   <label className="fld">
                     <span>标签 <span className="muted">（逗号分隔）</span></span>
-                    <input value={editForm.tags ?? ""} placeholder="warmup, us, priority" onChange={(e) => setEF("tags", e.target.value)} />
+                    <input value={editForm.tags ?? ""} placeholder="预热, 美国, 优先" onChange={(e) => setEF("tags", e.target.value)} />
                   </label>
                   <div className="fld-row">
                     <label className="fld type">
@@ -4445,7 +4445,7 @@ function App() {
                 <li><b>编辑</b>需要修改的列（名称、用户名、密码、2FA、代理等）。保留 <code>id</code> 列，删除不想修改的列。</li>
                 {!isCloudMode && <li>添加 <code>custom_no</code> 列可批量修改编号；该编号会显示在资料列表和浏览器窗口标题中。</li>}
                 <li>在下方<b>重新上传</b>编辑后的文件。Cookie 和指纹会保留；修改 <code>cookie</code> 或 <code>ua</code> 列不会生效。</li>
-                {isCloudMode && <li>Close profiles before updating. Each Cloud profile saves separately; successful updates remain saved if other profiles fail.</li>}
+                {isCloudMode && <li>更新前请关闭资料。每个 Cloud 资料会单独保存；即使其他资料失败，成功的更新仍会保留。</li>}
               </ol>
               <div className="updexport">
                 {selected.size > 0 ? (

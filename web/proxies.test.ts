@@ -141,7 +141,7 @@ test("cancelling progress cancels the reader and cannot report completion", asyn
 test("the proxy page remains mounted but hidden when navigation changes", () => {
   const html = renderToStaticMarkup(createElement(ProxiesPage, { active: false, groups: ["Sales", ""], onChanged: async () => {} }));
   expect(html).toContain('hidden=""');
-  expect(html).toContain('aria-pressed="true">Check proxies');
-  expect(html).toContain('aria-pressed="false">Replace proxies');
+  expect(html).toContain('aria-pressed="true">检查代理');
+  expect(html).toContain('aria-pressed="false">更换代理');
   expect(html).not.toContain('type="file"');
 });

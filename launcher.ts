@@ -104,17 +104,17 @@ export type BrowserLaunchFailure =
   | "cdp_readiness";
 
 const PREFLIGHT_GUIDANCE = {
-  chromium_setup: "Chrome runtime approval is missing or invalid. Run bun cli.ts setup, then restart AliasMode.",
-  firefox_setup: "Firefox runtime approval is missing or invalid. Run bun cli.ts setup, then restart AliasMode.",
-  proxy_invalid: "Saved proxy settings are invalid. Edit or clear this profile's proxy.",
-  proxy_https_auth: "Authenticated HTTPS proxies are unsupported. Use HTTP or SOCKS5.",
-  persona_mobile: "This profile has a mobile user agent. Use a desktop browser profile.",
-  persona_unsupported: "This profile's user agent has no recognized desktop platform. Check its saved browser identity.",
-  firefox_configuration: "The saved Firefox configuration is missing or incompatible with this runtime. Use a matching AliasMode runtime and profile export.",
-  firefox_extensions: "This Firefox profile contains Chrome extensions. Remove them before opening it.",
-  firefox_host: "Firefox requires Apple Silicon macOS, Linux x64, or Windows x64.",
-  firefox_arguments: "Firefox profiles cannot use Chromium launch arguments.",
-  stored_identity: "The saved browser launch does not match this profile's current identity. Close the existing browser, then reopen the profile.",
+  chromium_setup: "IDFRI Browser 运行时缺失或校验失败。请运行 bun cli.ts setup，然后重启 IDFRI。",
+  firefox_setup: "Firefox 运行时缺失或校验失败。请运行 bun cli.ts setup，然后重启 IDFRI。",
+  proxy_invalid: "已保存的代理设置无效，请编辑或清除此资料的代理。",
+  proxy_https_auth: "暂不支持需要身份验证的 HTTPS 代理，请使用 HTTP 或 SOCKS5。",
+  persona_mobile: "此资料使用移动端用户代理，请改用桌面浏览器资料。",
+  persona_unsupported: "此资料的用户代理没有可识别的桌面平台，请检查已保存的浏览器身份。",
+  firefox_configuration: "已保存的 Firefox 配置缺失或与当前运行时不兼容，请使用匹配的 AliasMode Firefox 运行时和资料导出。",
+  firefox_extensions: "此 Firefox 资料包含 Chrome 扩展，请先移除再打开。",
+  firefox_host: "Firefox 仅支持 Apple 芯片 Mac、Linux x64 或 Windows x64。",
+  firefox_arguments: "Firefox 资料不能使用 Chromium 启动参数。",
+  stored_identity: "已运行的浏览器与此资料的当前身份不一致，请关闭浏览器后重新打开资料。",
 } as const;
 
 /** Closed, public-safe browser launch failure. Never attach a raw cause. */
@@ -962,6 +962,7 @@ export class Launcher {
       `--window-position=0,0`,
       `--no-first-run`,
       `--no-default-browser-check`,
+      `--lang=zh-CN`,
       // The session launcher opens the window MINIMIZED (/MIN) so it doesn't steal focus, and a
       // minimized/occluded Chromium window is treated as backgrounded — it throttles JS timers and
       // deprioritizes the renderer. That makes the CDP-driven login crawl and blow the 180s reconnect

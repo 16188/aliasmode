@@ -37,7 +37,7 @@ test("identity cards load stored Chromium and Firefox metadata without egress lo
   const server = serveDashboard({ port: 0, launcher: {} as any, store, log: () => {} });
 
   try {
-    for (const [profile, browser] of [[chromium, "Chromium（实验兼容内核）"], [firefox, "AliasMode Firefox"]] as const) {
+    for (const [profile, browser] of [[chromium, "IDFRI Browser"], [firefox, "AliasMode Firefox"]] as const) {
       const response = await fetch(`http://127.0.0.1:${server.port}/card?id=${profile.id}`);
       expect(response.status).toBe(200);
       const card = await response.text();

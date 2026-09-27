@@ -26,7 +26,7 @@ test("proxy paste supports bracketed IPv6 and rejects malformed input", () => {
     host: "2001:db8::1",
     port: "1080",
   });
-  expect(() => parsePastedProxy("not-a-proxy", "http")).toThrow("host:port");
-  expect(() => parsePastedProxy("proxy.example:not-a-port:user:pass", "http")).toThrow("invalid proxy port");
-  expect(() => parsePastedProxy("https://u:p@proxy.example:8443", "http")).toThrow("unsupported proxy type");
+  expect(() => parsePastedProxy("not-a-proxy", "http")).toThrow("主机:端口");
+  expect(() => parsePastedProxy("proxy.example:not-a-port:user:pass", "http")).toThrow("代理端口无效");
+  expect(() => parsePastedProxy("https://u:p@proxy.example:8443", "http")).toThrow("不支持的代理类型");
 });

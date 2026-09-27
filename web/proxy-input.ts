@@ -11,24 +11,24 @@ function proxyType(value: string, fallback: "http" | "socks5"): "http" | "socks5
   if (!normalized) return fallback;
   if (normalized === "socks" || normalized === "socks5") return "socks5";
   if (normalized === "http") return "http";
-  throw new Error(`unsupported proxy type “${normalized}” (use http or socks5)`);
+  throw new Error(`不支持的代理类型“${normalized}”（请使用 http 或 socks5）`);
 }
 
 function decoded(value: string, label: string): string {
   try {
     return decodeURIComponent(value);
   } catch {
-    throw new Error(`proxy ${label} has invalid percent-encoding`);
+    throw new Error(`代理${label}包含无效的百分号编码`);
   }
 }
 
 function validate(result: ParsedProxyInput): ParsedProxyInput {
-  if (!result.host.trim()) throw new Error("proxy host is empty");
+  if (!result.host.trim()) throw new Error("代理主机不能为空");
   const port = Number(result.port);
   if (!/^\d+$/.test(result.port) || !Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error(`invalid proxy port: ${result.port || "(empty)"}`);
+    throw new Error(`代理端口无效：${result.port || "（空）"}`);
   }
-  if (!result.user && result.pass) throw new Error("proxy password requires a username");
+  if (!result.user && result.pass) throw new Error("填写代理密码时必须同时填写用户名");
   return { ...result, host: result.host.trim(), port: String(port) };
 }
 
@@ -38,23 +38,23 @@ export function parsePastedProxy(
   fallbackType: "http" | "socks5" = "http",
 ): ParsedProxyInput {
   const raw = value.trim();
-  if (!raw) throw new Error("paste a proxy first");
+  if (!raw) throw new Error("请先粘贴代理");
   if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) {
     let url: URL;
     try {
       url = new URL(raw);
     } catch {
-      throw new Error("invalid proxy URL");
+      throw new Error("代理 URL 无效");
     }
     if ((url.pathname && url.pathname !== "/") || url.search || url.hash) {
-      throw new Error("proxy URL must not contain a path, query, or fragment");
+      throw new Error("代理 URL 不能包含路径、查询参数或片段");
     }
     return validate({
       type: proxyType(url.protocol, fallbackType),
       host: url.hostname.replace(/^\[|\]$/g, ""),
       port: url.port,
-      user: decoded(url.username, "username"),
-      pass: decoded(url.password, "password"),
+      user: decoded(url.username, "用户名"),
+      pass: decoded(url.password, "密码"),
     });
   }
 
@@ -70,7 +70,7 @@ export function parsePastedProxy(
   }
 
   const parts = raw.split(":");
-  if (parts.length < 2) throw new Error("proxy must be host:port:username:password or a proxy URL");
+  if (parts.length < 2) throw new Error("代理必须是 主机:端口:用户名:密码 格式或代理 URL");
   return validate({
     type: fallbackType,
     host: parts[0]!,
