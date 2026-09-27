@@ -5,9 +5,9 @@ export const autofillExtensionDir = (userDataDir: string) => join(userDataDir, "
 
 export const AUTOFILL_MANIFEST = {
   manifest_version: 3,
-  name: "AliasMode Autofill",
+  name: "IDFRI 自动填充",
   version: "1.0.0",
-  description: "Fill saved credentials from this AliasMode profile.",
+  description: "填写此 IDFRI 资料中保存的凭据。",
   host_permissions: ["http://127.0.0.1/*"],
   background: { service_worker: "background.js" },
   content_scripts: [{
@@ -32,14 +32,14 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
       cache: "no-store",
     });
     return await response.json();
-  })().then(reply, () => reply({ ok: false, error: "Open AliasMode to use autofill." }));
+  })().then(reply, () => reply({ ok: false, error: "请打开 IDFRI 后使用自动填充。" }));
   return true;
 });
 `;
 
 export const AUTOFILL_CONTENT = String.raw`
 (() => {
-  const labels = { username: "Username", email: "Email", password: "Password", totp: "2FA code" };
+  const labels = { username: "用户名", email: "邮箱", password: "密码", totp: "两步验证码" };
   let panel = null;
   let active = null;
   let revision = 0;
@@ -86,9 +86,9 @@ export const AUTOFILL_CONTENT = String.raw`
       "button:hover,button:focus-visible{background:#edf2ff;outline:2px solid #b8caff}" +
       "p{margin:6px 8px;color:#a02a2a;font-size:12px}";
     const section = document.createElement("section");
-    section.setAttribute("aria-label", "AliasMode autofill");
+    section.setAttribute("aria-label", "IDFRI 自动填充");
     const header = document.createElement("header");
-    header.textContent = "AliasMode · " + data.name;
+    header.textContent = "IDFRI · " + data.name;
     section.append(header);
     const first = preferred(input);
     const fields = data.fields.filter((field) => labels[field]);
@@ -98,7 +98,7 @@ export const AUTOFILL_CONTENT = String.raw`
       const button = document.createElement("button");
       button.type = "button";
       button.dataset.field = field;
-      button.textContent = "Fill " + labels[field];
+      button.textContent = "填写" + labels[field];
       button.addEventListener("mousedown", (event) => event.preventDefault());
       button.addEventListener("click", async (event) => {
         if (!event.isTrusted || filling || current !== revision || !eligible(input)) return;
@@ -111,7 +111,7 @@ export const AUTOFILL_CONTENT = String.raw`
           section.querySelector("p")?.remove();
           const error = document.createElement("p");
           error.setAttribute("role", "status");
-          error.textContent = result?.error || "Autofill is unavailable. Check AliasMode.";
+          error.textContent = result?.error || "自动填充不可用，请检查 IDFRI。";
           section.append(error);
           filling = false;
           return;

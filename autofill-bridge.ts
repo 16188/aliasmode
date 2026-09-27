@@ -49,7 +49,7 @@ export class AutofillBridge {
     this.server = Bun.serve({
       hostname: "127.0.0.1", port: 0,
       fetch: (request) => this.handle(request),
-      error: () => json({ ok: false, error: "Autofill is unavailable." }, 500),
+      error: () => json({ ok: false, error: "自动填充不可用。" }, 500),
     });
     this.server.unref();
     // Surviving workers reread bind.json, so both the port and token may change.
@@ -110,14 +110,14 @@ export class AutofillBridge {
     if (request.method !== "POST") return json({ ok: false }, 405);
     const authorization = request.headers.get("authorization") ?? "";
     const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
-    if (!this.tokens.has(token)) return json({ ok: false, error: "Open AliasMode to use autofill." }, 401);
+    if (!this.tokens.has(token)) return json({ ok: false, error: "请打开 IDFRI 后使用自动填充。" }, 401);
     let body: { url?: unknown; field?: unknown } | null;
     try { body = await request.json(); } catch { return json({ ok: false }, 400); }
     // Recheck after reading the body: a stop or replacement may have happened meanwhile.
     const binding = this.tokens.get(token);
     const launch = binding && this.store.getLaunch(binding.profileId);
     if (!binding || !launch || launch.debugPort !== binding.debugPort || launch.startedAt !== binding.startedAt) {
-      return json({ ok: false, error: "Reopen this profile to use autofill." }, 401);
+      return json({ ok: false, error: "请重新打开此资料后使用自动填充。" }, 401);
     }
     const profile = this.store.getProfile(binding.profileId);
     if (!profile || typeof body?.url !== "string" || !matchesAutofillSite(profile.platform, body.url)) {
@@ -130,7 +130,7 @@ export class AutofillBridge {
     if (!FIELDS.includes(body.field as typeof FIELDS[number])) return json({ ok: false }, 400);
     const field = body.field as typeof FIELDS[number];
     const value = field === "totp" ? generateTotp(profile.twofa)?.code : profile[field];
-    if (!value) return json({ ok: false, error: "No saved value for this field. Edit the profile in AliasMode." }, 404);
+    if (!value) return json({ ok: false, error: "此字段没有保存的值，请在 IDFRI 中编辑该资料。" }, 404);
     return json({ ok: true, value });
   }
 }

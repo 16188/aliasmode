@@ -459,7 +459,7 @@ function HealthSources({ sources }: { sources: HealthSource[] }) {
         <span
           key={source.sourceId}
           className={`health-source${source.stale ? " stale" : ""}`}
-          title={`Last snapshot ${new Date(source.lastSnapshotAt).toLocaleString()}`}
+          title={`上次快照：${new Date(source.lastSnapshotAt).toLocaleString()}`}
         >
           <Icon name="activity" className="sm" />
           {source.sourceId} · {source.stale ? "已过期" : "最新"} · {new Date(source.lastSnapshotAt).toLocaleTimeString()}
@@ -3025,7 +3025,7 @@ function App() {
                   target="_blank"
                   rel="noreferrer"
                   data-tip={link.label}
-                  aria-label={`IDFRI on ${link.label}`}
+                  aria-label={`IDFRI 的 ${link.label}`}
                 >
                   <svg className="brandmark" viewBox="0 0 24 24" aria-hidden="true"><path d={link.path} /></svg>
                 </a>
@@ -3431,8 +3431,8 @@ function App() {
                           <>
                             <button
                               className="btn sm warn tip"
-                              data-tip={`Saved on this device ${new Date(p.parkedSession.savedAt).toLocaleString()}`}
-                              aria-label={`Restore the saved session of ${p.name}`}
+                              data-tip={`已保存于本机：${new Date(p.parkedSession.savedAt).toLocaleString()}`}
+                              aria-label={`恢复 ${p.name} 的已保存会话`}
                               disabled={busy[p.id]}
                               onClick={() => restoreSession(p)}
                             >
@@ -3626,7 +3626,7 @@ function App() {
               <b>尚无扩展</b>
               <p>上传的扩展会显示在这里，可分配给任意 Chromium 资料。</p>
               <button className="btn primary" disabled={extBusy || extInstallBusy} onClick={() => extFileRef.current?.click()}>
-                <Icon name="plus" className="sm" />{extBusy ? "Uploading…" : "Upload ZIP/CRX"}
+                <Icon name="plus" className="sm" />{extBusy ? "正在上传…" : "上传 ZIP/CRX"}
               </button>
             </div>
           ) : (
@@ -3654,7 +3654,7 @@ function App() {
           <span className="spacer" />
           {extensions.length > 0 && (
             <button className="btn primary" type="button" disabled={extBusy || extInstallBusy} onClick={() => extFileRef.current?.click()}>
-              <Icon name="plus" className="sm" />{extBusy ? "Uploading…" : "Upload ZIP/CRX"}
+              <Icon name="plus" className="sm" />{extBusy ? "正在上传…" : "上传 ZIP/CRX"}
             </button>
           )}
         </footer>
@@ -3689,7 +3689,7 @@ function App() {
                       : "无需账号 · 资料仅保存在本机"}
                   </span>
                 </span>
-                <span className="chip">{isCloudMode ? "Cloud" : "本地"}</span>
+                <span className="chip">{isCloudMode ? "云端" : "本地"}</span>
               </div>
 <section className="settings-card">
             <header><Icon name="user" className="sm" /><h2>账号</h2></header>
@@ -3698,7 +3698,7 @@ function App() {
             <div className="settings-row"><span>已保存资料</span><strong>{profiles.length}</strong></div>
             {isCloudMode && cloudAuth?.authenticated && (
               <button className="btn danger" type="button" disabled={authBusy} onClick={() => void signOut()}>
-                <Icon name="power" className="sm" />{authBusy ? "Signing out…" : "Sign out / Switch account"}
+                <Icon name="power" className="sm" />{authBusy ? "正在退出…" : "退出 / 切换账号"}
               </button>
             )}
             {authErr && <p className="modal-err" role="alert">{authErr}</p>}
