@@ -71,7 +71,7 @@ const PROXY_REPLACEMENT_ROW = {
 
 function diagnose(message) {
   if (process.env.ALIASMODE_MCP_DIAGNOSTICS === "1") {
-    process.stderr.write(`[aliasmode-mcp-host] ${message}\n`);
+    process.stderr.write(`[idfri-mcp-host] ${message}\n`);
   }
 }
 
@@ -87,8 +87,8 @@ function toolAnnotations(title, { readOnly = false, destructive = false, openWor
 const ALIAS_TOOLS = [
   {
     name: "aliasmode_profiles_list",
-    description: "List AliasMode profiles and their current browser state. Cloud profiles include expectedVersion and permission for editing.",
-    annotations: toolAnnotations("List AliasMode profiles"),
+    description: "List IDFRI profiles and their current browser state.",
+    annotations: toolAnnotations("List IDFRI profiles"),
     inputSchema: EMPTY_SCHEMA,
   },
   {
@@ -115,8 +115,8 @@ const ALIAS_TOOLS = [
   },
   {
     name: "aliasmode_profile_create",
-    description: "Create a persistent AliasMode profile, or an explicit temporary profile.",
-    annotations: toolAnnotations("Create an AliasMode profile"),
+    description: "Create a persistent IDFRI profile, or an explicit temporary profile.",
+    annotations: toolAnnotations("Create an IDFRI profile"),
     inputSchema: {
       type: "object",
       properties: {
@@ -182,8 +182,8 @@ const ALIAS_TOOLS = [
   },
   {
     name: "aliasmode_profile_delete",
-    description: "Delete a closed AliasMode profile.",
-    annotations: toolAnnotations("Delete an AliasMode profile", { destructive: true }),
+    description: "Delete a closed IDFRI profile.",
+    annotations: toolAnnotations("Delete an IDFRI profile", { destructive: true }),
     inputSchema: {
       type: "object",
       properties: { profileId: PROFILE_ID },
@@ -193,8 +193,8 @@ const ALIAS_TOOLS = [
   },
   {
     name: "aliasmode_browser_open",
-    description: "Open an AliasMode browser and select it for Playwright actions.",
-    annotations: toolAnnotations("Open an AliasMode browser", { destructive: true, openWorld: true }),
+    description: "Open an IDFRI browser and select it for Playwright actions.",
+    annotations: toolAnnotations("Open an IDFRI browser", { destructive: true, openWorld: true }),
     inputSchema: {
       type: "object",
       properties: {
@@ -212,8 +212,8 @@ const ALIAS_TOOLS = [
   },
   {
     name: "aliasmode_browser_select",
-    description: "Select an open AliasMode browser for subsequent Playwright actions.",
-    annotations: toolAnnotations("Select an AliasMode browser", { destructive: true }),
+    description: "Select an open IDFRI browser for subsequent Playwright actions.",
+    annotations: toolAnnotations("Select an IDFRI browser", { destructive: true }),
     inputSchema: {
       type: "object",
       properties: { profileId: PROFILE_ID },
@@ -224,7 +224,7 @@ const ALIAS_TOOLS = [
   {
     name: "aliasmode_browser_status",
     description: "Get the selected browser state, or the state of one profile.",
-    annotations: toolAnnotations("Get AliasMode browser status", { destructive: true }),
+    annotations: toolAnnotations("Get IDFRI browser status", { destructive: true }),
     inputSchema: {
       type: "object",
       properties: { profileId: PROFILE_ID },
@@ -233,8 +233,8 @@ const ALIAS_TOOLS = [
   },
   {
     name: "aliasmode_browser_close",
-    description: "Safely capture and close one AliasMode browser.",
-    annotations: toolAnnotations("Close an AliasMode browser", { destructive: true }),
+    description: "Safely capture and close one IDFRI browser.",
+    annotations: toolAnnotations("Close an IDFRI browser", { destructive: true }),
     inputSchema: {
       type: "object",
       properties: { profileId: PROFILE_ID },
@@ -243,11 +243,17 @@ const ALIAS_TOOLS = [
   },
   {
     name: "browser_close",
-    description: "Safely capture and close the selected AliasMode browser.",
-    annotations: toolAnnotations("Close the selected AliasMode browser", { destructive: true }),
+    description: "Safely capture and close the selected IDFRI browser.",
+    annotations: toolAnnotations("Close the selected IDFRI browser", { destructive: true }),
     inputSchema: EMPTY_SCHEMA,
   },
 ];
+
+const CLOUD_ONLY_TOOLS = new Set([
+  "aliasmode_profiles_replace_proxies",
+  "aliasmode_profile_update",
+]);
+const LOCAL_TOOLS = ALIAS_TOOLS.filter((tool) => !CLOUD_ONLY_TOOLS.has(tool.name));
 
 function toolResult(value) {
   return {
@@ -257,7 +263,7 @@ function toolResult(value) {
 }
 
 function safeError(error) {
-  const message = error instanceof Error ? error.message : "AliasMode operation failed";
+  const message = error instanceof Error ? error.message : "IDFRI operation failed";
   return message.replace(/wss?:\/\/\S+/gi, "CDP endpoint").slice(0, 500);
 }
 
@@ -279,7 +285,7 @@ export async function createAliasModeMcp(options = {}) {
   const discovered = options.discovered ?? await discoverRuntime(options.runtime);
   const runtime = discovered.client;
   const server = new Server(
-    { name: "aliasmode", version: VERSION },
+    { name: "idfri", version: VERSION },
     { capabilities: { tools: {} } },
   );
   let selectedProfileId;
@@ -292,7 +298,7 @@ export async function createAliasModeMcp(options = {}) {
 
   const selectBrowser = async (profileId, knownStatus) => {
     const status = knownStatus ?? await runtime.call("browser.status", { profileId });
-    if (!status.running) throw new Error("open this AliasMode profile before selecting it");
+    if (!status.running) throw new Error("open this IDFRI profile before selecting it");
     const wasChromium = selectedEngine === "chromium";
     selectedProfileId = undefined;
     selectedEngine = undefined;
@@ -305,7 +311,7 @@ export async function createAliasModeMcp(options = {}) {
       selectedEngine = "firefox";
       return safeBrowserResult({ ...status, selected: true });
     }
-    if (!status.ws) throw new Error("open this AliasMode profile before selecting it");
+    if (!status.ws) throw new Error("open this IDFRI profile before selecting it");
     await playwright.attach(status.ws);
     selectedProfileId = profileId;
     selectedEngine = "chromium";
@@ -320,7 +326,7 @@ export async function createAliasModeMcp(options = {}) {
 
   const closeBrowser = async (profileId) => {
     const target = profileId || selectedProfileId;
-    if (!target) throw new Error("select an open AliasMode browser first");
+    if (!target) throw new Error("select an open IDFRI browser first");
     const selected = target === selectedProfileId;
     const engine = selectedEngine;
     if (selected) await playwright.detach();
@@ -346,13 +352,14 @@ export async function createAliasModeMcp(options = {}) {
   };
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: [...ALIAS_TOOLS, ...selectedTools()],
+    tools: [...LOCAL_TOOLS, ...selectedTools()],
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const name = request.params.name;
     const args = request.params.arguments ?? {};
     try {
+      if (CLOUD_ONLY_TOOLS.has(name)) throw new Error(`unknown IDFRI tool: ${name}`);
       if (name === "aliasmode_profiles_list") {
         return toolResult(await runtime.call("profiles.list"));
       }
@@ -407,7 +414,7 @@ export async function createAliasModeMcp(options = {}) {
       }
       if (name === "aliasmode_browser_status") {
         const profileId = args.profileId || selectedProfileId;
-        if (!profileId) throw new Error("select an open AliasMode browser first");
+        if (!profileId) throw new Error("select an open IDFRI browser first");
         const status = await runtime.call("browser.status", { profileId });
         const { ws: _ws, firefoxOwner: _firefoxOwner, ...safeStatus } = safeBrowserResult(status);
         return toolResult({ ...safeStatus, selected: profileId === selectedProfileId });
@@ -415,9 +422,9 @@ export async function createAliasModeMcp(options = {}) {
       if (name === "aliasmode_browser_close" || name === "browser_close") {
         return toolResult(await closeBrowser(args.profileId));
       }
-      if (!selectedProfileId) throw new Error("select an open AliasMode browser first");
+      if (!selectedProfileId) throw new Error("select an open IDFRI browser first");
       if (!selectedTools().some((tool) => tool.name === name)) {
-        throw new Error(`unknown AliasMode tool: ${name}`);
+        throw new Error(`unknown IDFRI tool: ${name}`);
       }
       if (selectedEngine === "firefox") {
         return await runtime.call("firefox.tools.call", {
@@ -472,7 +479,7 @@ async function main() {
     dirname(fileURLToPath(import.meta.url)),
     "..",
     "..",
-    "AliasMode.exe",
+    "IDFRI.exe",
   );
   const host = await createAliasModeMcp({ runtime: { desktopExecutable } });
   let shuttingDown = false;
@@ -494,8 +501,8 @@ async function main() {
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((error) => {
-    console.error(`AliasMode MCP could not start: ${safeError(error)}`);
-    console.error("Run AliasMode setup again or open the app once.");
+    console.error(`IDFRI MCP could not start: ${safeError(error)}`);
+    console.error("Run IDFRI setup again or open the app once.");
     process.exit(1);
   });
 }

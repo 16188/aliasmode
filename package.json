@@ -1,7 +1,7 @@
 {
-  "name": "aliasmode",
+  "name": "idfri",
   "version": "0.1.0-beta.50",
-  "description": "Local-first browser profile manager with optional cloud synchronization",
+  "description": "IDFRI 本地开源指纹浏览器",
   "module": "cli.ts",
   "type": "module",
   "private": true,

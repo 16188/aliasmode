@@ -11,7 +11,7 @@ fn main() {
         .expect("generated browser metadata is missing; run `bun run desktop:prepare` first");
     let parsed: serde_json::Value =
         serde_json::from_str(&metadata).expect("valid generated browser metadata");
-    for key in ["executable", "wrapperVersion"] {
+    for key in ["executable", "runtimeVersion"] {
         assert!(
             parsed
                 .get(key)

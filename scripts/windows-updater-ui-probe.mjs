@@ -53,7 +53,7 @@ async function connectToBrowser(endpoint) {
       await new Promise((resolve) => setTimeout(resolve, 250));
     }
   }
-  throw new Error("installed AliasMode debug endpoint was not ready");
+  throw new Error("installed IDFRI debug endpoint was not ready");
 }
 
 async function findDashboardPage(browser, dashboardOrigin) {
@@ -64,7 +64,7 @@ async function findDashboardPage(browser, dashboardOrigin) {
     if (page) return page;
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
-  throw new Error("installed AliasMode dashboard target was not found");
+  throw new Error("installed IDFRI dashboard target was not found");
 }
 
 async function main() {
@@ -78,14 +78,14 @@ async function main() {
         state: document.visibilityState,
       }));
       if (visibility.hidden || visibility.state !== "visible") {
-        throw new Error("updated AliasMode window was not visible");
+        throw new Error("updated IDFRI window was not visible");
       }
       const result = page.locator(".update-banner.update-result.success");
       await result.waitFor({ state: "visible", timeout: 60_000 });
       const title = (await result.locator("strong").innerText()).trim();
       const detail = (await result.locator(".update-copy span").innerText()).trim();
-      if (title !== `AliasMode ${input.candidateVersion} installed successfully.` ||
-          detail !== `Updated from ${input.sourceVersion} and verified the installed app after restart.`) {
+      if (title !== `IDFRI ${input.candidateVersion} 已安装。` ||
+          detail !== `已从 ${input.sourceVersion} 更新，并在重启后验证安装。`) {
         throw new Error("durable updater result did not confirm the exact version handoff");
       }
       await writeResult({ ok: true, action: "verified-durable-success" });
@@ -93,14 +93,14 @@ async function main() {
     }
 
     const banner = page.locator(".update-banner").filter({
-      has: page.getByRole("button", { name: "Update now", exact: true }),
+      has: page.getByRole("button", { name: "立即更新", exact: true }),
     });
     await banner.waitFor({ state: "visible", timeout: 60_000 });
     const announcedVersion = await banner.locator('[role="status"] strong').innerText();
-    if (announcedVersion.trim() !== `AliasMode ${input.candidateVersion} is available.`) {
+    if (announcedVersion.trim() !== `IDFRI ${input.candidateVersion} 可用。`) {
       throw new Error("visible update banner announced a different version");
     }
-    const updateButton = banner.getByRole("button", { name: "Update now", exact: true });
+    const updateButton = banner.getByRole("button", { name: "立即更新", exact: true });
     await updateButton.waitFor({ state: "visible", timeout: 30_000 });
     if (!(await updateButton.isEnabled())) throw new Error("visible Update now action was disabled");
     await updateButton.click({ noWaitAfter: true });
@@ -118,6 +118,6 @@ async function main() {
 }
 
 main().catch(() => {
-  process.stderr.write("AliasMode updater UI probe failed\n");
+  process.stderr.write("IDFRI updater UI probe failed\n");
   process.exitCode = 1;
 });

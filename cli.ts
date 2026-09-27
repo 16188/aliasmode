@@ -1,17 +1,17 @@
 #!/usr/bin/env bun
 /**
- * AliasMode browser profile manager CLI.
+ * IDFRI browser profile manager CLI.
  *
  * Easiest path (drop-in):
  *   1. Put your AdsPower export .txt file(s) in inbox/
- *   2. export CLOAKBROWSER_BINARY_PATH=/path/to/cloakbrowser
- *      export CLOAKBROWSER_BINARY_SHA256=<approved 64-character sha256>
+ *   2. export IDFRI_CHROMIUM_BINARY_PATH=/path/to/chromium
+ *      export IDFRI_CHROMIUM_BINARY_SHA256=<approved 64-character sha256>
  *   3. bun cli.ts start      # imports inbox, then serves on :50400
  *   4. Set a campaign's "Base URL" to http://127.0.0.1:50400 and run it.
  *
  * Other commands:
  *   bun cli.ts setup               # install the verified source runtime
- *   bun cli.ts install-browser     # download, verify, and pin CloakBrowser
+ *   bun cli.ts install-browser     # download, verify, and pin Playwright Chromium
  *   bun cli.ts install-browser --engine firefox --archive <owned-build.zip>
  *   bun cli.ts import [file|dir]   # default: import the inbox
  *   bun cli.ts serve   [--port 50400] [--headless]
@@ -73,7 +73,7 @@ import { hostname } from "node:os";
 import net from "node:net";
 import { defaultOperatorName } from "./operator.ts";
 import { ensureDuckDuckGoDefault, type SearchProviderSetupResult } from "./search-provider.ts";
-import { installCloakBrowser } from "./browser-install.ts";
+import { installOpenChromium } from "./browser-install.ts";
 import { installFirefox } from "./firefox-install.ts";
 import { applySourceRuntime, setupSourceRuntime } from "./source-runtime.ts";
 import { resolveEgressEndpoints } from "./egress.ts";
@@ -135,6 +135,10 @@ export interface CloudRuntimeConfiguration {
 function nonblank(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
   return trimmed || undefined;
+}
+
+function unavailableLocalOnlyRuntime<T>(): T | undefined {
+  return undefined;
 }
 
 export function selectedCloudUrl(
@@ -424,8 +428,8 @@ function makeCloudBrowser(
     deviceId: () => connection.deviceId(),
     readSession: (endpoint, captureSeed) => readSessionInSubprocess(endpoint, { captureSeed }),
     applySession: (endpoint, bundle, urls) =>
-      applySessionToEndpoint(endpoint, bundle, urls, { log: (m) => console.log(`[aliasmode] ${m}`) }),
-    log: (m) => console.log(`[aliasmode] ${m}`),
+      applySessionToEndpoint(endpoint, bundle, urls, { log: (m) => console.log(`[idfri] ${m}`) }),
+    log: (m) => console.log(`[idfri] ${m}`),
   });
 }
 
@@ -1144,7 +1148,7 @@ export async function exerciseWindowsWindowAcceptance(
       runtime.pageTargetIds(secondId),
     ]);
     if (!firstTargets.length || !secondTargets.length) {
-      throw new Error("managed CloakBrowser did not expose initial page targets");
+      throw new Error("managed Chromium did not expose initial page targets");
     }
     runtime.reportStage?.("page_targets_ready");
 
@@ -1157,7 +1161,7 @@ export async function exerciseWindowsWindowAcceptance(
           && first.visible && second.visible
           && first.hwnd > 0 && second.hwnd > 0 && first.hwnd !== second.hwnd;
       },
-      "managed CloakBrowser windows did not expose distinct native HWNDs",
+      "managed Chromium windows did not expose distinct native HWNDs",
     );
     runtime.reportStage?.("windows_distinct");
     const firstHwnd = initial.windows[firstId]!.hwnd;
@@ -1171,7 +1175,7 @@ export async function exerciseWindowsWindowAcceptance(
         && snapshot.windows[firstId]?.minimized === true
         && snapshot.windows[secondId]?.hwnd === secondHwnd
         && snapshot.windows[secondId]?.visible === true,
-      "native CloakBrowser window did not remain distinct and minimized",
+      "native Chromium window did not remain distinct and minimized",
     );
     runtime.reportStage?.("window_minimized");
     const targetsBefore = (await runtime.pageTargetIds(firstId)).slice().sort();
@@ -1630,7 +1634,7 @@ $rows = @(
 }
 
 async function minimizeWindowsHwnd(hwnd: number): Promise<void> {
-  if (!Number.isSafeInteger(hwnd) || hwnd <= 0) throw new Error("native CloakBrowser HWND is unavailable");
+  if (!Number.isSafeInteger(hwnd) || hwnd <= 0) throw new Error("native Chromium HWND is unavailable");
   const script = `
 Add-Type -TypeDefinition @'
 ${WINDOWS_NATIVE_TYPE}
@@ -1644,7 +1648,7 @@ async function observeNativeMinimized<T>(
   hwnd: number,
   operation: () => Promise<T>,
 ): Promise<{ value: T; stayedMinimized: boolean }> {
-  if (!Number.isSafeInteger(hwnd) || hwnd <= 0) throw new Error("native CloakBrowser HWND is unavailable");
+  if (!Number.isSafeInteger(hwnd) || hwnd <= 0) throw new Error("native Chromium HWND is unavailable");
   const script = `
 $ErrorActionPreference = 'Stop'
 Add-Type -TypeDefinition @'
@@ -1723,16 +1727,16 @@ async function cdpPageTargetIds(port: number): Promise<string[]> {
   const response = await fetch(`http://127.0.0.1:${port}/json/list`, {
     signal: AbortSignal.timeout(5_000),
   });
-  if (!response.ok) throw new Error("managed CloakBrowser target list is unavailable");
+  if (!response.ok) throw new Error("managed Chromium target list is unavailable");
   const targets = await response.json();
-  if (!Array.isArray(targets)) throw new Error("managed CloakBrowser target list is invalid");
+  if (!Array.isArray(targets)) throw new Error("managed Chromium target list is invalid");
   const pages = targets.filter((target) => target?.type === "page");
   const ids = pages
     .map((target) => target?.id)
     .filter((id): id is string => typeof id === "string" && !!id)
     .sort();
   if (ids.length !== pages.length) {
-    throw new Error("managed CloakBrowser page target identity is invalid");
+    throw new Error("managed Chromium page target identity is invalid");
   }
   return ids;
 }
@@ -1741,9 +1745,9 @@ async function cdpUserPageUrls(port: number): Promise<string[]> {
   const response = await fetch(`http://127.0.0.1:${port}/json/list`, {
     signal: AbortSignal.timeout(5_000),
   });
-  if (!response.ok) throw new Error("managed CloakBrowser target list is unavailable");
+  if (!response.ok) throw new Error("managed Chromium target list is unavailable");
   const targets = await response.json();
-  if (!Array.isArray(targets)) throw new Error("managed CloakBrowser target list is invalid");
+  if (!Array.isArray(targets)) throw new Error("managed Chromium target list is invalid");
   return targets.flatMap((target) => {
     if (target?.type !== "page" || typeof target.url !== "string") return [];
     const url = canonicalUserPageUrl(target.url);
@@ -1790,7 +1794,7 @@ async function runWindowsWindowAcceptance(paths: StatePaths, rest: string[]): Pr
       const profileId = url.searchParams.get("profile") ?? "";
       const title = WINDOWS_ACCEPTANCE_PROFILE_IDS.includes(profileId as typeof firstId)
         ? windowsAcceptanceWindowMarker(profileId)
-        : "AliasMode window acceptance";
+        : "IDFRI window acceptance";
       return new Response(`<!doctype html><title>${title}</title><main>${url.pathname}</main>`, {
         headers: { "content-type": "text/html; charset=utf-8" },
       });
@@ -1811,7 +1815,7 @@ async function runWindowsWindowAcceptance(paths: StatePaths, rest: string[]): Pr
   ]);
   const launch = (profileId: string) => {
     const value = store.getLaunch(profileId);
-    if (!value) throw new Error(`managed CloakBrowser launch is missing for ${profileId}`);
+    if (!value) throw new Error(`managed Chromium launch is missing for ${profileId}`);
     return value;
   };
   const nativeWindows = () => readWindowsNativeWindows(
@@ -1825,7 +1829,7 @@ async function runWindowsWindowAcceptance(paths: StatePaths, rest: string[]): Pr
     await launcher.reconcileOrphans();
     for (const profileId of WINDOWS_ACCEPTANCE_PROFILE_IDS) {
       if (store.getLaunch(profileId) && !await launcher.stop(profileId)) {
-        throw new Error(`managed CloakBrowser pre-acceptance cleanup was not confirmed for ${profileId}`);
+        throw new Error(`managed Chromium pre-acceptance cleanup was not confirmed for ${profileId}`);
       }
       rmSync(launcher.userDataDir(profileId), { recursive: true, force: true });
     }
@@ -1854,7 +1858,7 @@ async function runWindowsWindowAcceptance(paths: StatePaths, rest: string[]): Pr
         await launcher.navigate(first.ws, restoredTabs, true);
         await waitForWindowsAcceptanceTabs(first.debugPort, restoredTabs);
         if (!await launcher.stop(firstId)) {
-          throw new Error(`managed CloakBrowser clean close was not confirmed for ${firstId}`);
+          throw new Error(`managed Chromium clean close was not confirmed for ${firstId}`);
         }
         const reopened = await launcher.start(firstId, [], {
           restoreLastSession: true,
@@ -1871,7 +1875,7 @@ async function runWindowsWindowAcceptance(paths: StatePaths, rest: string[]): Pr
       },
       async close(profileId) {
         if (!await launcher.stop(profileId)) {
-          throw new Error(`managed CloakBrowser cleanup was not confirmed for ${profileId}`);
+          throw new Error(`managed Chromium cleanup was not confirmed for ${profileId}`);
         }
       },
       nativeWindows,
@@ -1952,7 +1956,7 @@ async function runWindowsWindowAcceptance(paths: StatePaths, rest: string[]): Pr
         await launcher.bringToFront(profileId);
       },
       reportStage(stage) {
-        console.log(`[aliasmode] installed window acceptance stage ${stage}`);
+        console.log(`[idfri] installed window acceptance stage ${stage}`);
       },
     });
   } finally {
@@ -2442,7 +2446,7 @@ async function runCloudLauncherSmoke(paths: StatePaths, rest: string[]): Promise
     }),
     applySession: (endpoint, bundle, urls) =>
       applySessionToEndpoint(endpoint, bundle, urls, {
-        log: (m) => console.log(`[aliasmode] ${m}`),
+        log: (m) => console.log(`[idfri] ${m}`),
         ...(canaryWorkerTimeoutMs ? { writeTimeoutMs: canaryWorkerTimeoutMs } : {}),
       }),
     heartbeatMs: 0,
@@ -2466,12 +2470,12 @@ async function runCloudLauncherSmoke(paths: StatePaths, rest: string[]): Promise
 
 const MAX_LOG_FILE_BYTES = 2 * 1024 * 1024;
 
-/** Mirror console output to <root>/logs/aliasmode-<date>.log (rotates at 2 MB). Best-effort. */
+/** Mirror console output to <root>/logs/idfri-<date>.log (rotates at 2 MB). Best-effort. */
 function installFileLogging(root: string): void {
   try {
     const dir = join(root, "logs");
     mkdirSync(dir, { recursive: true });
-    const file = join(dir, `aliasmode-${new Date().toISOString().slice(0, 10)}.log`);
+    const file = join(dir, `idfri-${new Date().toISOString().slice(0, 10)}.log`);
     appendFileSync(file, `${new Date().toISOString()} sidecar start v${ALIASMODE_VERSION} pid=${process.pid}\n`);
     const write = (stream: NodeJS.WriteStream, args: unknown[]) => {
       try {
@@ -2514,10 +2518,10 @@ async function main() {
     // loudly and exit rather than masking it as "(non-fatal)" and continuing in
     // a possibly-corrupt state. The desktop enters a static degraded state.
     if (msg.includes("not implemented in bun") || msg.includes("WebSocket 'upgrade'")) {
-      console.error("[aliasmode] (non-fatal) Bun ws-upgrade noise");
+      console.error("[idfri] (non-fatal) Bun ws-upgrade noise");
       return;
     }
-    console.error("[aliasmode] FATAL unhandled rejection");
+    console.error("[idfri] FATAL unhandled rejection");
     process.exit(1);
   });
 
@@ -2537,10 +2541,10 @@ async function main() {
       await setupSourceRuntime(paths.root);
     } catch (error) {
       // Setup errors describe downloads, hashes, and disk space, never credentials.
-      console.error(`[aliasmode] setup failed: ${error instanceof Error ? error.message : "unknown error"}`);
+      console.error(`[idfri] setup failed: ${error instanceof Error ? error.message : "unknown error"}`);
       throw error;
     }
-    console.log(`AliasMode source runtime is ready. Restart AliasMode to use it:\n  bun cli.ts start --state-root ${paths.root}`);
+    console.log(`IDFRI 源码运行时已就绪。请重启 IDFRI：\n  bun cli.ts start --state-root ${paths.root}`);
     return;
   }
   if (!compiled) applySourceRuntime(paths.root);
@@ -2548,8 +2552,8 @@ async function main() {
     try {
       await verifyPlaywrightRuntime();
     } catch (error) {
-      console.error(`[aliasmode] ${error instanceof Error ? error.message : "source Playwright runtime is unavailable"}`);
-      console.error("[aliasmode] Run bun cli.ts setup to install the verified source runtime.");
+      console.error(`[idfri] ${error instanceof Error ? error.message : "source Playwright runtime is unavailable"}`);
+      console.error("[idfri] 请运行 bun cli.ts setup 安装已验证的源码运行时。");
       throw error;
     }
   }
@@ -2578,67 +2582,26 @@ async function main() {
   if (cmd === "__cloud-launcher-smoke") {
     await runCloudLauncherSmoke(paths, rest);
     console.log(has(rest, "windows-window-acceptance")
-      ? "installed CloakBrowser search provider, native minimize, background page, session capture, target, HWND, and foreground acceptance passed"
+      ? "installed Chromium search provider, native minimize, background page, session capture, target, HWND, and foreground acceptance passed"
       : "compiled sidecar opened, restored, captured, and closed a fresh and repeated cached Cloud profile");
     return;
   }
   const appConfig = new AppConfigStore(paths.config);
   let savedMode = appConfig.read();
-  if (
-    desktop &&
-    process.env.ALIASMODE_BACKGROUND === "1" &&
-    savedMode.mode === "unconfigured"
-  ) {
-    savedMode = appConfig.setMode("local");
-  }
-  const defaultCloudUrl = selectedCloudUrl(savedMode);
-  const cloudConfig = cloudRuntimeConfiguration(savedMode);
-  const cloudAuth = cloudConfig
-    ? new CloudAuthRuntime(
-        new SupabaseAuthClient({
-          baseUrl: cloudConfig.authUrl,
-          anonKey: cloudConfig.anonKey,
-        }),
-        undefined,
-        desktopCredentials
-          ? (refreshToken) => desktopCredentials.persistRefreshToken(refreshToken)
-          : undefined,
-        desktopCredentials
-          ? () => desktopCredentials.clearCloudSessionCredentials()
-          : undefined,
-      )
-    : undefined;
+  // IDFRI Community Edition is local-only. Migrate old AliasMode selections
+  // before any network-backed runtime can be constructed.
+  if (savedMode.mode !== "local") savedMode = appConfig.setMode("local");
+  const defaultCloudUrl = undefined;
+  const cloudAuth = unavailableLocalOnlyRuntime<CloudAuthRuntime>();
   const configuredDbPath = flag(rest, "db");
   const configuredDataRoot = flag(rest, "data-root");
   const identityDbPath = configuredDbPath ?? paths.database;
-  const cloudProfileCache = savedMode.mode === "cloud" && (cmd === "start" || cmd === "serve");
-  const activeProfilePaths = profileDataPaths(paths, cloudProfileCache, configuredDbPath, configuredDataRoot);
+  const activeProfilePaths = profileDataPaths(paths, false, configuredDbPath, configuredDataRoot);
   const dbPath = activeProfilePaths.database;
   const profileDataRoot = activeProfilePaths.profiles;
-  const cloudConnection = cloudAuth && cloudConfig
-    ? new CloudConnectionRuntime({
-        baseUrl: cloudConfig.apiUrl,
-        accessToken: () => cloudAuth.accessTokenOrRefresh(),
-        installation: {
-          installationId: defaultOperatorName(identityDbPath),
-          label: hostname(),
-          platform: process.platform === "win32" ? "windows" : process.platform === "darwin" ? "macos" : "linux",
-          appVersion: process.env.ALIASMODE_APP_VERSION ?? ALIASMODE_VERSION,
-        },
-      })
-    : undefined;
-  const mcpTunnel = process.platform === "win32" && agentNonce && cloudAuth && cloudConfig && cloudConnection
-    ? new McpTunnelRuntime({
-        baseUrl: cloudConfig.apiUrl,
-        accessToken: () => cloudAuth.accessTokenOrRefresh(),
-        deviceId: () => cloudConnection.deviceId(),
-        deviceCredential: () => cloudConnection.deviceCredential(),
-        log: (message) => console.log(`[aliasmode] ${message}`),
-      })
-    : undefined;
-  const pendingSync = cloudAuth
-    ? new PendingSyncRuntime(paths.pendingSync, compiled ? undefined : paths.pendingSyncKey)
-    : undefined;
+  const cloudConnection = unavailableLocalOnlyRuntime<CloudConnectionRuntime>();
+  const mcpTunnel = unavailableLocalOnlyRuntime<McpTunnelRuntime>();
+  const pendingSync = unavailableLocalOnlyRuntime<PendingSyncRuntime>();
   const lifecycleAdmissionOptions = cmd === "start" || cmd === "serve"
     ? lifecycleAdmissionOptionsFromEnv()
     : undefined;
@@ -2666,7 +2629,7 @@ async function main() {
         try {
           const installed = await installFirefox({ archive, cwd: paths.root });
           console.log(`AliasMode Firefox installed and pinned:\n${installed.path}\nSHA-256 ${installed.sha256}`);
-          console.log("Restart AliasMode to use it.");
+          console.log("请重启 IDFRI 后使用。");
         } catch (error) {
           console.error(error instanceof Error ? error.message : "AliasMode Firefox installation failed");
           process.exitCode = 1;
@@ -2678,10 +2641,10 @@ async function main() {
         process.exitCode = 1;
         break;
       }
-      console.log("Installing the official CloakBrowser binary (one-time download)...");
-      const installed = await installCloakBrowser({ cwd: paths.root });
-      console.log(`CloakBrowser installed and pinned:\n${installed.path}\nSHA-256 ${installed.sha256}`);
-      console.log("Restart AliasMode to use it.");
+      console.log("Installing Playwright open-source Chromium (one-time download)...");
+      const installed = await installOpenChromium({ cwd: paths.root });
+      console.log(`Chromium installed and pinned:\n${installed.path}\nSHA-256 ${installed.sha256}`);
+      console.log("请重启 IDFRI 后使用。");
       break;
     }
     case "import": {
@@ -2736,6 +2699,7 @@ async function main() {
               remote: coord,
               lifecycleAdmission: lifecycleAdmission!,
               appConfig,
+              agentNonce: agentNonce ?? undefined,
             })
           : undefined;
         const server = serveDashboard({
@@ -2830,6 +2794,7 @@ async function main() {
               cloudBrowser,
               lifecycleAdmission: lifecycleAdmission!,
               appConfig,
+              agentNonce: agentNonce ?? undefined,
             })
           : undefined;
         const server = serveDashboard({
@@ -2888,6 +2853,7 @@ async function main() {
             store,
             lifecycleAdmission: lifecycleAdmission!,
             appConfig,
+            agentNonce: agentNonce ?? undefined,
           })
         : undefined;
       const server = serveDashboard({
@@ -3014,7 +2980,7 @@ async function main() {
 // Only run the CLI when executed directly (`bun cli.ts …`), not when imported (e.g. by tests).
 if (import.meta.main) {
   main().catch(() => {
-    console.error("[aliasmode] FATAL command failure");
+    console.error("[idfri] FATAL command failure");
     process.exit(1);
   });
 }

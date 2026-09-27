@@ -17,7 +17,7 @@ $version = [string]$config.version
 if ([string]::IsNullOrWhiteSpace($version)) { throw "Tauri bundle version is missing" }
 
 $flavorName = $Flavor.ToLowerInvariant()
-$sourceName = "AliasMode_$($version)_x64-setup.exe"
+$sourceName = "IDFRI_$($version)_x64-setup.exe"
 $bundleDirectory = Join-Path $repoRoot "src-tauri\target\release\bundle\nsis"
 $sourcePath = Join-Path $bundleDirectory $sourceName
 if (Test-Path -LiteralPath $sourcePath) { Remove-Item -LiteralPath $sourcePath -Force }
@@ -59,9 +59,9 @@ try {
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
 $outputRoot = (Resolve-Path $OutputDirectory).Path
 $outputName = if ($flavorName -eq "full") {
-  "AliasMode_$($version)_x64-offline-setup.exe"
+  "IDFRI_$($version)_x64-offline-setup.exe"
 } else {
-  "AliasMode_$($version)_x64-setup.exe"
+  "IDFRI_$($version)_x64-setup.exe"
 }
 $outputPath = Join-Path $outputRoot $outputName
 if (-not [StringComparer]::OrdinalIgnoreCase.Equals($source.FullName, [IO.Path]::GetFullPath($outputPath))) {

@@ -37,7 +37,7 @@ function runtimeRoot(): string {
 }
 
 function desktopExecutable(): string {
-  return process.env.ALIASMODE_DESKTOP_EXE || join(dirname(process.execPath), "AliasMode.exe");
+  return process.env.ALIASMODE_DESKTOP_EXE || join(dirname(process.execPath), "IDFRI.exe");
 }
 
 function nodeExecutable(root: string): string {
@@ -68,7 +68,7 @@ function childEnvironment(extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
 
 function diagnose(message: string): void {
   if (process.env.ALIASMODE_MCP_DIAGNOSTICS === "1") {
-    process.stderr.write(`[aliasmode-mcp] ${message}\n`);
+    process.stderr.write(`[idfri-mcp] ${message}\n`);
   }
 }
 

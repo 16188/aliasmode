@@ -9,7 +9,7 @@ import {
 
 const version = "0.1.0-beta.46";
 const tag = `v${version}`;
-const installerName = `AliasMode_${version}_x64-setup.exe`;
+const installerName = `IDFRI_${version}_x64-setup.exe`;
 const releaseBase = `/aliasmode/aliasmode/releases/download/${tag}`;
 const config = normalizeFixtureConfig({
   candidateVersion: version,

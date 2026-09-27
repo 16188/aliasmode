@@ -71,8 +71,8 @@ pub(crate) fn exit_after_cleanup_failure(
     exit_after_cleanup_failure_message(
         app,
         sidecar,
-        "AliasMode shutdown failed",
-        format!("AliasMode could not confirm safe browser cleanup. {error}"),
+        "IDFRI 关闭失败",
+        format!("IDFRI 无法确认浏览器已安全清理：{error}"),
     );
 }
 
@@ -84,9 +84,9 @@ pub(crate) fn exit_after_update_cleanup_failure(
     exit_after_cleanup_failure_message(
         app,
         sidecar,
-        "AliasMode update not installed",
+        "IDFRI 更新未安装",
         format!(
-            "AliasMode could not confirm safe browser cleanup, so the update was not installed. The current version remains installed. {error}"
+            "IDFRI 无法确认浏览器已安全清理，因此没有安装更新，当前版本保持不变：{error}"
         ),
     );
 }
@@ -141,16 +141,12 @@ fn ask_to_close(
     active: Result<usize, String>,
 ) {
     let message = match active {
-        Ok(count) => format!(
-            "{count} browser session{} active. AliasMode will save session state and close the browser{} before exiting.",
-            if count == 1 { " is" } else { "s are" },
-            if count == 1 { "" } else { "s" },
-        ),
-        Err(_) => "Browser activity could not be confirmed. AliasMode will save session state and close any active browsers before exiting.".to_owned(),
+        Ok(count) => format!("当前有 {count} 个浏览器会话。IDFRI 将保存会话并关闭浏览器后退出。"),
+        Err(_) => "无法确认浏览器状态。IDFRI 将保存会话并关闭活动浏览器后退出。".to_owned(),
     };
     app.dialog()
         .message(message)
-        .title("Close AliasMode?")
+        .title("退出 IDFRI？")
         .kind(MessageDialogKind::Warning)
         .buttons(MessageDialogButtons::YesNo)
         .show(move |confirmed| {

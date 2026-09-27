@@ -15,7 +15,7 @@ function requireString(value, name) {
 export function normalizeFixtureConfig(input) {
   const candidateVersion = requireString(input?.candidateVersion, "candidate version");
   const candidateTag = `v${candidateVersion}`;
-  const installerName = `AliasMode_${candidateVersion}_x64-setup.exe`;
+  const installerName = `IDFRI_${candidateVersion}_x64-setup.exe`;
   const releaseBase = `/aliasmode/aliasmode/releases/download/${candidateTag}`;
   const manifestRoute = `${releaseBase}/latest-v2.json`;
   const installerRoute = `${releaseBase}/${installerName}`;

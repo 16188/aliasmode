@@ -56,10 +56,10 @@ function Start-RunnerUserProcess(
 }
 
 $publicVersion = $SourceVersion
-$publicInstallerName = "AliasMode_${publicVersion}_x64-offline-setup.exe"
+$publicInstallerName = "IDFRI_${publicVersion}_x64-offline-setup.exe"
 $candidateTag = "v$CandidateVersion"
-$candidateInstallerName = "AliasMode_${CandidateVersion}_x64-setup.exe"
-$candidateReleaseBase = "https://github.com/aliasmode/aliasmode/releases/download/$candidateTag"
+$candidateInstallerName = "IDFRI_${CandidateVersion}_x64-setup.exe"
+$candidateReleaseBase = "https://github.com/16188/aliasmode/releases/download/$candidateTag"
 $candidateManifestUrl = "$candidateReleaseBase/latest-v2.json"
 $candidateInstallerUrl = "$candidateReleaseBase/$candidateInstallerName"
 $repoRoot = Split-Path $PSScriptRoot -Parent
@@ -85,7 +85,7 @@ function Test-ProcessExited([Diagnostics.Process]$Process) {
 
 function Set-AcceptanceStage([string]$NextStage) {
   $script:stage = $NextStage
-  Write-Host "AliasMode updater acceptance stage: $NextStage"
+  Write-Host "IDFRI updater acceptance stage: $NextStage"
 }
 
 function Stop-ProcessTree([Diagnostics.Process]$Process) {
@@ -114,7 +114,7 @@ function Test-PathWithin([string]$Path, [string]$Root) {
 
 function Get-InstalledDesktopProcesses([string]$AppPath) {
   $result = [Collections.Generic.List[Diagnostics.Process]]::new()
-  foreach ($process in @(Get-Process -Name "AliasMode" -ErrorAction SilentlyContinue)) {
+  foreach ($process in @(Get-Process -Name "IDFRI" -ErrorAction SilentlyContinue)) {
     $path = Get-ProcessPath $process
     if ($path -and [IO.Path]::GetFullPath($path).Equals(
       [IO.Path]::GetFullPath($AppPath),
@@ -129,7 +129,7 @@ function Get-InstalledDesktopProcesses([string]$AppPath) {
 function Get-ChildSidecars([int]$DesktopProcessId) {
   $result = [Collections.Generic.List[Diagnostics.Process]]::new()
   $children = @(Get-CimInstance Win32_Process -Filter "ParentProcessId = $DesktopProcessId" -ErrorAction SilentlyContinue |
-    Where-Object { $_.Name -like "aliasmode-sidecar*.exe" })
+    Where-Object { $_.Name -like "idfri-sidecar*.exe" })
   foreach ($child in $children) {
     $process = Get-Process -Id $child.ProcessId -ErrorAction SilentlyContinue
     if ($process) { $result.Add($process) }
@@ -258,7 +258,7 @@ function Get-InstalledBrowserProcesses([string]$InstallRoot) {
   $result = [Collections.Generic.List[Diagnostics.Process]]::new()
   foreach ($record in @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue)) {
     if ($record.ExecutablePath -and
-        (Test-PathWithin ([string]$record.ExecutablePath) (Join-Path $InstallRoot "cloakbrowser"))) {
+        (Test-PathWithin ([string]$record.ExecutablePath) (Join-Path $InstallRoot "chromium"))) {
       $process = Get-Process -Id $record.ProcessId -ErrorAction SilentlyContinue
       if ($process) { $result.Add($process) }
     }
@@ -268,8 +268,8 @@ function Get-InstalledBrowserProcesses([string]$InstallRoot) {
 
 function Get-CandidateUpdaterProcesses([string]$Version) {
   $result = [Collections.Generic.List[Diagnostics.Process]]::new()
-  $expectedName = "AliasMode-$Version-installer.exe"
-  $expectedParentPrefix = "AliasMode-$Version-updater-"
+  $expectedName = "IDFRI-$Version-installer.exe"
+  $expectedParentPrefix = "IDFRI-$Version-updater-"
   $temporaryRoot = [IO.Path]::GetTempPath()
   foreach ($record in @(Get-CimInstance Win32_Process -ErrorAction SilentlyContinue)) {
     if (-not $record.ExecutablePath -or -not $record.CommandLine -or
@@ -516,7 +516,7 @@ function New-AcceptanceCertificates([string]$CertificateRoot) {
   $caCertificate = $null
   $serverCertificate = $null
   try {
-    $caName = "CN=AliasMode Windows Update Acceptance $([Guid]::NewGuid().ToString('N'))"
+    $caName = "CN=IDFRI Windows Update Acceptance $([Guid]::NewGuid().ToString('N'))"
     $caRequest = [Security.Cryptography.X509Certificates.CertificateRequest]::new(
       $caName,
       $caKey,
@@ -806,26 +806,26 @@ foreach ($requiredPath in @($fixtureScript, $probeScript, (Join-Path $repoRoot "
 }
 
 $runId = [Guid]::NewGuid().ToString("N")
-$runRoot = Join-Path $env:RUNNER_TEMP "aliasmode-in-app-update-$runId"
-$installRoot = Join-Path $env:LOCALAPPDATA "AliasMode"
+$runRoot = Join-Path $env:RUNNER_TEMP "idfri-in-app-update-$runId"
+$installRoot = Join-Path $env:LOCALAPPDATA "IDFRI"
 $webViewRoot = Join-Path $runRoot "webview"
 $certificateRoot = Join-Path $runRoot "tls"
 $fixtureConfigPath = Join-Path $runRoot "fixture-config.json"
 $fixtureStatePath = Join-Path $runRoot "fixture-state.json"
 if ([string]::IsNullOrWhiteSpace($DiagnosticsPath)) {
-  $DiagnosticsPath = Join-Path $env:RUNNER_TEMP "aliasmode-windows-updater-acceptance.json"
+  $DiagnosticsPath = Join-Path $env:RUNNER_TEMP "idfri-windows-updater-acceptance.json"
 } else {
   $DiagnosticsPath = [IO.Path]::GetFullPath($DiagnosticsPath)
 }
 $hostsPath = Join-Path $env:SystemRoot "System32\drivers\etc\hosts"
 $appDataRoot = Join-Path (
   [Environment]::GetFolderPath([Environment+SpecialFolder]::ApplicationData)
-) "com.aliasmode.desktop"
+) "com.idfri.desktop"
 $configPath = Join-Path $appDataRoot "config.json"
 $sentinelPath = Join-Path $appDataRoot "in-app-update-sentinel.txt"
-$appPath = Join-Path $installRoot "AliasMode.exe"
-$manufacturerKey = "Registry::HKEY_CURRENT_USER\Software\aliasmode\AliasMode"
-$uninstallKey = "Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Uninstall\AliasMode"
+$appPath = Join-Path $installRoot "IDFRI.exe"
+$manufacturerKey = "Registry::HKEY_CURRENT_USER\Software\IDFRI\IDFRI"
+$uninstallKey = "Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Uninstall\IDFRI"
 $registrationBackup = $null
 $registrationChanged = $false
 $hostsOriginalBytes = $null
@@ -893,17 +893,17 @@ $observations = [ordered]@{
 try {
   Set-AcceptanceStage "preparing-public-release"
   New-Item -ItemType Directory -Force $runRoot, $webViewRoot, $certificateRoot | Out-Null
-  if (@(Get-Process -Name "AliasMode" -ErrorAction SilentlyContinue).Count -ne 0) {
-    throw "runner has a pre-existing AliasMode process"
+  if (@(Get-Process -Name "IDFRI" -ErrorAction SilentlyContinue).Count -ne 0) {
+    throw "runner has a pre-existing IDFRI process"
   }
   foreach ($path in @($appDataRoot, $installRoot)) {
-    if (Test-Path -LiteralPath $path) { throw "runner has pre-existing AliasMode state" }
+    if (Test-Path -LiteralPath $path) { throw "runner has pre-existing IDFRI state" }
   }
   foreach ($key in @(
-    "Registry::HKEY_CURRENT_USER\Software\aliasmode\AliasMode",
-    "Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Uninstall\AliasMode"
+    "Registry::HKEY_CURRENT_USER\Software\IDFRI\IDFRI",
+    "Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Uninstall\IDFRI"
   )) {
-    if (Test-Path -LiteralPath $key) { throw "runner has pre-existing AliasMode registration" }
+    if (Test-Path -LiteralPath $key) { throw "runner has pre-existing IDFRI registration" }
   }
 
   $SourceInstallerPath = Resolve-InputFile $SourceInstallerPath "source $publicVersion installer"
@@ -951,7 +951,7 @@ try {
   [IO.File]::WriteAllText($configPath, $config, [Text.UTF8Encoding]::new($false))
   [IO.File]::WriteAllText(
     $sentinelPath,
-    "aliasmode-windows-in-app-update-acceptance-v1",
+    "idfri-windows-in-app-update-acceptance-v1",
     [Text.UTF8Encoding]::new($false)
   )
 
@@ -1003,7 +1003,7 @@ try {
   $hostsOriginalBytes = [IO.File]::ReadAllBytes($hostsPath)
   Assert-NoGithubHostsMapping $hostsOriginalBytes
   $hostsChanged = $true
-  Set-GithubLoopbackHosts $hostsPath $hostsOriginalBytes "aliasmode-update-acceptance-$runId"
+  Set-GithubLoopbackHosts $hostsPath $hostsOriginalBytes "idfri-update-acceptance-$runId"
   Flush-DnsCache
   Assert-GithubResolvesToLoopback
 
@@ -1109,7 +1109,7 @@ try {
   }
   $staleRoot = Join-Path $runRoot "stale-installation"
   New-Item -ItemType Directory -Force $staleRoot | Out-Null
-  Copy-Item -LiteralPath $appPath -Destination (Join-Path $staleRoot "AliasMode.exe")
+  Copy-Item -LiteralPath $appPath -Destination (Join-Path $staleRoot "IDFRI.exe")
   Copy-Item -LiteralPath (Join-Path $installRoot "uninstall.exe") -Destination (Join-Path $staleRoot "uninstall.exe")
   Set-Item -LiteralPath $manufacturerKey -Value $staleRoot
   Set-ItemProperty -LiteralPath $uninstallKey -Name "InstallLocation" -Value $staleRoot
@@ -1338,7 +1338,7 @@ try {
 
   try {
     foreach ($updaterRoot in @(Get-ChildItem ([IO.Path]::GetTempPath()) -Directory `
-      -Filter "AliasMode-$CandidateVersion-updater-*" -ErrorAction SilentlyContinue)) {
+      -Filter "IDFRI-$CandidateVersion-updater-*" -ErrorAction SilentlyContinue)) {
       Remove-Item -LiteralPath $updaterRoot.FullName -Recurse -Force -ErrorAction Stop
     }
   } catch {

@@ -30,11 +30,12 @@ test("release version and updater trust stay aligned across the desktop bundle",
   const releasesSource = readFileSync(join(root, "src-tauri", "src", "releases.rs"), "utf8");
   const releaseWorkflow = readFileSync(join(root, ".github", "workflows", "release-candidate.yml"), "utf8")
     .replaceAll("\r\n", "\n");
-  const ciWorkflow = readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8");
+  const ciWorkflow = readFileSync(join(root, ".github", "workflows", "ci.yml"), "utf8")
+    .replaceAll("\r\n", "\n");
   const compatibilityWorkflow = readFileSync(
     join(root, ".github", "workflows", "client-compatibility.yml"),
     "utf8",
-  );
+  ).replaceAll("\r\n", "\n");
   const installedAcceptance = readFileSync(join(root, "scripts", "windows-installed-acceptance.ps1"), "utf8");
   const previousUpgradeAcceptance = readFileSync(
     join(root, "scripts", "windows-previous-upgrade-acceptance.ps1"),
@@ -45,7 +46,7 @@ test("release version and updater trust stay aligned across the desktop bundle",
   const updaterUiProbe = readFileSync(join(root, "scripts", "windows-updater-ui-probe.mjs"), "utf8");
   const updaterSource = readFileSync(join(root, "vendor", "tauri-plugin-updater", "src", "updater.rs"), "utf8");
   const cargoVersion = cargoToml.match(/^version = "([^"]+)"$/m)?.[1];
-  const lockedVersion = cargoLock.match(/\[\[package\]\]\r?\nname = "aliasmode-desktop"\r?\nversion = "([^"]+)"/)?.[1];
+  const lockedVersion = cargoLock.match(/\[\[package\]\]\r?\nname = "idfri-desktop"\r?\nversion = "([^"]+)"/)?.[1];
   const windowsGateNeeds = ciWorkflow.match(
     /\n  windows:\n    name: Windows NSIS installer\n    needs:\n((?:      - [a-z_]+\n)+)/,
   )?.[1]?.trim().split("\n").map((line) => line.trim().slice(2));
@@ -119,7 +120,7 @@ test("release version and updater trust stay aligned across the desktop bundle",
     installedAcceptance.indexOf('    "browser" {'),
   );
   const cacheStep = (job: string) => {
-    const start = job.indexOf("      - name: Cache pinned CloakBrowser");
+    const start = job.indexOf("      - name: Cache Playwright Chromium");
     return job.slice(start, job.indexOf("\n      - ", start + 1));
   };
   const baselineStep = (job: string, nextStep: string) => job.slice(
@@ -140,18 +141,13 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(tauriConfig.bundle.createUpdaterArtifacts).toBe(true);
   expect(updaterConfig.bundle.createUpdaterArtifacts).toBe(true);
   expect(updaterConfig.bundle.windows.webviewInstallMode.type).toBe("downloadBootstrapper");
-  expect(browserInstallSource).toContain('CLOAKBROWSER_VERSION = "146.0.7680.177.5"');
-  expect(browserInstallSource).toContain('env.CLOAKBROWSER_AUTO_UPDATE = "false"');
-  expect(ciWorkflow).toContain("name: Cache pinned CloakBrowser");
-  expect(ciWorkflow).toContain("path: src-tauri/target/cloakbrowser-cache");
-  expect(releaseWorkflow).not.toContain("name: Cache pinned CloakBrowser");
-  expect(ciWorkflow).toContain("cloakbrowser-version=146.0.7680.177.5");
-  expect(ciWorkflow).toContain(
-    "cloakbrowser-archive-sha256=b213795cb32c3169f766c74ce1d0275fc89d3df256de39c04da7fb4c23b7fdbe",
-  );
-  expect(ciWorkflow).toContain(
-    "cloakbrowser-executable-sha256=03f53661a5c47e7b0a661bee2bce8a0d302b7a60834c328df417561fa0636d80",
-  );
+  expect(browserInstallSource).toContain('OPEN_CHROMIUM_RUNTIME_VERSION = "playwright-core@1.58.2"');
+  expect(browserInstallSource).toContain('OPEN_CHROMIUM_REVISION = "1208"');
+  expect(ciWorkflow).toContain("name: Cache Playwright Chromium");
+  expect(ciWorkflow).toContain("path: src-tauri/target/chromium-cache");
+  expect(releaseWorkflow).not.toContain("name: Cache Playwright Chromium");
+  expect(ciWorkflow).toContain("chromium-runtime=playwright-core@1.58.2");
+  expect(ciWorkflow).toContain("chromium-revision=1208");
   expect(releasesSource).toContain('const UPDATE_MANIFEST: &str = "latest-v2.json";');
   expect(releasesSource).toContain(".on_before_exit(move || {");
   expect(releasesSource).toContain("let _ = sidecar.kill_owned();");
@@ -168,7 +164,7 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(ciSuccessorJob).toContain("workspaces: src-tauri -> target");
   expect(ciSuccessorJob).toContain("cache-on-failure: true");
   expect(ciSuccessorJob.indexOf("uses: Swatinem/rust-cache@v2")).toBeLessThan(
-    ciSuccessorJob.indexOf("name: Cache pinned CloakBrowser"),
+    ciSuccessorJob.indexOf("name: Cache Playwright Chromium"),
   );
   expect(cacheStep(ciSuccessorJob)).toBe(cacheStep(windowsFullJob));
   expect(ciSuccessorVersionFiles).toBe([
@@ -201,7 +197,7 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(ciSuccessorJob).toContain("& git checkout -- .");
   expect(ciSuccessorJob).toContain("git rev-parse HEAD");
   expect(ciSuccessorJob).toContain("git status --porcelain --untracked-files=all");
-  expect(ciSuccessorJob).toContain("name: aliasmode-windows-unsigned-synthetic-successor");
+  expect(ciSuccessorJob).toContain("name: idfri-windows-unsigned-synthetic-successor");
   expect(ciSuccessorJob).toContain("retention-days: 7");
   expect(ciSuccessorJob).toContain("compression-level: 0");
   expect(ciSuccessorJob).not.toContain("TAURI_SIGNING_PRIVATE_KEY");
@@ -209,11 +205,11 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(ciSuccessorJob).not.toContain("tauri signer sign");
 
   expect(provenanceJob).toContain("successor_version: ${{ steps.successor.outputs.version }}");
-  expect(provenanceJob).toContain("name: aliasmode-windows-unsigned-synthetic-successor");
+  expect(provenanceJob).toContain("name: idfri-windows-unsigned-synthetic-successor");
   expect(provenanceJob).toContain("run-id: ${{ inputs.run_id }}");
   expect(provenanceJob).toContain('"$($env:WINDOWS_VERSION).acceptance.1"');
   expect(provenanceJob).toContain('$($sourceSemantic.Patch + 1)-acceptance.1');
-  expect(provenanceJob).toContain('$name = "AliasMode_${successorVersion}_x64-setup.exe"');
+  expect(provenanceJob).toContain('$name = "IDFRI_${successorVersion}_x64-setup.exe"');
   expect(provenanceJob).toContain('$requiredNames = @($name, "artifact-manifest.json")');
   expect(provenanceJob).toContain("$entries.Count -ne 2");
   expect(provenanceJob).toContain('$manifest.role -cne "unsigned-synthetic-successor"');
@@ -230,7 +226,7 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(releaseWorkflow).toContain("sign_current:\n    name: Sign current release assets\n    needs: provenance");
   expect(releaseWorkflow).toContain("sign_successor:\n    name: Sign synthetic successor\n    needs: provenance");
   expect(signSuccessorJob).toContain("environment: windows-release");
-  expect(signSuccessorJob).toContain("name: aliasmode-windows-unsigned-synthetic-successor");
+  expect(signSuccessorJob).toContain("name: idfri-windows-unsigned-synthetic-successor");
   expect(signSuccessorJob).toContain("run-id: ${{ inputs.run_id }}");
   expect(signSuccessorInputStep).toContain("--role unsigned-synthetic-successor");
   expect(signSuccessorInputStep).toContain("$entries.Count -ne 2");
@@ -240,7 +236,7 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(signSuccessorInputStep).toContain('Status -cne "NotSigned"');
   expect(signSuccessorInputStep).toContain("Copy-Item $installer $signedInstaller");
   expect(signSuccessorInputStep).not.toContain("TAURI_SIGNING_PRIVATE_KEY");
-  expect(signSuccessorJob).not.toContain("Cache pinned CloakBrowser");
+  expect(signSuccessorJob).not.toContain("Cache Playwright Chromium");
   expect(signSuccessorJob).not.toContain("prepare-windows-bundle.ts");
   expect(signSuccessorJob).not.toContain("build-windows-installer.ps1");
   expect(signSuccessorJob).not.toContain("src-tauri -> target");
@@ -248,18 +244,18 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(releaseWorkflow).toContain(
     "previous_upgrade_acceptance:\n    name: Previous-version upgrade acceptance\n    needs: provenance",
   );
-  expect(previousUpgradeJob).toContain("name: aliasmode-release-provenance");
+  expect(previousUpgradeJob).toContain("name: idfri-release-provenance");
   expect(previousUpgradeJob).toContain('"--role", "candidate"');
-  expect(previousUpgradeJob).toContain('-FullInstallerPath ".\\candidate\\AliasMode_');
+  expect(previousUpgradeJob).toContain('-FullInstallerPath ".\\candidate\\IDFRI_');
   expect(previousUpgradeJob).not.toContain("sign_current");
   expect(previousUpgradeJob).not.toContain("aliasmode-signed-current");
   expect(releaseWorkflow).toContain(
     "exact_updater_acceptance:\n    name: Exact in-app updater acceptance\n    needs: [provenance, sign_successor]",
   );
   expect(exactUpdaterJob).toContain("bun install --frozen-lockfile");
-  expect(exactUpdaterJob).toContain("name: aliasmode-release-provenance");
-  expect(exactUpdaterJob).toContain("name: aliasmode-synthetic-successor");
-  expect(exactUpdaterJob).toContain('-SourceInstallerPath ".\\candidate\\AliasMode_');
+  expect(exactUpdaterJob).toContain("name: idfri-release-provenance");
+  expect(exactUpdaterJob).toContain("name: idfri-synthetic-successor");
+  expect(exactUpdaterJob).toContain('-SourceInstallerPath ".\\candidate\\IDFRI_');
   expect(exactUpdaterJob).not.toContain("dtolnay/rust-toolchain");
   expect(exactUpdaterJob).not.toContain("Swatinem/rust-cache");
   expect(exactUpdaterJob).not.toContain("cargo run");
@@ -275,13 +271,13 @@ test("release version and updater trust stay aligned across the desktop bundle",
     '            "$slim_name"',
     '            "$slim_name.sig"',
     '            "latest-v2.json"',
-    '            "aliasmode-agent-bootstrap.json"',
+    '            "idfri-agent-bootstrap.json"',
     '            "SHA256SUMS.txt"',
     "          )",
     "",
   ].join("\n"));
   expect(releaseWorkflow).toContain("name: aliasmode-signed-current");
-  expect(releaseWorkflow).toContain("name: aliasmode-synthetic-successor");
+  expect(releaseWorkflow).toContain("name: idfri-synthetic-successor");
   expect(releaseWorkflow.match(/TAURI_SIGNING_PRIVATE_KEY: \$\{\{ secrets\.TAURI_SIGNING_PRIVATE_KEY \}\}/g)).toHaveLength(2);
   expect(releaseWorkflow.match(/Remove-Item Env:TAURI_SIGNING_PRIVATE_KEY\b/g)).toHaveLength(2);
   expect(releaseWorkflow.match(/bunx tauri signer sign/g)).toHaveLength(2);
@@ -292,8 +288,8 @@ test("release version and updater trust stay aligned across the desktop bundle",
     expect(signer).toContain("$bytes[$middle] = $bytes[$middle] -bxor 1");
     expect(signer).toContain("if ($LASTEXITCODE -eq 0)");
   }
-  expect(releaseWorkflow).toContain("aliasmode-windows-in-app-update-diagnostics-${{ github.run_attempt }}");
-  expect(releaseWorkflow).toContain("aliasmode-windows-previous-upgrade-diagnostics-${{ github.run_attempt }}");
+  expect(releaseWorkflow).toContain("idfri-windows-in-app-update-diagnostics-${{ github.run_attempt }}");
+  expect(releaseWorkflow).toContain("idfri-windows-previous-upgrade-diagnostics-${{ github.run_attempt }}");
   expect(releaseWorkflow).toContain('if [[ "$asset_state" == starter ]]');
   expect(releaseWorkflow).toContain('if [[ "$already_published" == true ]]');
   expect(releaseWorkflow).toContain("release producer must contain exactly six regular assets");
@@ -312,10 +308,10 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(windowsFullJob).not.toContain("windows_prepare");
   expect(cacheStep(windowsFullJob)).toBe(cacheStep(windowsPrepareJob));
   expect(windowsFullJob.indexOf("uses: Swatinem/rust-cache@v2")).toBeLessThan(
-    windowsFullJob.indexOf("name: Cache pinned CloakBrowser"),
+    windowsFullJob.indexOf("name: Cache Playwright Chromium"),
   );
   expect(cacheStep(windowsFullJob)).toContain(
-    "key: cloakbrowser-windows-x64-v1-146.0.7680.177.5-b213795cb32c3169f766c74ce1d0275fc89d3df256de39c04da7fb4c23b7fdbe-03f53661a5c47e7b0a661bee2bce8a0d302b7a60834c328df417561fa0636d80",
+    "key: chromium-windows-x64-v1-playwright-core-1.58.2-rev1208",
   );
   const fullBaselineStep = baselineStep(
     windowsFullJob,
@@ -332,7 +328,7 @@ test("release version and updater trust stay aligned across the desktop bundle",
   const fullArtifactDownloads = [...windowsFullJob.matchAll(/uses: actions\/download-artifact@v4\s+with:\s+name: ([^\r\n]+)/g)]
     .map((match) => match[1]!.trim());
   expect(fullArtifactDownloads).toEqual(["aliasmode-firefox-windows-x64"]);
-  expect(windowsFullJob).not.toContain("aliasmode-windows-prepared");
+  expect(windowsFullJob).not.toContain("idfri-windows-prepared");
   expect(windowsFullJob).not.toContain("prepared-input manifest");
   expect(windowsFullJob).not.toContain("tar.exe -xf");
   expect(windowsPrepareJob).not.toContain("if: needs.windows_cache.outputs.cache_hit == 'false'");
@@ -340,7 +336,7 @@ test("release version and updater trust stay aligned across the desktop bundle",
     "name: Windows source tests and checks\n    needs: [windows_cache, windows_prepare]\n    runs-on: windows-latest",
   );
   expect(windowsSourceJob).not.toContain("if: needs.windows_cache.outputs.cache_hit == 'false'");
-  expect(windowsSourceJob).toContain("name: aliasmode-windows-prepared");
+  expect(windowsSourceJob).toContain("name: idfri-windows-prepared");
   expect(windowsSourceJob).toContain("Smoke-test compiled sidecar CDP runtime");
   expect(windowsRuntimeJob).toContain("name: Windows installed ${{ matrix.shard }} acceptance");
   expect(windowsRuntimeJob).toContain("fail-fast: false");
@@ -350,7 +346,7 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(windowsRuntimeJob).toContain("-Shard ${{ matrix.shard }}");
   expect(windowsRuntimeJob).toContain('DiagnosticsPath ".\\diagnostics\\${{ matrix.shard }}.json"');
   expect(windowsRuntimeJob).toContain(
-    "name: aliasmode-windows-${{ matrix.shard }}-diagnostics-${{ github.run_attempt }}",
+    "name: idfri-windows-${{ matrix.shard }}-diagnostics-${{ github.run_attempt }}",
   );
   expect(windowsGateNeeds).toEqual([
     "windows_firefox",
@@ -363,9 +359,8 @@ test("release version and updater trust stay aligned across the desktop bundle",
     "windows_candidate",
     "windows_accept_runtime",
     "windows_accept_browser",
-    "windows_accept_cloud",
   ]);
-  expect(ciWorkflow).toContain("name: aliasmode-windows-candidate");
+  expect(ciWorkflow).toContain("name: idfri-windows-candidate");
   expect(ciWorkflow).toContain('"--role", "candidate"');
   expect(ciWorkflow).toContain("windows_cache_save:");
   expect(ciWorkflow).toContain("name: Save accepted Windows candidate cache");
@@ -377,15 +372,16 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(ciWorkflow).toContain("scripts\\windows-installed-acceptance.ps1");
   expect(ciWorkflow).toContain("- windows_accept_runtime");
   expect(ciWorkflow).toContain("- windows_accept_browser");
-  expect(ciWorkflow).toContain("- windows_accept_cloud");
-  expect(ciWorkflow).toContain("name: aliasmode-windows-unsigned-synthetic-successor");
+  expect(ciWorkflow).toContain("windows_accept_cloud:");
+  expect(ciWorkflow).toContain("if: ${{ false }}");
+  expect(ciWorkflow).toContain("name: idfri-windows-unsigned-synthetic-successor");
   expect(ciWorkflow).not.toContain("macos-latest");
   expect(ciWorkflow).not.toContain("nsis-updater");
-  expect(compatibilityWorkflow).toContain("name: aliasmode-windows-candidate");
+  expect(compatibilityWorkflow).toContain("name: idfri-windows-candidate");
   expect(compatibilityWorkflow).toContain('role -cne "candidate"');
   expect(compatibilityWorkflow).toContain('event -cne "push"');
   expect(compatibilityWorkflow).toContain("scripts/windows-artifact-manifest.ts verify");
-  expect(compatibilityWorkflow).not.toContain("aliasmode-windows-unsigned");
+  expect(compatibilityWorkflow).not.toContain("idfri-windows-unsigned");
   expect(ciWorkflow).not.toContain("-cjoin");
   expect(releaseWorkflow).not.toContain("-cjoin");
   expect(compatibilityWorkflow).not.toContain("-cjoin");

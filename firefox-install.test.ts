@@ -44,6 +44,10 @@ function fixture(platform: "linux" | "darwin" = "linux", writeEnv = true) {
     mkdirSync(dirname(executable), { recursive: true });
     writeFileSync(executable, "approved executable", { mode: 0o755 });
     writeFileSync(join(destination, "runtime-resource"), "preserved");
+    mkdirSync(join(destination, "fonts"), { recursive: true });
+    writeFileSync(join(destination, "fonts", "restricted.ttf"), "proprietary font");
+    mkdirSync(join(destination, "AliasMode.app", "Contents", "Resources", "fonts"), { recursive: true });
+    writeFileSync(join(destination, "AliasMode.app", "Contents", "Resources", "fonts", "restricted.ttf"), "proprietary font");
   };
   return { cwd, archive, build, extract };
 }
@@ -160,7 +164,10 @@ for (const platform of ["linux", "darwin"] as const) {
     if (process.platform !== "win32") expect(() => accessSync(result.path, constants.X_OK)).not.toThrow();
     const directories = readdirSync(join(f.cwd, "browser"));
     expect(directories).toHaveLength(1);
-    expect(readFileSync(join(f.cwd, "browser", directories[0]!, "runtime-resource"), "utf8")).toBe("preserved");
+    const runtime = join(f.cwd, "browser", directories[0]!);
+    expect(readFileSync(join(runtime, "runtime-resource"), "utf8")).toBe("preserved");
+    expect(existsSync(join(runtime, "fonts"))).toBe(false);
+    expect(existsSync(join(runtime, "AliasMode.app", "Contents", "Resources", "fonts"))).toBe(false);
     const config = readFileSync(join(f.cwd, ".env"), "utf8");
     expect(config).toContain("CLOAKBROWSER_BINARY_PATH=existing-chromium\n");
     expect(config).toContain(`ALIASMODE_FIREFOX_BINARY_PATH=${result.path}`);

@@ -12,11 +12,21 @@ import {
 
 const webSource = readFileSync(join(import.meta.dir, "web.ts"), "utf8");
 
+function apiFetch(
+  server: { localApiToken: string },
+  input: string,
+  init: RequestInit = {},
+): Promise<Response> {
+  const headers = new Headers(init.headers);
+  headers.set("authorization", `Bearer ${server.localApiToken}`);
+  return fetch(input, { ...init, headers });
+}
+
 test("profile identity cards do not fetch egress IP automatically", () => {
   expect(webSource).not.toContain("ip-api.com/json");
   expect(webSource).not.toContain("checking egress IP");
   expect(webSource).toContain("AliasMode Firefox");
-  expect(webSource).toContain("no CDP, PDF, or Chrome extensions");
+  expect(webSource).toContain("不支持 CDP、PDF 或 Chrome 扩展");
 });
 
 test("identity cards load stored Chromium and Firefox metadata without egress lookup", async () => {
@@ -27,7 +37,7 @@ test("identity cards load stored Chromium and Firefox metadata without egress lo
   const server = serveDashboard({ port: 0, launcher: {} as any, store, log: () => {} });
 
   try {
-    for (const [profile, browser] of [[chromium, "CloakBrowser"], [firefox, "AliasMode Firefox"]] as const) {
+    for (const [profile, browser] of [[chromium, "Chromium（实验兼容内核）"], [firefox, "AliasMode Firefox"]] as const) {
       const response = await fetch(`http://127.0.0.1:${server.port}/card?id=${profile.id}`);
       expect(response.status).toBe(200);
       const card = await response.text();
@@ -50,6 +60,35 @@ test("dashboard serves in production mode so it never watches the app folder", a
   }
 });
 
+test("IDFRI dashboard keeps Cloud routes and mode selection closed", async () => {
+  const store = new ProfileStore(":memory:");
+  let writes = 0;
+  const server = serveDashboard({
+    port: 0,
+    launcher: {} as any,
+    store,
+    appConfig: {
+      read: () => ({ version: 1, mode: "local", localAnalytics: false }),
+      setMode: () => { writes++; },
+    } as any,
+    log: () => {},
+  });
+  try {
+    const origin = `http://127.0.0.1:${server.port}`;
+    expect((await fetch(`${origin}/ui/api/cloud-auth`)).status).toBe(404);
+    const selectCloud = await fetch(`${origin}/ui/api/app-mode`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ mode: "cloud" }),
+    });
+    expect(selectCloud.status).toBe(400);
+    expect(writes).toBe(0);
+  } finally {
+    await server.stop(true);
+    store.close();
+  }
+});
+
 test("dashboard health route blocks browser cross-origin submissions on loopback", async () => {
   let publishes = 0;
   const server = serveDashboard({
@@ -69,7 +108,7 @@ test("dashboard health route blocks browser cross-origin submissions on loopback
     const endpoint = `http://127.0.0.1:${server.port}/api/xactions/health-snapshot`;
     const body = JSON.stringify({ profiles: [{ profileId: "p1", suspended: true }] });
 
-    const automation = await fetch(endpoint, {
+    const automation = await apiFetch(server, endpoint, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body,
@@ -77,19 +116,19 @@ test("dashboard health route blocks browser cross-origin submissions on loopback
     expect(automation.status).toBe(200);
     expect(publishes).toBe(1);
 
-    const browser = await fetch(endpoint, {
+    const browser = await apiFetch(server, endpoint, {
       method: "POST",
       headers: { "content-type": "application/json", origin: "https://attacker.example" },
       body,
     });
     expect(browser.status).toBe(403);
 
-    const simplePost = await fetch(endpoint, {
+    const simplePost = await apiFetch(server, endpoint, {
       method: "POST",
       headers: { "content-type": "text/plain", origin: "https://attacker.example" },
       body,
     });
-    expect(simplePost.status).toBe(415);
+    expect(simplePost.status).toBe(403);
     expect(publishes).toBe(1);
   } finally {
     await server.stop(true);
@@ -139,13 +178,15 @@ test("automation API serves compatibility routes without desktop UI", async () =
 
   try {
     const origin = `http://127.0.0.1:${server.port}`;
-    const status = await fetch(`${origin}/api/v1/status`).then((response) => response.json());
+    const unauthorized = await fetch(`${origin}/api/v1/status`);
+    expect(unauthorized.status).toBe(401);
+    const status = await apiFetch(server, `${origin}/api/v1/status`).then((response) => response.json());
     expect(status.code).toBe(0);
 
-    const profiles = await fetch(`${origin}/api/v1/user/list?page=1&page_size=10`).then((response) => response.json());
+    const profiles = await apiFetch(server, `${origin}/api/v1/user/list?page=1&page_size=10`).then((response) => response.json());
     expect(profiles).toMatchObject({ code: 0, data: { list: [] } });
 
-    const health = await fetch(`${origin}/api/xactions/health-snapshot`, {
+    const health = await apiFetch(server, `${origin}/api/xactions/health-snapshot`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ profiles: [{ profileId: "p1", suspended: false }] }),
@@ -154,13 +195,45 @@ test("automation API serves compatibility routes without desktop UI", async () =
     expect(publishes).toBe(1);
 
     for (const path of ["/", "/ui/api/health", "/card?id=p1", "/api/agent/v1/connect"]) {
-      const response = await fetch(`${origin}${path}`);
+      const response = await apiFetch(server, `${origin}${path}`);
       expect(response.headers.get("content-type")).not.toContain("text/html");
       expect(await response.text()).not.toContain("<!doctype html>");
     }
   } finally {
     await server.stop(true);
     store.close();
+  }
+});
+
+test("Local API exposes an authenticated Firefox automation gateway", async () => {
+  const calls: Array<[string, Record<string, unknown>]> = [];
+  const server = serveAutomationApi({
+    port: 0,
+    launcher: { certifiedActive: async () => true } as any,
+    store: {
+      getLaunch: () => ({ engine: "firefox", firefoxOwner: { port: 1, token: "a".repeat(64) } }),
+    } as any,
+    firefoxCall: async (_owner, operation, payload) => {
+      calls.push([operation, payload]);
+      return operation === "mcp-list" ? [{ name: "browser_snapshot" }] : { content: [{ type: "text", text: "ok" }] };
+    },
+    log: () => {},
+  });
+
+  try {
+    const origin = `http://127.0.0.1:${server.port}`;
+    expect((await fetch(`${origin}/api/firefox/v1/tools?profile_id=p1`)).status).toBe(401);
+    const listed = await apiFetch(server, `${origin}/api/firefox/v1/tools?profile_id=p1`).then((response) => response.json());
+    expect(listed).toMatchObject({ ok: true, result: { tools: [{ name: "browser_snapshot" }] } });
+    const called = await apiFetch(server, `${origin}/api/firefox/v1/tools/call`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ profileId: "p1", name: "browser_snapshot", arguments: {} }),
+    }).then((response) => response.json());
+    expect(called).toMatchObject({ ok: true, result: { content: [{ text: "ok" }] } });
+    expect(calls).toEqual([["mcp-list", {}], ["mcp-call", { name: "browser_snapshot", arguments: {} }]]);
+  } finally {
+    await server.stop(true);
   }
 });
 
@@ -188,8 +261,8 @@ test("dashboard and automation API share lifecycle admission", async () => {
   });
 
   try {
-    const dashboardStatus = await fetch(`http://127.0.0.1:${dashboard.port}/status`).then((response) => response.json());
-    const automationStatus = await fetch(`http://127.0.0.1:${automation.port}/status`).then((response) => response.json());
+    const dashboardStatus = await apiFetch(dashboard, `http://127.0.0.1:${dashboard.port}/status`).then((response) => response.json());
+    const automationStatus = await apiFetch(automation, `http://127.0.0.1:${automation.port}/status`).then((response) => response.json());
     expect(dashboardStatus.data.admission.inFlight).toBe(1);
     expect(automationStatus.data.admission.inFlight).toBe(1);
   } finally {
@@ -214,7 +287,7 @@ test("desktop automation API owns 127.0.0.1:50400 and desktop startup survives c
     expect(dashboard.port).not.toBe(50_400);
     if (server) {
       expect(server.port).toBe(50_400);
-      const response = await fetch("http://127.0.0.1:50400/status");
+      const response = await apiFetch(server, "http://127.0.0.1:50400/status");
       expect(await response.json()).toMatchObject({ code: 0 });
       expect(serveDesktopAutomationApi(options)).toBeUndefined();
     }
@@ -271,37 +344,37 @@ test("Cloud automation API routes browser control through the Cloud lifecycle", 
 
   try {
     const origin = `http://127.0.0.1:${server.port}`;
-    const status = await fetch(`${origin}/api/v1/status`).then((response) => response.json());
+    const status = await apiFetch(server, `${origin}/api/v1/status`).then((response) => response.json());
     expect(status.code).toBe(0);
 
     // Folder import: resolve the group, then page its profiles from Cloud.
-    const groups = await fetch(`${origin}/api/v1/group/list?group_name=Folder%20A&page_size=2000`)
+    const groups = await apiFetch(server, `${origin}/api/v1/group/list?group_name=Folder%20A&page_size=2000`)
       .then((response) => response.json());
     expect(groups.data.list).toEqual([
       { group_id: "Folder A", group_name: "Folder A" },
       { group_id: "Folder B", group_name: "Folder B" },
     ]);
-    const members = await fetch(`${origin}/api/v1/user/list?group_id=Folder%20B&page_size=100&page=1`)
+    const members = await apiFetch(server, `${origin}/api/v1/user/list?group_id=Folder%20B&page_size=100&page=1`)
       .then((response) => response.json());
     expect(members.data.list.map((row: any) => [row.user_id, row.name])).toEqual([["k2", "second"]]);
-    const byId = await fetch(`${origin}/api/v1/user/list?user_id=k1`).then((response) => response.json());
+    const byId = await apiFetch(server, `${origin}/api/v1/user/list?user_id=k1`).then((response) => response.json());
     expect(byId.data.list.map((row: any) => row.name)).toEqual(["first"]);
 
-    const start = await fetch(`${origin}/api/v1/browser/start?user_id=k1&launch_args=%5B%22--flag%22%5D`)
+    const start = await apiFetch(server, `${origin}/api/v1/browser/start?user_id=k1&launch_args=%5B%22--flag%22%5D`)
       .then((response) => response.json());
     expect(start).toMatchObject({
       code: 0,
       data: { ws: { puppeteer: "ws://x/cloud" }, debug_port: "9444" },
     });
 
-    const stop = await fetch(`${origin}/api/v1/browser/stop?user_id=k1`).then((response) => response.json());
+    const stop = await apiFetch(server, `${origin}/api/v1/browser/stop?user_id=k1`).then((response) => response.json());
     expect(stop.code).toBe(0);
     expect(calls).toEqual(['open:k1:["--flag"]', "close:k1"]);
     expect(localStarts).toBe(0);
 
-    const blocked = await fetch(`${origin}/api/v1/user/update`, { method: "POST" });
+    const blocked = await apiFetch(server, `${origin}/api/v1/user/update`, { method: "POST" });
     expect(blocked.status).toBe(503);
-    const destructive = await fetch(`${origin}/api/v1/user/delete`, { method: "POST" });
+    const destructive = await apiFetch(server, `${origin}/api/v1/user/delete`, { method: "POST" });
     expect(destructive.status).toBe(503);
   } finally {
     await server.stop(true);
@@ -323,7 +396,7 @@ test("Cloud automation API reports a roster failure in the AdsPower envelope", a
   });
 
   try {
-    const response = await fetch(`http://127.0.0.1:${server.port}/api/v1/user/list?page_size=2000`);
+    const response = await apiFetch(server, `http://127.0.0.1:${server.port}/api/v1/user/list?page_size=2000`);
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ code: -1, msg: "Cloud authentication is required", data: {} });
   } finally {
@@ -360,10 +433,10 @@ test("Cloud setup lists empty folders and creates folders and profiles without l
     log: () => {},
   });
   const origin = `http://127.0.0.1:${server.port}`;
-  const post = (path: string, body: unknown) => fetch(`${origin}${path}`, {
+  const post = (path: string, body: unknown) => apiFetch(server, `${origin}${path}`, {
     method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
   }).then((response) => response.json());
-  const groups = (page = 1) => fetch(`${origin}/api/v1/group/list?page_size=1&page=${page}`)
+  const groups = (page = 1) => apiFetch(server, `${origin}/api/v1/group/list?page_size=1&page=${page}`)
     .then((response) => response.json());
   try {
     expect((await groups()).data.list).toEqual([{ group_id: "Empty", group_name: "Empty" }]);
@@ -381,7 +454,7 @@ test("Cloud setup lists empty folders and creates folders and profiles without l
     expect(created.code).toBe(0);
     expect(profiles).toHaveLength(1);
     expect(profiles[0]).toMatchObject({ id: created.data.id, name: "newacct", group: "New" });
-    const listed = await fetch(`${origin}/api/v1/user/list?group_id=New`).then((response) => response.json());
+    const listed = await apiFetch(server, `${origin}/api/v1/user/list?group_id=New`).then((response) => response.json());
     expect(listed.data.list).toMatchObject([{ user_id: created.data.id, group_id: "New" }]);
     expect(store.count()).toBe(0);
     expect(store.listGroups()).toEqual([]);
@@ -411,7 +484,7 @@ test("Cloud folder and profile errors never fall back to the local store", async
       ["group/create", { group_name: "New" }],
       ["user/create", { name: "newacct", group_id: "New" }],
     ] as const) {
-      const response = await fetch(`http://127.0.0.1:${server.port}/api/v1/${path}`, {
+      const response = await apiFetch(server, `http://127.0.0.1:${server.port}/api/v1/${path}`, {
         method: body ? "POST" : "GET",
         headers: { "content-type": "application/json" },
         body: body ? JSON.stringify(body) : undefined,
@@ -438,7 +511,7 @@ test("Cloud automation API stays closed when the Cloud lifecycle is unavailable"
   });
 
   try {
-    const response = await fetch(`http://127.0.0.1:${server.port}/api/v1/browser/start?user_id=k1`);
+    const response = await apiFetch(server, `http://127.0.0.1:${server.port}/api/v1/browser/start?user_id=k1`);
     expect(response.status).toBe(503);
   } finally {
     await server.stop(true);

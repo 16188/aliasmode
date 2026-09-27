@@ -1,34 +1,29 @@
-# Contributing
+# 参与贡献
 
-AliasMode is in an early beta. Open an issue before starting a large change.
+IDFRI 仍处于早期 Beta。开始较大改动前，请先创建 Issue 说明目标。
 
-## Development
+## 开发
 
 ```sh
-bun install
+bun install --frozen-lockfile
 bun test
+bun run typecheck
 ```
 
-Keep changes small and focused. Add tests for behavior changes. Do not commit generated browser data, profile exports, credentials, environment files, diagnostics, or binaries.
+保持改动小而明确，并为行为变化增加测试。不要提交浏览器资料、Cookie、凭据、环境文件、诊断文件、私钥或构建出的二进制文件。
 
-## Release notes
+本项目只提供本地版。不要重新引入 AliasMode Cloud、远程 MCP、CloakBrowser 二进制文件或无法证明可再分发权利的字体。
 
-Each published GitHub Release must contain one to three important user-visible changes in this exact format:
+## 发布说明
+
+每个 GitHub Release 必须包含一到三条用户可见的重要变化，格式如下：
 
 ```md
 ## Highlights
-- First important change.
-- Second important change.
+- 第一项重要变化。
+- 第二项重要变化。
 ```
 
-AliasMode displays only the first three plain-text dash bullets from this section in the in-app updater.
+应用内更新器只显示该部分最前面的三条纯文本项目。
 
-## Pull requests
-
-- Explain the user-visible change.
-- Include relevant test results.
-- Preserve Local mode's no-Cloud behavior.
-- Avoid unrelated refactors.
-- Do not add cloud-service implementation or production infrastructure to this repository.
-
-Security issues must follow [SECURITY.md](SECURITY.md).
+安全问题请遵循 [SECURITY.md](SECURITY.md)。

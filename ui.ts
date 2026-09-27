@@ -472,6 +472,8 @@ function legalAcceptanceIsCurrent(legal: {
 }
 
 export interface UiRuntimeOptions {
+  /** Product boundary for IDFRI Community Edition. */
+  localOnly?: boolean;
   scripts?: { library: ScriptLibrary; runner: ScriptSupervisor; nonce: string };
   appConfig?: AppConfigStore;
   paths?: StatePaths;
@@ -593,7 +595,7 @@ export async function handleUiRequest(
     if (!options.paths) return Response.json({ ok: false, error: "logs are unavailable" }, { status: 503 });
     try {
       const dir = join(options.paths.root, "logs");
-      const name = readdirSync(dir).filter((f) => /^aliasmode-\d{4}-\d{2}-\d{2}\.log$/.test(f)).sort().pop();
+      const name = readdirSync(dir).filter((f) => /^idfri-\d{4}-\d{2}-\d{2}\.log$/.test(f)).sort().pop();
       if (!name) return Response.json({ ok: false, error: "no log file yet" });
       const content = readFileSync(join(dir, name), "utf8");
       return Response.json({ ok: true, file: name, content: content.slice(-64 * 1024) });
@@ -609,6 +611,10 @@ export async function handleUiRequest(
       ...(remote ? { legacyRemote: true } : {}),
       ...(options.runtimeMode ? { restartRequired: config.mode !== options.runtimeMode } : {}),
     });
+  }
+
+  if (options.localOnly && pathname.startsWith("/ui/api/cloud-")) {
+    return Response.json({ ok: false, error: "IDFRI Community Edition is local-only" }, { status: 404 });
   }
 
   if (pathname === "/ui/api/cloud-events" && req.method === "GET") {
@@ -652,6 +658,9 @@ export async function handleUiRequest(
     if (rejected) return rejected;
     try {
       const body = await req.json() as { mode?: unknown };
+      if (options.localOnly && body.mode !== "local") {
+        return Response.json({ ok: false, error: "IDFRI Community Edition is local-only" }, { status: 400 });
+      }
       if (body.mode !== "local" && body.mode !== "cloud") {
         return Response.json({ ok: false, error: "mode must be local or cloud" }, { status: 400 });
       }
@@ -1407,7 +1416,7 @@ export async function handleUiRequest(
         return new Response(bytes as unknown as BodyInit, {
           headers: {
             "content-type": mime,
-            "content-disposition": `attachment; filename=aliasmode-export.${format}`,
+            "content-disposition": `attachment; filename=idfri-export.${format}`,
             "cache-control": "no-store",
           },
         });

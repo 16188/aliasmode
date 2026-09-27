@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { accessSync, constants, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { delimiter, dirname, isAbsolute, join, resolve } from "node:path";
-import { installCloakBrowser } from "./browser-install.ts";
+import { installOpenChromium } from "./browser-install.ts";
 import { installFirefox } from "./firefox-install.ts";
 import { verifyPlaywrightRuntime } from "./playwright-runtime.ts";
 import { extractZipTo } from "./unzip.ts";
@@ -73,7 +73,7 @@ export function applySourceRuntime(root: string, env: NodeJS.ProcessEnv = proces
   } catch {
     throw new Error("Source runtime configuration is invalid; run bun cli.ts setup");
   }
-  for (const [prefix, pin] of [["CLOAKBROWSER", runtime.chromium], ["ALIASMODE_FIREFOX", runtime.firefox]] as const) {
+  for (const [prefix, pin] of [["IDFRI_CHROMIUM", runtime.chromium], ["ALIASMODE_FIREFOX", runtime.firefox]] as const) {
     const pathKey = `${prefix}_BINARY_PATH`;
     const hashKey = `${prefix}_BINARY_SHA256`;
     if (env[pathKey] !== undefined || env[hashKey] !== undefined) continue;
@@ -85,7 +85,7 @@ export function applySourceRuntime(root: string, env: NodeJS.ProcessEnv = proces
 
 interface SetupDependencies {
   installNode?: (root: string) => Promise<string>;
-  installChromium?: typeof installCloakBrowser;
+  installChromium?: typeof installOpenChromium;
   installFirefox?: typeof installFirefox;
   verify?: () => Promise<unknown>;
 }
@@ -100,7 +100,7 @@ export async function setupSourceRuntime(root: string, dependencies: SetupDepend
   try {
     const node = await (dependencies.installNode ?? installSourceNode)(staging);
     prependNode(node, process.env);
-    const chromium = await (dependencies.installChromium ?? installCloakBrowser)({
+    const chromium = await (dependencies.installChromium ?? installOpenChromium)({
       cwd: staging, cacheDir: join(staging, "browser"), writeEnv: false,
     });
     const firefox = await (dependencies.installFirefox ?? installFirefox)({ cwd: staging, writeEnv: false });

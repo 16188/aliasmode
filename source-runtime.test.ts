@@ -32,8 +32,8 @@ test("source runtime loading is optional and loads both saved engine pairs witho
   const saved = runtime(path);
   save(path, saved);
   applySourceRuntime(path, env);
-  expect(env.CLOAKBROWSER_BINARY_PATH).toBe(saved.chromium.path);
-  expect(env.CLOAKBROWSER_BINARY_SHA256).toBe(saved.chromium.sha256);
+  expect(env.IDFRI_CHROMIUM_BINARY_PATH).toBe(saved.chromium.path);
+  expect(env.IDFRI_CHROMIUM_BINARY_SHA256).toBe(saved.chromium.sha256);
   expect(env.ALIASMODE_FIREFOX_BINARY_PATH).toBe(saved.firefox.path);
   expect(env.ALIASMODE_FIREFOX_BINARY_SHA256).toBe(saved.firefox.sha256);
   expect(env.PATH).toBe(`${dirname(saved.node)}${delimiter}/system/bin`);
@@ -43,7 +43,7 @@ test("source runtime loading is optional and loads both saved engine pairs witho
 test("explicit complete or partial engine overrides never borrow a saved identity", () => {
   const path = root();
   save(path, runtime(path));
-  for (const prefix of ["CLOAKBROWSER", "ALIASMODE_FIREFOX"]) {
+  for (const prefix of ["IDFRI_CHROMIUM", "ALIASMODE_FIREFOX"]) {
     for (const override of [
       { [`${prefix}_BINARY_PATH`]: "/explicit/browser" },
       { [`${prefix}_BINARY_SHA256`]: "" },
@@ -53,7 +53,7 @@ test("explicit complete or partial engine overrides never borrow a saved identit
       applySourceRuntime(path, env);
       expect(env[`${prefix}_BINARY_PATH`]).toBe(override[`${prefix}_BINARY_PATH`]);
       expect(env[`${prefix}_BINARY_SHA256`]).toBe(override[`${prefix}_BINARY_SHA256`]);
-      const other = prefix === "CLOAKBROWSER" ? "ALIASMODE_FIREFOX" : "CLOAKBROWSER";
+      const other = prefix === "IDFRI_CHROMIUM" ? "ALIASMODE_FIREFOX" : "IDFRI_CHROMIUM";
       expect(env[`${other}_BINARY_SHA256`]).toHaveLength(64);
     }
   }

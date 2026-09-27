@@ -58,8 +58,8 @@ const child = Bun.spawn([
     ALIASMODE_DESKTOP_VERSION: "source-smoke",
     ALIASMODE_FIREFOX_BINARY_PATH: binary,
     ALIASMODE_FIREFOX_BINARY_SHA256: expectedSha256,
-    CLOAKBROWSER_BINARY_PATH: process.execPath,
-    CLOAKBROWSER_BINARY_SHA256: "0".repeat(64),
+    IDFRI_CHROMIUM_BINARY_PATH: process.execPath,
+    IDFRI_CHROMIUM_BINARY_SHA256: "0".repeat(64),
   },
 });
 

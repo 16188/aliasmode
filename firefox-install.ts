@@ -86,6 +86,15 @@ async function extractFirefoxArchive(archive: string, destination: string, platf
   if (await child.exited !== 0) throw new Error("AliasMode Firefox archive extraction failed");
 }
 
+function removeBundledFonts(root: string): void {
+  for (const path of [
+    join(root, "fonts"),
+    join(root, "AliasMode.app", "Contents", "Resources", "fonts"),
+  ]) {
+    if (existsSync(path)) rmSync(path, { recursive: true, force: true });
+  }
+}
+
 export async function installFirefox(
   options: { archive?: string; cwd?: string; platform?: NodeJS.Platform; arch?: string; writeEnv?: boolean },
   dependencies: {
@@ -111,6 +120,7 @@ export async function installFirefox(
     const root = mkdtempSync(join(cache, `firefox-${platform}-${build.arch}-`));
     try {
       await (dependencies.extract ?? extractFirefoxArchive)(archive, root, platform);
+      removeBundledFonts(root);
       const path = join(root, build.executablePath);
       const sha256 = await sha256File(path);
       if (sha256 !== build.executableSha256) throw new Error("AliasMode Firefox executable does not match its approved SHA-256");

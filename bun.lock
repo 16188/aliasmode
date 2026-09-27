@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "aliasmode",
+      "name": "idfri",
       "dependencies": {
         "@modelcontextprotocol/sdk": "1.30.0",
         "@playwright/mcp": "0.0.56",

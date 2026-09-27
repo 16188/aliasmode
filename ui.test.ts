@@ -1877,7 +1877,7 @@ test("export in remote mode pulls every selected profile from the hub, not the l
     remote,
   );
   expect(res!.status).toBe(200);
-  expect(res!.headers.get("content-disposition")).toContain("aliasmode-export.csv");
+  expect(res!.headers.get("content-disposition")).toContain("idfri-export.csv");
   const text = await res!.text();
   expect(fetched).toEqual(["hub0001", "hub0002"]); // resolved against the hub, not the local store
   const rows = text.trim().split("\n");
@@ -2235,7 +2235,7 @@ test("export as xlsx returns a workbook carrying the full identity", async () =>
     null as any,
   );
   expect(res!.status).toBe(200);
-  expect(res!.headers.get("content-disposition")).toContain("aliasmode-export.xlsx");
+  expect(res!.headers.get("content-disposition")).toContain("idfri-export.xlsx");
   expect(res!.headers.get("content-type")).toContain("spreadsheetml.sheet");
 
   const rows = await readXlsx(new Uint8Array(await res!.arrayBuffer()));

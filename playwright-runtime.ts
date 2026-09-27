@@ -120,7 +120,7 @@ export function resolvePlaywrightRuntime(
 export function playwrightWorkerEnvironment(env: NodeJS.ProcessEnv = process.env): Record<string, string> {
   return Object.fromEntries(Object.entries(env).filter(([key, value]) =>
     value !== undefined
-    && !/^(ALIASMODE_|CLOAKBROWSER_)/i.test(key)
+    && !/^(ALIASMODE_|IDFRI_|CLOAKBROWSER_)/i.test(key)
     && !/^(NODE_OPTIONS|NODE_PATH|HUB_PASSWORD)$/i.test(key),
   )) as Record<string, string>;
 }

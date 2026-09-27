@@ -28,6 +28,10 @@ import {
 } from "./server.ts";
 import { handleUiRequest, type UiHealthMetadata } from "./ui.ts";
 import { ScriptLibrary, ScriptSupervisor } from "./scripts.ts";
+import {
+  authorizeLocalApiRequest,
+  createLocalApiToken,
+} from "./local-api-auth.ts";
 
 import { handleUserApi, type ProfileRoster } from "./adspower-users.ts";
 import {
@@ -36,8 +40,8 @@ import {
   AGENT_CONTROL_PROTOCOL,
   AgentControlHub,
   type AgentControlSession,
-  validAgentAuthorization,
 } from "./agent-control.ts";
+import type { FirefoxOwner } from "./firefox-runtime.ts";
 import {
   LifecycleAdmissionController,
   dispatchWithLifecycleAdmission,
@@ -70,6 +74,7 @@ export interface DashboardServerOptions {
   health?: UiHealthMetadata | null;
   /** Desktop-generated nonce used by the installed agent adapter. */
   agentNonce?: string;
+  firefoxCall?: (owner: FirefoxOwner, operation: string, payload: Record<string, unknown>) => Promise<unknown>;
 }
 
 type AgentSocketData = {
@@ -89,10 +94,10 @@ function renderProfileCard(store: ProfileStore, id: string): Response {
   const p = store.getProfile(id);
   if (!p) return new Response("unknown profile", { status: 404, headers: { "content-type": "text/plain" } });
   const engine = typeof p === "object" && "engine" in p && p.engine === "firefox" ? "firefox" : "chromium";
-  const browser = engine === "firefox" ? "AliasMode Firefox" : "CloakBrowser";
+  const browser = engine === "firefox" ? "AliasMode Firefox" : "Chromium（实验兼容内核）";
   const capabilities = engine === "firefox"
-    ? "Native Firefox profile · no CDP, PDF, or Chrome extensions"
-    : "CDP, PDF, and Chrome extensions";
+    ? "原生 Firefox 资料 · 不支持 CDP、PDF 或 Chrome 扩展"
+    : "实验兼容内核 · 支持 CDP、PDF 和 Chrome 扩展";
   // Same number the browser window title and identity bookmark show: the
   // operator's custom NO. first, the store serial as fallback.
   const no = profileDisplayNo(p.customNo, store.getSerial(id)) ?? "?";
@@ -111,14 +116,14 @@ function renderProfileCard(store: ProfileStore, id: string): Response {
 <body>
   <div class="hero"><div class="browser">${escapeHtml(browser)}</div><div class="capabilities">${escapeHtml(capabilities)}</div></div>
   <div class="card">
-    <h2>Account</h2>
-    <div class="row"><span class="k">Name</span><span class="v">${escapeHtml(p.name)}</span></div>
-    <div class="row"><span class="k">Profile No / ID</span><span class="v">${escapeHtml(no)} / ${escapeHtml(id)}</span></div>
-    <div class="row"><span class="k">Group</span><span class="v">${escapeHtml(p.group) || "—"}</span></div>
-    <div class="row"><span class="k">Platform</span><span class="v">${escapeHtml(p.platform) || "—"}</span></div>
-    <div class="row"><span class="k">Browser</span><span class="v">${escapeHtml(browser)}</span></div>
-    <div class="row"><span class="k">Timezone</span><span class="v">${escapeHtml(p.timezone) || "—"}</span></div>
-    <div class="row"><span class="k">Proxy</span><span class="v">${escapeHtml(proxy)}</span></div>
+    <h2>账号资料</h2>
+    <div class="row"><span class="k">名称</span><span class="v">${escapeHtml(p.name)}</span></div>
+    <div class="row"><span class="k">资料编号 / ID</span><span class="v">${escapeHtml(no)} / ${escapeHtml(id)}</span></div>
+    <div class="row"><span class="k">分组</span><span class="v">${escapeHtml(p.group) || "—"}</span></div>
+    <div class="row"><span class="k">平台</span><span class="v">${escapeHtml(p.platform) || "—"}</span></div>
+    <div class="row"><span class="k">浏览器</span><span class="v">${escapeHtml(browser)}</span></div>
+    <div class="row"><span class="k">时区</span><span class="v">${escapeHtml(p.timezone) || "—"}</span></div>
+    <div class="row"><span class="k">代理</span><span class="v">${escapeHtml(proxy)}</span></div>
   </div>
 </body></html>`;
   return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" } });
@@ -135,7 +140,7 @@ function cloudAutomationError(req: Request, opts: DashboardServerOptions): Respo
     return null;
   }
   return Response.json(
-    { ok: false, error: "AliasMode Cloud does not expose this local API route" },
+    { ok: false, error: "IDFRI 本地版不提供此 Cloud API 路由" },
     { status: 503 },
   );
 }
@@ -202,18 +207,68 @@ async function handleAutomationRequest(
   return handleRequest(req, launcher, store, lifecycle);
 }
 
+async function handleFirefoxGateway(req: Request, hub: AgentControlHub): Promise<Response | null> {
+  const url = new URL(req.url);
+  const list = req.method === "GET" && url.pathname === "/api/firefox/v1/tools";
+  const call = req.method === "POST" && url.pathname === "/api/firefox/v1/tools/call";
+  if (!list && !call) return null;
+
+  let params: Record<string, unknown>;
+  if (list) {
+    params = { profileId: url.searchParams.get("profile_id") ?? "" };
+  } else {
+    const body = await req.text();
+    if (!body || Buffer.byteLength(body) > AGENT_CONTROL_MAX_MESSAGE_BYTES) {
+      return Response.json({ ok: false, error: { code: "invalid_request", message: "request body size is invalid" } }, { status: 400 });
+    }
+    try {
+      params = JSON.parse(body) as Record<string, unknown>;
+    } catch {
+      return Response.json({ ok: false, error: { code: "invalid_request", message: "request body must be valid JSON" } }, { status: 400 });
+    }
+  }
+
+  const session = hub.connect();
+  try {
+    const response = await session.enqueue(JSON.stringify({
+      protocol: AGENT_CONTROL_PROTOCOL,
+      id: 1,
+      method: list ? "firefox.tools.list" : "firefox.tools.call",
+      params,
+    }));
+    return Response.json(response, { status: response.ok ? 200 : 400, headers: { "cache-control": "no-store" } });
+  } finally {
+    await session.disconnect();
+  }
+}
+
 export function serveAutomationApi(opts: Omit<DashboardServerOptions, "hostname">) {
   const { port = 50400 } = opts;
   const hostname = "127.0.0.1";
-  const log = opts.log ?? ((m) => console.log(`[aliasmode] ${m}`));
+  const log = opts.log ?? ((m) => console.log(`[idfri] ${m}`));
   const admission = opts.lifecycleAdmission ?? new LifecycleAdmissionController(opts.lifecycleAdmissionOptions);
   const lifecycle = { admission };
+  const localApiToken = opts.agentNonce ?? createLocalApiToken();
+  const agentHub = new AgentControlHub({
+    launcher: opts.launcher,
+    store: opts.store,
+    admission,
+    firefoxCall: opts.firefoxCall,
+    remote: opts.remote,
+    cloudBrowser: opts.cloudBrowser,
+    cloudConnection: opts.cloudConnection,
+    log,
+  });
   try {
     const server = Bun.serve({
       port,
       hostname,
       idleTimeout: 240,
       fetch: async (req, server) => {
+        const denied = authorizeLocalApiRequest(req, localApiToken);
+        if (denied) return denied;
+        const firefox = await handleFirefoxGateway(req, agentHub);
+        if (firefox) return firefox;
         const health = automationHealthResponse(req, server.requestIP(req)?.address, opts.remote);
         if (health) return health;
         return dispatchWithLifecycleAdmission(req, admission, async () => {
@@ -224,7 +279,8 @@ export function serveAutomationApi(opts: Omit<DashboardServerOptions, "hostname"
       },
     });
     log(`automation API on http://${hostname}:${server.port}`);
-    return server;
+    if (!opts.agentNonce) log(`Local API token: ${localApiToken}`);
+    return Object.assign(server, { localApiToken });
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
     const message = `automation API could not bind to http://${hostname}:${port}: ${detail}`;
@@ -244,10 +300,11 @@ export function serveDesktopAutomationApi(opts: Omit<DashboardServerOptions, "ho
 export function serveDashboard(opts: DashboardServerOptions) {
   const { launcher, store, port = 50400, hostname = "127.0.0.1" } = opts;
   const runtimeMode = opts.appConfig?.read().mode;
-  const log = opts.log ?? ((m) => console.log(`[aliasmode] ${m}`));
+  const log = opts.log ?? ((m) => console.log(`[idfri] ${m}`));
   const admission = opts.lifecycleAdmission ?? new LifecycleAdmissionController(opts.lifecycleAdmissionOptions);
   const lifecycle = { admission };
   const agentNonce = opts.agentNonce;
+  const localApiToken = agentNonce ?? createLocalApiToken();
   const agentHub = agentNonce
     ? new AgentControlHub({
         launcher,
@@ -256,10 +313,11 @@ export function serveDashboard(opts: DashboardServerOptions) {
         remote: opts.remote,
         cloudBrowser: opts.cloudBrowser,
         cloudConnection: opts.cloudConnection,
+        firefoxCall: opts.firefoxCall,
         log,
       })
     : undefined;
-  const library = agentNonce && opts.paths ? new ScriptLibrary(opts.paths.root, runtimeMode === "cloud", opts.cloudConnection, opts.defaultCloudUrl) : undefined;
+  const library = agentNonce && opts.paths ? new ScriptLibrary(opts.paths.root, false) : undefined;
   const scripts = library && agentNonce ? {
     library, nonce: agentNonce,
     runner: new ScriptSupervisor({
@@ -305,9 +363,8 @@ export function serveDashboard(opts: DashboardServerOptions) {
         if (req.headers.get("sec-websocket-protocol") !== AGENT_CONTROL_PROTOCOL) {
           return Response.json({ ok: false, error: "agent protocol mismatch" }, { status: 426 });
         }
-        if (!validAgentAuthorization(req.headers.get("authorization"), agentNonce)) {
-          return Response.json({ ok: false, error: "agent authorization failed" }, { status: 401 });
-        }
+        const denied = authorizeLocalApiRequest(req, localApiToken);
+        if (denied) return denied;
         const session = agentHub.connect();
         const upgraded = server.upgrade(req, {
           data: { session },
@@ -322,7 +379,7 @@ export function serveDashboard(opts: DashboardServerOptions) {
       // browser lifecycle admission queue. Even if the dashboard is deliberately
       // bound beyond loopback, this ingestion route remains local-only.
       const health = automationHealthResponse(req, server.requestIP(req)?.address, opts.remote);
-      if (health) return health;
+      if (health) return authorizeLocalApiRequest(req, localApiToken) ?? health;
       if (opts.cloudBrowser && req.method === "POST" && reqUrl.pathname === "/ui/api/profiles/update-file") {
         // A large batch must retain its result connection until all Cloud writes finish.
         server.timeout(req, 0);
@@ -341,6 +398,7 @@ export function serveDashboard(opts: DashboardServerOptions) {
           health: opts.health,
           scripts,
           runtimeMode,
+          localOnly: true,
         });
         if (ui) return ui;
         const cloudError = cloudAutomationError(req, opts);
@@ -348,11 +406,17 @@ export function serveDashboard(opts: DashboardServerOptions) {
         // Per-profile identity "card" (AdsPower-style landing page). Opened as a tab and
         // pointed to by the bookmark, so an operator can always see which account a window is.
         if (reqUrl.pathname === "/card") return renderProfileCard(store, reqUrl.searchParams.get("id") ?? "");
+        const denied = authorizeLocalApiRequest(req, localApiToken);
+        if (denied) return denied;
         return handleAutomationRequest(req, opts, lifecycle);
       });
     },
   });
   void agentHub?.cleanupTemporaryProfiles();
-  log(`dashboard + API on http://${hostname}:${server.port}  (UI at /, AliasMode Local API under /api; AdsPower-compatible)`);
-  return Object.assign(server, { stopScripts: () => scripts?.runner.shutdown() ?? Promise.resolve() });
+  log(`控制台和 API 已启动：http://${hostname}:${server.port}（界面：/，IDFRI Local API：/api；兼容 AdsPower）`);
+  if (!agentNonce) log(`Local API token: ${localApiToken}`);
+  return Object.assign(server, {
+    localApiToken,
+    stopScripts: () => scripts?.runner.shutdown() ?? Promise.resolve(),
+  });
 }

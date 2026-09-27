@@ -26,15 +26,10 @@ use tauri::{
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tauri_plugin_shell::ShellExt;
 
-const IMPORT_RESTRICTION: &str = "Windows DPAPI protects persisted browser secrets, so this import works only for the same Windows machine and account. Persisted persona fields are preserved, but runtime or browser differences can change the account-visible fingerprint.";
+const IMPORT_RESTRICTION: &str = "Windows DPAPI 会保护已保存的浏览器敏感数据，因此导入只适用于同一台 Windows 电脑和同一账户。身份字段会被保留，但运行环境或浏览器差异仍可能改变网站可见的指纹。";
 
-const ALLOWED_EXTERNAL_URLS: [&str; 7] = [
-    "https://aliasmode.com/terms/",
-    "https://aliasmode.com/privacy/",
-    "https://aliasmode.com/acceptable-use/",
-    "https://nobleproxy.com/t/aliasmode",
-    "https://t.me/aliasmode",
-    "https://github.com/aliasmode/aliasmode",
+const ALLOWED_EXTERNAL_URLS: [&str; 2] = [
+    "https://github.com/16188/aliasmode",
     "https://xreacher.com/",
 ];
 
@@ -192,9 +187,9 @@ fn present_import_result(app: &tauri::AppHandle, ok: bool, message: &str) {
     app.dialog()
         .message(message)
         .title(if ok {
-            "Cloakpit import complete"
+            "Cloakpit 导入完成"
         } else {
-            "Cloakpit import failed"
+            "Cloakpit 导入失败"
         })
         .kind(if ok {
             MessageDialogKind::Info
@@ -236,12 +231,12 @@ mod tests {
 
     #[test]
     fn recognizes_only_the_explicit_background_switch() {
-        assert!(background_requested(["aliasmode.exe", "--background"]));
+        assert!(background_requested(["idfri.exe", "--background"]));
         assert!(!background_requested([
-            "aliasmode.exe",
+            "idfri.exe",
             "--background-worker"
         ]));
-        assert!(!background_requested(["aliasmode.exe"]));
+        assert!(!background_requested(["idfri.exe"]));
     }
 
     #[test]
@@ -267,12 +262,7 @@ mod tests {
     #[test]
     fn allows_only_explicit_external_pages() {
         for url in [
-            "https://aliasmode.com/terms/",
-            "https://aliasmode.com/privacy/",
-            "https://aliasmode.com/acceptable-use/",
-            "https://nobleproxy.com/t/aliasmode",
-            "https://t.me/aliasmode",
-            "https://github.com/aliasmode/aliasmode",
+            "https://github.com/16188/aliasmode",
             "https://xreacher.com/",
         ] {
             assert!(allowed_external_url(url));
@@ -283,6 +273,8 @@ mod tests {
             "https://aliasmode.com/terms/extra",
             "https://aliasmode.com/terms/?continue=https://example.com",
             "https://example.com/terms/",
+            "https://github.com/aliasmode/aliasmode",
+            "https://t.me/aliasmode",
             "http://nobleproxy.com/t/aliasmode",
             "https://nobleproxy.com/t/aliasmode/",
             "https://nobleproxy.com/t/aliasmode?source=app",
@@ -309,8 +301,8 @@ mod tests {
     #[test]
     fn removes_windows_namespace_prefix_before_cli_use() {
         assert_eq!(
-            cli_compatible_windows_path(Path::new(r"\\?\C:\Users\AliasMode\playwright")),
-            PathBuf::from(r"C:\Users\AliasMode\playwright"),
+            cli_compatible_windows_path(Path::new(r"\\?\C:\Users\IDFRI\playwright")),
+            PathBuf::from(r"C:\Users\IDFRI\playwright"),
         );
         assert_eq!(
             cli_compatible_windows_path(Path::new(r"\\?\UNC\server\share\playwright")),
@@ -477,10 +469,10 @@ pub fn run() {
             if !cfg!(dev) {
                 let helper = std::env::current_exe()?
                     .parent()
-                    .ok_or_else(|| boxed("AliasMode installation directory is unavailable"))?
-                    .join("aliasmode-mcp.exe");
+                    .ok_or_else(|| boxed("IDFRI installation directory is unavailable"))?
+                    .join("idfri-mcp.exe");
                 if !helper.is_file() {
-                    return Err(boxed("installed AliasMode agent helper is unavailable"));
+                    return Err(boxed("installed IDFRI agent helper is unavailable"));
                 }
             }
             let nonce = hex::encode(random::<[u8; 32]>());
@@ -535,7 +527,7 @@ pub fn run() {
                 .map_err(|error| boxed(format!("invalid sidecar URL: {error}")))?;
             let readiness_data_dir = data_dir.clone();
             let webview_builder = WebviewWindowBuilder::new(app, "main", WebviewUrl::External(url))
-                .title("AliasMode")
+                .title("IDFRI")
                 .visible(!background)
                 .inner_size(1280.0, 800.0)
                 .min_inner_size(960.0, 640.0)
@@ -609,13 +601,13 @@ pub fn run() {
             }
             if let Err(error) = update_attempt::reconcile_after_startup(&data_dir, &update_relaunch)
             {
-                eprintln!("AliasMode could not reconcile the previous update result: {error}");
+                eprintln!("IDFRI 无法核对上次更新结果：{error}");
             }
             startup_cleanup.disarm();
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("AliasMode desktop failed");
+        .expect("IDFRI desktop failed");
 
     let requested_exit_code = Arc::new(AtomicI32::new(0));
     let exit_code = Arc::clone(&requested_exit_code);

@@ -40,6 +40,29 @@ test("upsert + get round-trips a full profile", () => {
   store.close();
 });
 
+test("sensitive profile fields and session state are encrypted at rest", () => {
+  const store = new ProfileStore(":memory:", "42".repeat(32));
+  const profile = parseExport(SAMPLE).profiles[0]!;
+  profile.accId = "external-account";
+  profile.username = "private-user";
+  profile.email = "private@example.com";
+  profile.emailPassword = "mail-secret";
+  profile.twofa = "TOTPSECRET";
+  store.upsertProfile(profile);
+  store.saveSessionBundle(profile.id, '{"storage":"private"}');
+
+  const raw = (store as any)["db"].query(
+    `SELECT acc_id, username, password, email, email_password, twofa, proxy_json, cookies_json, session_json
+       FROM profiles WHERE id = ?`,
+  ).get(profile.id) as Record<string, string>;
+  for (const value of Object.values(raw)) expect(value).toStartWith("idfri:v1:");
+  expect(JSON.stringify(raw)).not.toContain("private-user");
+  expect(JSON.stringify(raw)).not.toContain("mail-secret");
+  expect(store.getProfile(profile.id)).toMatchObject(profile);
+  expect(store.getSessionBundle(profile.id)).toBe('{"storage":"private"}');
+  store.close();
+});
+
 test("store persists a Firefox identity and rejects in-place engine conversion", () => {
   const store = memStore();
   const chromium = parseExport(SAMPLE).profiles[0]!;

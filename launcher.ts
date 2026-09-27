@@ -285,11 +285,11 @@ export function platformHomeUrl(platform: string | undefined, telegramClient: "a
 export interface LauncherOptions {
   store: ProfileStore;
   autofill?: AutofillBridge;
-  /** Path to the CloakBrowser binary. Defaults to $CLOAKBROWSER_BINARY_PATH. */
+  /** Path to the open Chromium binary. Defaults to $IDFRI_CHROMIUM_BINARY_PATH. */
   binaryPath?: string;
   /**
-   * Deployment-pinned SHA-256 of the approved CloakBrowser kernel. Defaults to
-   * $CLOAKBROWSER_BINARY_SHA256 and is required before a production spawn.
+   * Deployment-pinned SHA-256 of the approved Chromium kernel. Defaults to
+   * $IDFRI_CHROMIUM_BINARY_SHA256 and is required before a production spawn.
    */
   expectedBinarySha256?: string;
   firefoxBinaryPath?: string;
@@ -696,6 +696,7 @@ export class Launcher {
     this.unsafeDisableIdentityGates = opts.unsafeDisableIdentityGates ?? false;
     this.expectedBinarySha256 = (
       opts.expectedBinarySha256
+      ?? process.env.IDFRI_CHROMIUM_BINARY_SHA256
       ?? process.env.CLOAKBROWSER_BINARY_SHA256
       ?? ""
     ).trim().toLowerCase();
@@ -4319,9 +4320,9 @@ async function defaultBrowserClose(ws: string, timeoutMs: number): Promise<boole
 }
 
 function defaultBinaryPath(): string {
-  const configured = process.env.CLOAKBROWSER_BINARY_PATH ?? "";
+  const configured = process.env.IDFRI_CHROMIUM_BINARY_PATH ?? process.env.CLOAKBROWSER_BINARY_PATH ?? "";
   if (configured) return configured;
-  const bundled = join(process.cwd(), "cloakbrowser", "chrome.exe");
+  const bundled = join(process.cwd(), "chromium", "chrome.exe");
   return IS_WINDOWS && existsSync(bundled) ? bundled : "";
 }
 

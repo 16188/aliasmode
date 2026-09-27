@@ -10,8 +10,8 @@ const ATTEMPT_FILE: &str = "update-attempt.json";
 const ATTEMPT_TEMP_FILE: &str = "update-attempt.tmp";
 const ATTEMPT_ARGUMENT: &str = "--aliasmode-update-attempt=";
 const ATTEMPT_SCHEMA: u8 = 1;
-const MANUFACTURER_KEY: &str = r"Software\aliasmode\AliasMode";
-const UNINSTALL_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\AliasMode";
+const MANUFACTURER_KEY: &str = r"Software\IDFRI\IDFRI";
+const UNINSTALL_KEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Uninstall\IDFRI";
 const MAX_REGISTRY_STRING_BYTES: u32 = 32 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -597,9 +597,9 @@ mod tests {
 
     fn create_registered_install() -> (tempfile::TempDir, PathBuf, RegistrationSnapshot) {
         let directory = tempfile::tempdir().unwrap();
-        let root = directory.path().join("AliasMode install");
+        let root = directory.path().join("IDFRI install");
         fs::create_dir(&root).unwrap();
-        let executable = root.join("AliasMode.exe");
+        let executable = root.join("IDFRI.exe");
         let uninstall = root.join("uninstall.exe");
         fs::write(&executable, b"app").unwrap();
         fs::write(&uninstall, b"uninstall").unwrap();
@@ -608,7 +608,7 @@ mod tests {
             manufacturer_root: Some(root.display().to_string()),
             install_location: Some(quoted_root),
             uninstall_string: Some(format!("\"{}\"", uninstall.display())),
-            main_binary_name: Some("AliasMode.exe".to_owned()),
+            main_binary_name: Some("IDFRI.exe".to_owned()),
             display_version: Some("0.1.0-beta.47".to_owned()),
         };
         (directory, executable, registration)
@@ -660,16 +660,16 @@ mod tests {
     #[test]
     fn converts_namespaced_paths_and_keeps_nsis_directory_last_ready() {
         assert_eq!(
-            normal_windows_path(Path::new(r"\\?\C:\Program Files\AliasMode")),
-            PathBuf::from(r"C:\Program Files\AliasMode")
+            normal_windows_path(Path::new(r"\\?\C:\Program Files\IDFRI")),
+            PathBuf::from(r"C:\Program Files\IDFRI")
         );
         assert_eq!(
-            normal_windows_path(Path::new(r"\\?\UNC\server\share\AliasMode")),
-            PathBuf::from(r"\\server\share\AliasMode")
+            normal_windows_path(Path::new(r"\\?\UNC\server\share\IDFRI")),
+            PathBuf::from(r"\\server\share\IDFRI")
         );
         assert_eq!(
-            nsis_directory_argument(Path::new(r"C:\Program Files\AliasMode")),
-            OsString::from(r"/D=C:\Program Files\AliasMode")
+            nsis_directory_argument(Path::new(r"C:\Program Files\IDFRI")),
+            OsString::from(r"/D=C:\Program Files\IDFRI")
         );
     }
 

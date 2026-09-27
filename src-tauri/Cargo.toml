@@ -1,18 +1,18 @@
 [package]
-name = "aliasmode-desktop"
+name = "idfri-desktop"
 version = "0.1.0-beta.50"
-description = "AliasMode Windows desktop shell"
+description = "IDFRI Windows desktop shell"
 edition = "2021"
 rust-version = "1.89"
 license = "Apache-2.0"
 publish = false
 
 [lib]
-name = "aliasmode_desktop"
+name = "idfri_desktop"
 crate-type = ["rlib"]
 
 [[bin]]
-name = "aliasmode"
+name = "idfri"
 path = "src/main.rs"
 
 [build-dependencies]

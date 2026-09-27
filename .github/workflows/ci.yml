@@ -206,11 +206,10 @@ jobs:
           ) -join "`n"
           $externalIdentity = @(
             "node-win-x64=22.23.2:1177b4137ba5adaa56354ae40f1080c7450e8ae09cecb47da459d1c52ac99f97"
-            "cloakbrowser-wrapper=0.4.11"
-            "cloakbrowser-platform=windows-x64"
-            "cloakbrowser-version=146.0.7680.177.5"
-            "cloakbrowser-archive-sha256=b213795cb32c3169f766c74ce1d0275fc89d3df256de39c04da7fb4c23b7fdbe"
-            "cloakbrowser-executable-sha256=03f53661a5c47e7b0a661bee2bce8a0d302b7a60834c328df417561fa0636d80"
+            "chromium-runtime=playwright-core@1.58.2"
+            "chromium-platform=windows-x64"
+            "chromium-revision=1208"
+            "chromium-version=145.0.7632.6"
             "aliasmode-firefox-source=aliasmode/aliasmode-firefox@0897f6e5404bc74646dd6e457d42ac6f0e19dcd4"
             "aliasmode-firefox-version=152.0.4-beta.30"
             "aliasmode-firefox-archive-sha256=$env:FIREFOX_ARCHIVE_SHA256"
@@ -240,7 +239,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: artifacts/windows-candidate
-          key: aliasmode-windows-candidate-v2-${{ steps.provenance.outputs.product_key }}
+          key: idfri-windows-candidate-v2-${{ steps.provenance.outputs.product_key }}
       - name: Normalize candidate cache result
         id: cache_status
         shell: pwsh
@@ -266,8 +265,8 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $candidate = ".\artifacts\windows-candidate"
-          $fullName = "AliasMode_$($env:WINDOWS_VERSION)_x64-offline-setup.exe"
-          $slimName = "AliasMode_$($env:WINDOWS_VERSION)_x64-setup.exe"
+          $fullName = "IDFRI_$($env:WINDOWS_VERSION)_x64-offline-setup.exe"
+          $slimName = "IDFRI_$($env:WINDOWS_VERSION)_x64-setup.exe"
           $payloadNames = @($fullName, $slimName, "browser.json", "SHA256SUMS.txt", "size-report.json")
           $requiredNames = @($payloadNames + "artifact-manifest.json") | Sort-Object
           $entries = @(Get-ChildItem -LiteralPath $candidate -Force)
@@ -361,7 +360,7 @@ jobs:
         if: steps.cache_status.outputs.cache_hit == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: aliasmode-windows-candidate
+          name: idfri-windows-candidate
           path: artifacts/windows-candidate
           if-no-files-found: error
           retention-days: 7
@@ -386,11 +385,11 @@ jobs:
           shared-key: windows_full
           workspaces: src-tauri -> target
           cache-on-failure: true
-      - name: Cache pinned CloakBrowser
+      - name: Cache Playwright Chromium
         uses: actions/cache@v4
         with:
-          path: src-tauri/target/cloakbrowser-cache
-          key: cloakbrowser-windows-x64-v1-146.0.7680.177.5-b213795cb32c3169f766c74ce1d0275fc89d3df256de39c04da7fb4c23b7fdbe-03f53661a5c47e7b0a661bee2bce8a0d302b7a60834c328df417561fa0636d80
+          path: src-tauri/target/chromium-cache
+          key: chromium-windows-x64-v1-playwright-core-1.58.2-rev1208
       - uses: actions/download-artifact@v4
         with:
           name: aliasmode-firefox-windows-x64
@@ -461,7 +460,7 @@ jobs:
             & .\scripts\build-windows-installer.ps1 -Flavor slim -OutputDirectory $artifact
             if ($LASTEXITCODE -ne 0) { throw "synthetic successor build failed" }
 
-            $name = "AliasMode_${successorVersion}_x64-setup.exe"
+            $name = "IDFRI_${successorVersion}_x64-setup.exe"
             $installer = Join-Path $artifact $name
             if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
               throw "synthetic successor installer is missing"
@@ -520,7 +519,7 @@ jobs:
       - name: Upload unsigned synthetic successor
         uses: actions/upload-artifact@v4
         with:
-          name: aliasmode-windows-unsigned-synthetic-successor
+          name: idfri-windows-unsigned-synthetic-successor
           path: ${{ runner.temp }}/windows-unsigned-synthetic-successor
           if-no-files-found: error
           retention-days: 7
@@ -533,11 +532,11 @@ jobs:
     steps:
       - run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
-      - name: Cache pinned CloakBrowser
+      - name: Cache Playwright Chromium
         uses: actions/cache@v4
         with:
-          path: src-tauri/target/cloakbrowser-cache
-          key: cloakbrowser-windows-x64-v1-146.0.7680.177.5-b213795cb32c3169f766c74ce1d0275fc89d3df256de39c04da7fb4c23b7fdbe-03f53661a5c47e7b0a661bee2bce8a0d302b7a60834c328df417561fa0636d80
+          path: src-tauri/target/chromium-cache
+          key: chromium-windows-x64-v1-playwright-core-1.58.2-rev1208
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.2.21
@@ -612,7 +611,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "prepared-input manifest verification failed" }
       - uses: actions/upload-artifact@v4
         with:
-          name: aliasmode-windows-prepared
+          name: idfri-windows-prepared
           path: artifacts/windows-prepared
           if-no-files-found: error
           retention-days: 7
@@ -636,11 +635,11 @@ jobs:
         with:
           workspaces: src-tauri -> target
           cache-on-failure: true
-      - name: Cache pinned CloakBrowser
+      - name: Cache Playwright Chromium
         uses: actions/cache@v4
         with:
-          path: src-tauri/target/cloakbrowser-cache
-          key: cloakbrowser-windows-x64-v1-146.0.7680.177.5-b213795cb32c3169f766c74ce1d0275fc89d3df256de39c04da7fb4c23b7fdbe-03f53661a5c47e7b0a661bee2bce8a0d302b7a60834c328df417561fa0636d80
+          path: src-tauri/target/chromium-cache
+          key: chromium-windows-x64-v1-playwright-core-1.58.2-rev1208
       - uses: actions/download-artifact@v4
         with:
           name: aliasmode-firefox-windows-x64
@@ -684,7 +683,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $directory = ".\artifacts\windows-full"
-          $installerName = "AliasMode_$($env:WINDOWS_VERSION)_x64-offline-setup.exe"
+          $installerName = "IDFRI_$($env:WINDOWS_VERSION)_x64-offline-setup.exe"
           $installer = Join-Path $directory $installerName
           Copy-Item ".\src-tauri\generated\browser.json" (Join-Path $directory "browser.json")
           "$((Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant())  $installerName" |
@@ -705,7 +704,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "full-package manifest verification failed" }
       - uses: actions/upload-artifact@v4
         with:
-          name: aliasmode-windows-full
+          name: idfri-windows-full
           path: artifacts/windows-full
           if-no-files-found: error
           retention-days: 7
@@ -732,7 +731,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - uses: actions/download-artifact@v4
         with:
-          name: aliasmode-windows-prepared
+          name: idfri-windows-prepared
           path: artifacts/windows-prepared
       - name: Verify and extract prepared inputs
         shell: pwsh
@@ -765,7 +764,7 @@ jobs:
         run: |
           $ErrorActionPreference = "Stop"
           $directory = ".\artifacts\windows-slim"
-          $installerName = "AliasMode_$($env:WINDOWS_VERSION)_x64-setup.exe"
+          $installerName = "IDFRI_$($env:WINDOWS_VERSION)_x64-setup.exe"
           $arguments = @(
             $directory,
             "--role", "slim",
@@ -780,7 +779,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "slim-package manifest verification failed" }
       - uses: actions/upload-artifact@v4
         with:
-          name: aliasmode-windows-slim
+          name: idfri-windows-slim
           path: artifacts/windows-slim
           if-no-files-found: error
           retention-days: 7
@@ -810,7 +809,7 @@ jobs:
       - run: bun test
       - uses: actions/download-artifact@v4
         with:
-          name: aliasmode-windows-prepared
+          name: idfri-windows-prepared
           path: artifacts/windows-prepared
       - name: Verify and extract prepared inputs
         shell: pwsh
@@ -871,11 +870,11 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
-          $smoke = Join-Path $env:RUNNER_TEMP "aliasmode-sidecar-smoke"
+          $smoke = Join-Path $env:RUNNER_TEMP "idfri-sidecar-smoke"
           New-Item -ItemType Directory -Force $smoke | Out-Null
-          Copy-Item ".\src-tauri\binaries\aliasmode-sidecar-x86_64-pc-windows-msvc.exe" "$smoke\aliasmode-sidecar.exe"
+          Copy-Item ".\src-tauri\binaries\idfri-sidecar-x86_64-pc-windows-msvc.exe" "$smoke\idfri-sidecar.exe"
           $metadata = Get-Content ".\src-tauri\generated\browser.json" | ConvertFrom-Json
-          $browserPath = Resolve-Path (Join-Path ".\src-tauri\resources\cloakbrowser" $metadata.executable)
+          $browserPath = Resolve-Path (Join-Path ".\src-tauri\resources\chromium" $metadata.executable)
           $env:ALIASMODE_PLAYWRIGHT_RUNTIME = (Resolve-Path ".\src-tauri\resources\playwright").Path
           $browser = Start-Process -PassThru $browserPath -ArgumentList @(
             "--headless=new",
@@ -895,10 +894,10 @@ jobs:
                 Start-Sleep -Seconds 1
               }
             }
-            if (-not $ready) { throw "CloakBrowser CDP endpoint did not become ready" }
+            if (-not $ready) { throw "Chromium CDP endpoint did not become ready" }
             Push-Location $smoke
             try {
-              & ".\aliasmode-sidecar.exe" __sidecar-smoke --cdp-endpoint "http://127.0.0.1:9222" --state-root "$smoke\state"
+              & ".\idfri-sidecar.exe" __sidecar-smoke --cdp-endpoint "http://127.0.0.1:9222" --state-root "$smoke\state"
               if ($LASTEXITCODE -ne 0) { throw "compiled sidecar smoke exited with code $LASTEXITCODE" }
             } finally {
               Pop-Location
@@ -909,14 +908,14 @@ jobs:
               Wait-Process -Id $browser.Id -ErrorAction SilentlyContinue
             }
           }
-          $env:CLOAKBROWSER_BINARY_PATH = $browserPath.Path
-          $env:CLOAKBROWSER_BINARY_SHA256 = $metadata.sha256
+          $env:IDFRI_CHROMIUM_BINARY_PATH = $browserPath.Path
+          $env:IDFRI_CHROMIUM_BINARY_SHA256 = $metadata.sha256
           $env:ALIASMODE_SESSION_LAUNCH = "0"
           Push-Location $smoke
           try {
-            & ".\aliasmode-sidecar.exe" __cloud-launcher-smoke --headless --state-root "$smoke\cloud-state"
+            & ".\idfri-sidecar.exe" __cloud-launcher-smoke --headless --state-root "$smoke\cloud-state"
             if ($LASTEXITCODE -ne 0) { throw "Cloud launcher smoke exited with code $LASTEXITCODE" }
-            & ".\aliasmode-sidecar.exe" __cloud-launcher-smoke --proxy-mismatch --headless --state-root "$smoke\proxy-mismatch-state"
+            & ".\idfri-sidecar.exe" __cloud-launcher-smoke --proxy-mismatch --headless --state-root "$smoke\proxy-mismatch-state"
             if ($LASTEXITCODE -ne 0) { throw "deterministic proxy mismatch smoke exited with code $LASTEXITCODE" }
           } finally {
             Pop-Location
@@ -937,7 +936,7 @@ jobs:
             exit 0
           }
           $metadata = Get-Content ".\src-tauri\generated\browser.json" | ConvertFrom-Json
-          $browserPath = Resolve-Path (Join-Path ".\src-tauri\resources\cloakbrowser" $metadata.executable)
+          $browserPath = Resolve-Path (Join-Path ".\src-tauri\resources\chromium" $metadata.executable)
           $env:ALIASMODE_PLAYWRIGHT_RUNTIME = (Resolve-Path ".\src-tauri\resources\playwright").Path
           $env:ALIASMODE_LIVE_BROWSER = $browserPath.Path
           $env:ALIASMODE_LIVE_BROWSER_SHA256 = $metadata.sha256
@@ -965,11 +964,11 @@ jobs:
           bun-version: 1.2.21
       - uses: actions/download-artifact@v4
         with:
-          name: aliasmode-windows-full
+          name: idfri-windows-full
           path: artifacts/windows-full
       - uses: actions/download-artifact@v4
         with:
-          name: aliasmode-windows-slim
+          name: idfri-windows-slim
           path: artifacts/windows-slim
       - name: Verify package manifests and assemble candidate
         shell: pwsh
@@ -979,8 +978,8 @@ jobs:
           WINDOWS_VERSION: ${{ needs.windows_cache.outputs.version }}
         run: |
           $ErrorActionPreference = "Stop"
-          $fullName = "AliasMode_$($env:WINDOWS_VERSION)_x64-offline-setup.exe"
-          $slimName = "AliasMode_$($env:WINDOWS_VERSION)_x64-setup.exe"
+          $fullName = "IDFRI_$($env:WINDOWS_VERSION)_x64-offline-setup.exe"
+          $slimName = "IDFRI_$($env:WINDOWS_VERSION)_x64-setup.exe"
           & bun scripts/windows-artifact-manifest.ts verify ".\artifacts\windows-full" `
             --role full `
             --source $env:WINDOWS_SOURCE `
@@ -1057,7 +1056,7 @@ jobs:
       - name: Upload assembled Windows candidate
         uses: actions/upload-artifact@v4
         with:
-          name: aliasmode-windows-candidate
+          name: idfri-windows-candidate
           path: artifacts/windows-candidate
           if-no-files-found: error
           retention-days: 7
@@ -1086,12 +1085,12 @@ jobs:
       - if: needs.windows_cache.outputs.cache_hit == 'true'
         uses: actions/download-artifact@v4
         with:
-          name: aliasmode-windows-candidate
+          name: idfri-windows-candidate
           path: package
       - if: needs.windows_cache.outputs.cache_hit == 'false'
         uses: actions/download-artifact@v4
         with:
-          name: aliasmode-windows-full
+          name: idfri-windows-full
           path: package
       - name: Run installed ${{ matrix.shard }} acceptance
         shell: pwsh
@@ -1101,7 +1100,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           & .\scripts\windows-installed-acceptance.ps1 `
             -Shard ${{ matrix.shard }} `
-            -InstallerPath ".\package\AliasMode_$($env:WINDOWS_VERSION)_x64-offline-setup.exe" `
+            -InstallerPath ".\package\IDFRI_$($env:WINDOWS_VERSION)_x64-offline-setup.exe" `
             -ChecksumsPath ".\package\SHA256SUMS.txt" `
             -BrowserMetadataPath ".\package\browser.json" `
             -DiagnosticsPath ".\diagnostics\${{ matrix.shard }}.json"
@@ -1109,7 +1108,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: aliasmode-windows-${{ matrix.shard }}-diagnostics-${{ github.run_attempt }}
+          name: idfri-windows-${{ matrix.shard }}-diagnostics-${{ github.run_attempt }}
           path: diagnostics
           if-no-files-found: warn
           retention-days: 7
@@ -1134,12 +1133,12 @@ jobs:
       - if: needs.windows_cache.outputs.cache_hit == 'true'
         uses: actions/download-artifact@v4
         with:
-          name: aliasmode-windows-candidate
+          name: idfri-windows-candidate
           path: package
       - if: needs.windows_cache.outputs.cache_hit == 'false'
         uses: actions/download-artifact@v4
         with:
-          name: aliasmode-windows-full
+          name: idfri-windows-full
           path: package
       - name: Run installed browser acceptance
         shell: pwsh
@@ -1154,7 +1153,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           & .\scripts\windows-installed-acceptance.ps1 `
             -Shard browser `
-            -InstallerPath ".\package\AliasMode_$($env:WINDOWS_VERSION)_x64-offline-setup.exe" `
+            -InstallerPath ".\package\IDFRI_$($env:WINDOWS_VERSION)_x64-offline-setup.exe" `
             -ChecksumsPath ".\package\SHA256SUMS.txt" `
             -BrowserMetadataPath ".\package\browser.json" `
             -DiagnosticsPath ".\diagnostics\browser.json"
@@ -1162,7 +1161,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: aliasmode-windows-browser-diagnostics-${{ github.run_attempt }}
+          name: idfri-windows-browser-diagnostics-${{ github.run_attempt }}
           path: diagnostics
           if-no-files-found: warn
           retention-days: 7
@@ -1171,15 +1170,7 @@ jobs:
   windows_accept_cloud:
     name: Windows installed Cloud acceptance
     needs: [windows_cache, windows_full]
-    if: >-
-      ${{
-        always() &&
-        needs.windows_cache.result == 'success' &&
-        (
-          needs.windows_cache.outputs.cache_hit == 'true' ||
-          (needs.windows_cache.outputs.cache_hit == 'false' && needs.windows_full.result == 'success')
-        )
-      }}
+    if: ${{ false }}
     runs-on: windows-latest
     steps:
       - run: git config --global core.autocrlf false
@@ -1187,12 +1178,12 @@ jobs:
       - if: needs.windows_cache.outputs.cache_hit == 'true'
         uses: actions/download-artifact@v4
         with:
-          name: aliasmode-windows-candidate
+          name: idfri-windows-candidate
           path: package
       - if: needs.windows_cache.outputs.cache_hit == 'false'
         uses: actions/download-artifact@v4
         with:
-          name: aliasmode-windows-full
+          name: idfri-windows-full
           path: package
       - name: Run installed Cloud acceptance
         shell: pwsh
@@ -1202,7 +1193,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           & .\scripts\windows-installed-acceptance.ps1 `
             -Shard cloud `
-            -InstallerPath ".\package\AliasMode_$($env:WINDOWS_VERSION)_x64-offline-setup.exe" `
+            -InstallerPath ".\package\IDFRI_$($env:WINDOWS_VERSION)_x64-offline-setup.exe" `
             -ChecksumsPath ".\package\SHA256SUMS.txt" `
             -BrowserMetadataPath ".\package\browser.json" `
             -DiagnosticsPath ".\diagnostics\cloud.json"
@@ -1210,7 +1201,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: aliasmode-windows-cloud-diagnostics-${{ github.run_attempt }}
+          name: idfri-windows-cloud-diagnostics-${{ github.run_attempt }}
           path: diagnostics
           if-no-files-found: warn
           retention-days: 7
@@ -1224,7 +1215,6 @@ jobs:
       - windows_candidate
       - windows_accept_runtime
       - windows_accept_browser
-      - windows_accept_cloud
     if: >-
       ${{
         always() &&
@@ -1235,8 +1225,7 @@ jobs:
         needs.windows_source.result == 'success' &&
         needs.windows_candidate.result == 'success' &&
         needs.windows_accept_runtime.result == 'success' &&
-        needs.windows_accept_browser.result == 'success' &&
-        needs.windows_accept_cloud.result == 'success'
+        needs.windows_accept_browser.result == 'success'
       }}
     runs-on: windows-latest
     steps:
@@ -1247,7 +1236,7 @@ jobs:
           bun-version: 1.2.21
       - uses: actions/download-artifact@v4
         with:
-          name: aliasmode-windows-candidate
+          name: idfri-windows-candidate
           path: artifacts/windows-candidate
       - name: Verify accepted candidate before caching
         shell: pwsh
@@ -1257,8 +1246,8 @@ jobs:
           WINDOWS_VERSION: ${{ needs.windows_cache.outputs.version }}
         run: |
           $ErrorActionPreference = "Stop"
-          $fullName = "AliasMode_$($env:WINDOWS_VERSION)_x64-offline-setup.exe"
-          $slimName = "AliasMode_$($env:WINDOWS_VERSION)_x64-setup.exe"
+          $fullName = "IDFRI_$($env:WINDOWS_VERSION)_x64-offline-setup.exe"
+          $slimName = "IDFRI_$($env:WINDOWS_VERSION)_x64-setup.exe"
           $arguments = @(
             ".\artifacts\windows-candidate",
             "--role", "candidate",
@@ -1277,7 +1266,7 @@ jobs:
         uses: actions/cache/save@v4
         with:
           path: artifacts/windows-candidate
-          key: aliasmode-windows-candidate-v2-${{ needs.windows_cache.outputs.product_key }}
+          key: idfri-windows-candidate-v2-${{ needs.windows_cache.outputs.product_key }}
 
   windows:
     name: Windows NSIS installer
@@ -1292,7 +1281,6 @@ jobs:
       - windows_candidate
       - windows_accept_runtime
       - windows_accept_browser
-      - windows_accept_cloud
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -1309,7 +1297,6 @@ jobs:
           CANDIDATE_RESULT: ${{ needs.windows_candidate.result }}
           RUNTIME_RESULT: ${{ needs.windows_accept_runtime.result }}
           BROWSER_RESULT: ${{ needs.windows_accept_browser.result }}
-          CLOUD_RESULT: ${{ needs.windows_accept_cloud.result }}
         run: |
           set -euo pipefail
           require_result() {
@@ -1329,7 +1316,6 @@ jobs:
           require_result windows_source "$SOURCE_RESULT" success
           require_result windows_accept_runtime "$RUNTIME_RESULT" success
           require_result windows_accept_browser "$BROWSER_RESULT" success
-          require_result windows_accept_cloud "$CLOUD_RESULT" success
 
           case "$CACHE_HIT" in
             true)

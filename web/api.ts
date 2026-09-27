@@ -110,7 +110,7 @@ export async function fetchAppMode(): Promise<AppModeConfig> {
   const response = await fetch(path);
   const body = await apiJson(response, path);
   if (body.mode !== "unconfigured" && body.mode !== "local" && body.mode !== "cloud") {
-    throw new Error(body.error || "AliasMode returned an invalid application mode");
+    throw new Error(body.error || "IDFRI 返回了无效的应用模式");
   }
   return body as AppModeConfig;
 }
@@ -123,7 +123,7 @@ export async function selectAppMode(mode: "local" | "cloud"): Promise<any> {
     body: JSON.stringify({ mode }),
   });
   const body = await apiJson(response, path);
-  if (!response.ok || body.ok !== true) throw new Error(body.error || "Could not save AliasMode mode");
+  if (!response.ok || body.ok !== true) throw new Error(body.error || "无法保存 IDFRI 应用模式");
   return body;
 }
 
@@ -352,7 +352,7 @@ export async function fetchHealth(): Promise<HealthResult> {
   const path = "/ui/api/health";
   const response = await fetch(path);
   const body = await apiJson(response, path);
-  if (body.ok !== true) throw new Error(body.error || "AliasMode health check failed");
+  if (body.ok !== true) throw new Error(body.error || "IDFRI 健康检查失败");
   return { ok: true, version: String(body.version ?? "unknown"), root: String(body.root ?? ""), ...(typeof body.logDir === "string" ? { logDir: body.logDir } : {}) };
 }
 
@@ -365,10 +365,10 @@ async function apiJson(response: Response, path: string): Promise<any> {
   } catch {
     const contentType = response.headers.get("content-type") || "unknown content type";
     const guidance = response.status >= 500
-      ? "The local server failed before it could return JSON; check aliasmode.log, restart AliasMode, then reload this page."
-      : "The dashboard and local server may be on different versions; stop AliasMode, update it, restart it, then reload this page.";
+      ? "本地服务未能返回 JSON；请检查 IDFRI 日志，重启 IDFRI 后刷新页面。"
+      : "控制台与本地服务的版本可能不一致；请关闭并更新 IDFRI，重启后刷新页面。";
     throw new Error(
-      `AliasMode API ${path} returned non-JSON (${response.status}, ${contentType}). ` +
+      `IDFRI API ${path} 返回了非 JSON 响应（${response.status}，${contentType}）。` +
       guidance,
     );
   }
@@ -383,7 +383,7 @@ export async function fetchProfiles(): Promise<UiRoster> {
   const path = "/ui/api/profiles";
   const r = await fetch(path);
   const body = await apiJson(r, path);
-  if (!Array.isArray(body.profiles)) throw new Error(body.error || "AliasMode API returned no profile roster");
+  if (!Array.isArray(body.profiles)) throw new Error(body.error || "IDFRI API 未返回资料列表");
   return {
     profiles: body.profiles.map((profile: UiProfile) => {
       const engine = profile.engine === "firefox" ? "firefox" : "chromium";
@@ -782,7 +782,7 @@ export async function exportProfiles(
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `aliasmode-export.${format}`;
+  a.download = `idfri-export.${format}`;
   document.body.appendChild(a);
   a.click();
   a.remove();

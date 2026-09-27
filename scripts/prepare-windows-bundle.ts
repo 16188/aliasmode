@@ -10,7 +10,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
-import { CLOAKBROWSER_WRAPPER_VERSION, installCloakBrowser } from "../browser-install.ts";
+import { OPEN_CHROMIUM_RUNTIME_VERSION, installOpenChromium } from "../browser-install.ts";
 import { extractZipTo } from "../unzip.ts";
 import { ALIASMODE_VERSION } from "../version.ts";
 
@@ -59,7 +59,7 @@ export interface PreparedFirefoxMetadata {
 export interface PreparedBrowserMetadata {
   executable: string;
   sha256: string;
-  wrapperVersion: typeof CLOAKBROWSER_WRAPPER_VERSION;
+  runtimeVersion: typeof OPEN_CHROMIUM_RUNTIME_VERSION;
   firefox: PreparedFirefoxMetadata;
 }
 
@@ -190,7 +190,13 @@ async function installFirefoxRuntime(
   if (!statSync(extractedReal).isFile() || !isWithin(extractedRootReal, extractedReal)) {
     throw new Error("AliasMode Firefox archive executable escaped its engine directory");
   }
-  cpSync(extractedRootReal, resourceRoot, { recursive: true, errorOnExist: false });
+  cpSync(extractedRootReal, resourceRoot, {
+    recursive: true,
+    errorOnExist: false,
+    // The upstream Windows archive contains proprietary OS fonts. Keep the
+    // Firefox runtime, but use fonts already installed on the user's system.
+    filter: (source) => relative(extractedRootReal, source).split(/[\\/]/, 1)[0]?.toLowerCase() !== "fonts",
+  });
   const executable = relative(extractedRootReal, extractedReal).replaceAll("\\", "/");
   const copiedExecutable = join(resourceRoot, executable);
   const copiedSha256 = (await hashFile(copiedExecutable)).toLowerCase();
@@ -295,12 +301,12 @@ export async function prepareWindowsBundle(
   const binaries = join(tauri, "binaries");
   const resources = join(tauri, "resources");
   const staging = join(tauri, "target", "desktop-staging");
-  const browserCache = join(tauri, "target", "cloakbrowser-cache");
-  const resourceRoot = join(resources, "cloakbrowser");
+  const browserCache = join(tauri, "target", "chromium-cache");
+  const resourceRoot = join(resources, "chromium");
   const firefoxRoot = join(resources, "firefox");
   const playwrightRoot = join(resources, "playwright");
-  const sidecar = join(binaries, "aliasmode-sidecar-x86_64-pc-windows-msvc.exe");
-  const agentHelper = join(binaries, "aliasmode-mcp-x86_64-pc-windows-msvc.exe");
+  const sidecar = join(binaries, "idfri-sidecar-x86_64-pc-windows-msvc.exe");
+  const agentHelper = join(binaries, "idfri-mcp-x86_64-pc-windows-msvc.exe");
 
   rmSync(staging, { recursive: true, force: true });
   rmSync(resourceRoot, { recursive: true, force: true });
@@ -384,33 +390,32 @@ export async function prepareWindowsBundle(
     copyRuntimePackage(cwd, playwrightRoot, dependency, copied);
   }
 
-  const installed = await (options.installBrowser ?? ((dir, cacheDir) => installCloakBrowser({ cwd: dir, cacheDir })))(
+  const installed = await (options.installBrowser ?? ((_dir, cacheDir) => installOpenChromium({ cwd, cacheDir })))(
     staging,
     browserCache,
   );
   const cacheReal = realpathSync(browserCache);
   const installedReal = realpathSync(installed.path);
   if (!statSync(installedReal).isFile() || !isWithin(cacheReal, installedReal)) {
-    throw new Error("official CloakBrowser installer reported a path outside its cache directory");
+    throw new Error("Playwright Chromium installer reported a path outside its cache directory");
   }
 
   const runtimeRoot = dirname(installedReal);
   const executableRelative = relative(runtimeRoot, installedReal).replaceAll("\\", "/");
   if (executableRelative !== "chrome.exe") {
-    throw new Error("official CloakBrowser installer did not provide Windows chrome.exe");
+    throw new Error("Playwright Chromium installer did not provide Windows chrome.exe");
   }
   cpSync(runtimeRoot, resourceRoot, { recursive: true, errorOnExist: false });
-  rmSync(join(resourceRoot, "chromedriver.exe"), { force: true });
   const copiedExecutable = join(resourceRoot, executableRelative);
   const copiedHash = (await (options.hashFile ?? sha256File)(copiedExecutable)).toLowerCase();
   if (!/^[a-f0-9]{64}$/.test(copiedHash) || copiedHash !== installed.sha256.toLowerCase()) {
-    throw new Error("packaged CloakBrowser executable does not match the installed SHA-256");
+    throw new Error("packaged Chromium executable does not match the installed SHA-256");
   }
 
   const metadata: PreparedBrowserMetadata = {
     executable: executableRelative,
     sha256: copiedHash,
-    wrapperVersion: CLOAKBROWSER_WRAPPER_VERSION,
+    runtimeVersion: OPEN_CHROMIUM_RUNTIME_VERSION,
     firefox,
   };
   writeFileSync(join(generated, "browser.json"), `${JSON.stringify(metadata, null, 2)}\n`, "utf8");
@@ -421,7 +426,7 @@ export async function prepareWindowsBundle(
 if (import.meta.main) {
   try {
     const metadata = await prepareWindowsBundle();
-    console.log(`prepared AliasMode Windows bundle with CloakBrowser SHA-256 ${metadata.sha256} and Firefox SHA-256 ${metadata.firefox.sha256}`);
+    console.log(`prepared IDFRI Windows bundle with open Chromium SHA-256 ${metadata.sha256} and Firefox SHA-256 ${metadata.firefox.sha256}`);
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);

@@ -4,29 +4,13 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  renameSync,
-  rmSync,
   writeFileSync,
 } from "node:fs";
-import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 
-export const CLOAKBROWSER_WRAPPER_VERSION = "0.4.11";
-export const CLOAKBROWSER_VERSION = "146.0.7680.177.5";
-export const CLOAKBROWSER_MACOS_VERSION = "145.0.7632.109.2";
-
-/** The wrapper's signed release map uses its final macOS build. */
-export function cloakBrowserVersionForPlatform(platform = process.platform): string {
-  return platform === "darwin" ? CLOAKBROWSER_MACOS_VERSION : CLOAKBROWSER_VERSION;
-}
-
-export const CLOAKBROWSER_WINDOWS_X64_ARCHIVE_SHA256 = "b213795cb32c3169f766c74ce1d0275fc89d3df256de39c04da7fb4c23b7fdbe";
-export const CLOAKBROWSER_WINDOWS_X64_EXECUTABLE_SHA256 = "03f53661a5c47e7b0a661bee2bce8a0d302b7a60834c328df417561fa0636d80";
-const WINDOWS_ARCHIVE_NAME = "cloakbrowser-windows-x64.zip";
-const WINDOWS_ARCHIVE_URLS = [
-  `https://github.com/CloakHQ/CloakBrowser/releases/download/chromium-v${CLOAKBROWSER_VERSION}/${WINDOWS_ARCHIVE_NAME}`,
-  `https://cloakbrowser.dev/chromium-v${CLOAKBROWSER_VERSION}/${WINDOWS_ARCHIVE_NAME}`,
-];
+export const OPEN_CHROMIUM_RUNTIME_VERSION = "playwright-core@1.58.2";
+export const OPEN_CHROMIUM_REVISION = "1208";
+export const OPEN_CHROMIUM_VERSION = "145.0.7632.6";
 
 export interface BrowserInstallOptions {
   cwd?: string;
@@ -48,77 +32,32 @@ export async function sha256File(path: string): Promise<string> {
   return hash.digest("hex");
 }
 
-async function preparePinnedWindowsArchive(cacheDir: string): Promise<void> {
-  mkdirSync(cacheDir, { recursive: true });
-  const archivePath = join(cacheDir, `${CLOAKBROWSER_VERSION}-${WINDOWS_ARCHIVE_NAME}`);
-  const archiveIsPinned = existsSync(archivePath) &&
-    await sha256File(archivePath) === CLOAKBROWSER_WINDOWS_X64_ARCHIVE_SHA256;
-  if (!archiveIsPinned) {
-    rmSync(archivePath, { force: true });
-    let downloaded = false;
-    for (const url of WINDOWS_ARCHIVE_URLS) {
-      try {
-        const download = Bun.spawn([
-          "curl.exe",
-          "--fail",
-          "--location",
-          "--retry",
-          "2",
-          "--retry-all-errors",
-          "--output",
-          archivePath,
-          url,
-        ], { stdout: "inherit", stderr: "inherit" });
-        if (await download.exited === 0 &&
-          await sha256File(archivePath) === CLOAKBROWSER_WINDOWS_X64_ARCHIVE_SHA256) {
-          downloaded = true;
-          break;
-        }
-      } catch {
-        // Try the signed release origin.
-      }
-      rmSync(archivePath, { force: true });
-    }
-    if (!downloaded) throw new Error("official CloakBrowser archive did not match the pinned Windows x64 SHA-256");
-  }
-
-  const extractRoot = join(cacheDir, `_aliasmode_extract_${process.pid}`);
-  const binaryDir = join(cacheDir, `chromium-${CLOAKBROWSER_VERSION}`);
-  rmSync(extractRoot, { recursive: true, force: true });
-  mkdirSync(extractRoot, { recursive: true });
-  try {
-    const extraction = Bun.spawn(["tar.exe", "-xf", archivePath, "-C", extractRoot], {
-      stdout: "ignore",
-      stderr: "inherit",
-    });
-    if (await extraction.exited !== 0) throw new Error("pinned CloakBrowser archive extraction failed");
-    const executable = join(extractRoot, "chrome.exe");
-    if (!existsSync(executable) || await sha256File(executable) !== CLOAKBROWSER_WINDOWS_X64_EXECUTABLE_SHA256) {
-      throw new Error("pinned CloakBrowser archive contained an unexpected Windows x64 executable");
-    }
-    rmSync(binaryDir, { recursive: true, force: true });
-    renameSync(extractRoot, binaryDir);
-  } finally {
-    rmSync(extractRoot, { recursive: true, force: true });
-  }
-}
-
-async function runOfficialInstaller(cwd: string, cacheDir?: string): Promise<{ code: number; output: string }> {
-  // This command exists to repair a missing/stale deployment. Do not let the
-  // wrapper treat a local CloakBrowser override as its install target.
-  const env = Object.fromEntries(
-    Object.entries(process.env).filter(([key]) => !key.startsWith("CLOAKBROWSER_")),
-  );
-  env.CLOAKBROWSER_VERSION = cloakBrowserVersionForPlatform();
-  env.CLOAKBROWSER_AUTO_UPDATE = "false";
-  if (cacheDir) env.CLOAKBROWSER_CACHE_DIR = cacheDir;
+async function runOfficialInstaller(cacheDir: string): Promise<{ code: number; output: string }> {
+  const cli = join(import.meta.dir, "node_modules", "playwright-core", "cli.js");
+  if (!existsSync(cli)) throw new Error("playwright-core installer is unavailable");
+  const env = { ...process.env, PLAYWRIGHT_BROWSERS_PATH: cacheDir };
   const child = Bun.spawn(
-    [process.execPath, "x", `cloakbrowser@${CLOAKBROWSER_WRAPPER_VERSION}`, "install"],
-    { cwd, env, stdout: "pipe", stderr: "inherit" },
+    [process.execPath, cli, "install", "chromium"],
+    { cwd: import.meta.dir, env, stdout: "pipe", stderr: "inherit" },
   );
   const output = await new Response(child.stdout).text();
   process.stdout.write(output);
   return { code: await child.exited, output };
+}
+
+function managedChromiumPath(cacheDir: string, platform = process.platform): string {
+  const root = join(cacheDir, `chromium-${OPEN_CHROMIUM_REVISION}`);
+  const candidates = platform === "win32"
+    ? [join(root, "chrome-win64", "chrome.exe")]
+    : platform === "darwin"
+      ? [
+          join(root, "chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium"),
+          join(root, "chrome-mac-arm64", "Chromium.app", "Contents", "MacOS", "Chromium"),
+        ]
+      : [join(root, "chrome-linux", "chrome"), join(root, "chrome-linux64", "chrome")];
+  const executable = candidates.find(existsSync);
+  if (!executable) throw new Error(`Playwright Chromium revision ${OPEN_CHROMIUM_REVISION} is incomplete`);
+  return executable;
 }
 
 function installedPath(output: string, exists: (path: string) => boolean): string | null {
@@ -127,7 +66,7 @@ function installedPath(output: string, exists: (path: string) => boolean): strin
   return lines.reverse().find((line) => exists(line)) ?? null;
 }
 
-export function browserEnvText(current: string, binaryPath: string, sha256: string, newline = "\n", prefix: "CLOAKBROWSER" | "ALIASMODE_FIREFOX" = "CLOAKBROWSER"): string {
+export function browserEnvText(current: string, binaryPath: string, sha256: string, newline = "\n", prefix: "IDFRI_CHROMIUM" | "ALIASMODE_FIREFOX" = "IDFRI_CHROMIUM"): string {
   const pathKey = `${prefix}_BINARY_PATH`;
   const hashKey = `${prefix}_BINARY_SHA256`;
   const owned = new RegExp(`^\\s*(?:${pathKey}|${hashKey})\\s*=.*$`, "i");
@@ -138,26 +77,19 @@ export function browserEnvText(current: string, binaryPath: string, sha256: stri
   return kept.join(newline);
 }
 
-/** Download the official signed binary, pin its exact path/hash, and return both. */
-export async function installCloakBrowser(opts: BrowserInstallOptions = {}): Promise<{ path: string; sha256: string }> {
+/** Install Playwright's open-source Chromium build, then pin its exact executable hash. */
+export async function installOpenChromium(opts: BrowserInstallOptions = {}): Promise<{ path: string; sha256: string }> {
   const cwd = resolve(opts.cwd ?? process.cwd());
-  let cacheDir = opts.cacheDir ? resolve(opts.cacheDir) : undefined;
-  if (process.platform === "win32" && !opts.runInstaller) {
-    cacheDir ??= join(homedir(), ".cloakbrowser");
-    await preparePinnedWindowsArchive(cacheDir);
-  }
-  const run = opts.runInstaller ?? (() => runOfficialInstaller(cwd, cacheDir));
+  const cacheDir = resolve(opts.cacheDir ?? join(cwd, "runtime", "chromium-cache"));
+  mkdirSync(cacheDir, { recursive: true });
+  const run = opts.runInstaller ?? (() => runOfficialInstaller(cacheDir));
   const exists = opts.exists ?? existsSync;
   const result = await run();
-  if (result.code !== 0) throw new Error(`official CloakBrowser installer exited with code ${result.code}`);
-  const path = installedPath(result.output, exists);
-  if (!path) throw new Error("official CloakBrowser installer completed but did not report a readable binary path");
+  if (result.code !== 0) throw new Error(`Playwright Chromium installer exited with code ${result.code}`);
+  const path = installedPath(result.output, exists) ?? managedChromiumPath(cacheDir);
 
   const sha256 = (await (opts.hashFile ?? sha256File)(path)).toLowerCase();
-  if (!/^[a-f0-9]{64}$/.test(sha256)) throw new Error("installed CloakBrowser returned an invalid SHA-256");
-  if (process.platform === "win32" && sha256 !== CLOAKBROWSER_WINDOWS_X64_EXECUTABLE_SHA256) {
-    throw new Error("installed CloakBrowser did not match the pinned Windows x64 executable");
-  }
+  if (!/^[a-f0-9]{64}$/.test(sha256)) throw new Error("installed Chromium returned an invalid SHA-256");
 
   if (opts.writeEnv !== false) {
     const envPath = resolve(cwd, ".env");

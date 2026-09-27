@@ -10,13 +10,13 @@ export function buildAgentBootstrapManifest(options: {
   const installer = resolve(options.installer);
   const bytes = readFileSync(installer);
   const releaseBase = options.releaseBase.replace(/\/$/, "");
-  if (!/^https:\/\/github\.com\/aliasmode\/aliasmode\/releases\/download\/[^/]+$/.test(releaseBase)) {
-    throw new Error("release base must be an exact AliasMode GitHub Release URL");
+  if (!/^https:\/\/github\.com\/16188\/aliasmode\/releases\/download\/[^/]+$/.test(releaseBase)) {
+    throw new Error("release base must be an exact IDFRI GitHub Release URL");
   }
   return {
     schema: 1,
     version: ALIASMODE_VERSION,
-    wingetId: "AliasMode.AliasMode",
+    wingetId: "IDFRI.IDFRI",
     installer: {
       name: basename(installer),
       url: `${releaseBase}/${encodeURIComponent(basename(installer))}`,
@@ -27,7 +27,7 @@ export function buildAgentBootstrapManifest(options: {
 }
 
 if (import.meta.main) {
-  const [installer, releaseBase, output = "aliasmode-agent-bootstrap.json"] = process.argv.slice(2);
+  const [installer, releaseBase, output = "idfri-agent-bootstrap.json"] = process.argv.slice(2);
   if (!installer || !releaseBase) {
     console.error("usage: bun scripts/write-agent-bootstrap-manifest.ts <installer> <exact-release-url> [output]");
     process.exit(1);

@@ -44,8 +44,8 @@ test("dashboard API reports an HTML/version mismatch instead of a JSON SyntaxErr
     headers: { "content-type": "text/html" },
   })) as unknown as typeof fetch;
 
-  await expect(fetchProfiles()).rejects.toThrow("dashboard and local server may be on different versions");
-  await expect(openProfile("profile1")).rejects.toThrow("returned non-JSON");
+  await expect(fetchProfiles()).rejects.toThrow("控制台与本地服务的版本可能不一致");
+  await expect(openProfile("profile1")).rejects.toThrow("返回了非 JSON 响应");
 });
 
 test("dashboard API distinguishes an HTML server crash from a version mismatch", async () => {
@@ -54,12 +54,12 @@ test("dashboard API distinguishes an HTML server crash from a version mismatch",
     headers: { "content-type": "text/html" },
   })) as unknown as typeof fetch;
 
-  await expect(fetchProfiles()).rejects.toThrow("local server failed before it could return JSON");
+  await expect(fetchProfiles()).rejects.toThrow("本地服务未能返回 JSON");
 });
 
 test("dashboard profile roster rejects malformed JSON shape explicitly", async () => {
   globalThis.fetch = (async () => Response.json({ ok: true })) as unknown as typeof fetch;
-  await expect(fetchProfiles()).rejects.toThrow("no profile roster");
+  await expect(fetchProfiles()).rejects.toThrow("未返回资料列表");
 });
 
 test("profile export reports the server error", async () => {
@@ -107,7 +107,7 @@ test("profile export reads split progress records and downloads the exact file b
     expect(request).toEqual({ ids: ["p1", "p2"], format: "xlsx", stream: true });
     expect(progress).toEqual([{ completed: 0, total: 2 }, { completed: 2, total: 2 }]);
     expect(new Uint8Array(await downloaded!.arrayBuffer())).toEqual(bytes);
-    expect(anchor.download).toBe("aliasmode-export.xlsx");
+    expect(anchor.download).toBe("idfri-export.xlsx");
     expect(clicks).toBe(1);
   } finally {
     create.mockRestore();

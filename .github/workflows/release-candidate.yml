@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       run_id:
-        description: Successful Client CI run containing aliasmode-windows-candidate
+        description: Successful Client CI run containing idfri-windows-candidate
         required: true
         type: string
 
@@ -84,14 +84,14 @@ jobs:
           "source=$($run.head_sha)" | Add-Content $env:GITHUB_OUTPUT
       - uses: actions/download-artifact@v4
         with:
-          name: aliasmode-windows-candidate
+          name: idfri-windows-candidate
           path: candidate
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
           run-id: ${{ inputs.run_id }}
       - uses: actions/download-artifact@v4
         with:
-          name: aliasmode-windows-unsigned-synthetic-successor
+          name: idfri-windows-unsigned-synthetic-successor
           path: unsigned-successor
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
@@ -110,8 +110,8 @@ jobs:
           $version = [string](Get-Content ".\src-tauri\tauri.conf.json" -Raw | ConvertFrom-Json).version
           $semantic = [Management.Automation.SemanticVersion]::Parse($version)
           if ($semantic.ToString() -cne $version) { throw "candidate version is not canonical" }
-          $fullName = "AliasMode_${version}_x64-offline-setup.exe"
-          $slimName = "AliasMode_${version}_x64-setup.exe"
+          $fullName = "IDFRI_${version}_x64-offline-setup.exe"
+          $slimName = "IDFRI_${version}_x64-setup.exe"
           $payloadNames = @($fullName, $slimName, "browser.json", "SHA256SUMS.txt", "size-report.json")
           $requiredNames = @($payloadNames + "artifact-manifest.json") | Sort-Object
           $entries = @(Get-ChildItem -LiteralPath ".\candidate" -Force)
@@ -223,7 +223,7 @@ jobs:
             throw "synthetic successor version is not canonical and newer"
           }
 
-          $name = "AliasMode_${successorVersion}_x64-setup.exe"
+          $name = "IDFRI_${successorVersion}_x64-setup.exe"
           $requiredNames = @($name, "artifact-manifest.json") | Sort-Object
           $entries = @(Get-ChildItem -LiteralPath ".\unsigned-successor" -Force)
           $actualNames = @($entries | ForEach-Object Name | Sort-Object)
@@ -278,7 +278,7 @@ jobs:
       - name: Upload verified release provenance
         uses: actions/upload-artifact@v4
         with:
-          name: aliasmode-release-provenance
+          name: idfri-release-provenance
           path: candidate
           if-no-files-found: error
           retention-days: 7
@@ -307,7 +307,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - uses: actions/download-artifact@v4
         with:
-          name: aliasmode-release-provenance
+          name: idfri-release-provenance
           path: candidate
       - name: Verify current producer input
         shell: pwsh
@@ -317,8 +317,8 @@ jobs:
           WINDOWS_VERSION: ${{ needs.provenance.outputs.version }}
         run: |
           $ErrorActionPreference = "Stop"
-          $fullName = "AliasMode_$($env:WINDOWS_VERSION)_x64-offline-setup.exe"
-          $slimName = "AliasMode_$($env:WINDOWS_VERSION)_x64-setup.exe"
+          $fullName = "IDFRI_$($env:WINDOWS_VERSION)_x64-offline-setup.exe"
+          $slimName = "IDFRI_$($env:WINDOWS_VERSION)_x64-setup.exe"
           $arguments = @(
             ".\candidate",
             "--role", "candidate",
@@ -338,6 +338,8 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
           WINDOWS_PRODUCT_KEY: ${{ needs.provenance.outputs.product_key }}
           WINDOWS_SOURCE: ${{ needs.provenance.outputs.source }}
           WINDOWS_VERSION: ${{ needs.provenance.outputs.version }}
@@ -345,14 +347,16 @@ jobs:
           $ErrorActionPreference = "Stop"
           if (
             [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY) -or
-            [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD)
+            [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) -or
+            [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_BASE64) -or
+            [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PASSWORD)
           ) {
-            throw "protected Tauri updater signing secrets are unavailable"
+            throw "protected updater or Authenticode signing secrets are unavailable"
           }
 
           $tag = "v$($env:WINDOWS_VERSION)"
-          $fullName = "AliasMode_$($env:WINDOWS_VERSION)_x64-offline-setup.exe"
-          $slimName = "AliasMode_$($env:WINDOWS_VERSION)_x64-setup.exe"
+          $fullName = "IDFRI_$($env:WINDOWS_VERSION)_x64-offline-setup.exe"
+          $slimName = "IDFRI_$($env:WINDOWS_VERSION)_x64-setup.exe"
           $signatureName = "$slimName.sig"
           $artifact = ".\artifacts\signed-current"
           New-Item -ItemType Directory -Force $artifact | Out-Null
@@ -363,6 +367,16 @@ jobs:
           $sourceFullHash = (Get-FileHash -LiteralPath (Join-Path ".\candidate" $fullName) -Algorithm SHA256).Hash
           if ((Get-FileHash -LiteralPath $fullInstaller -Algorithm SHA256).Hash -cne $sourceFullHash) {
             throw "copied full installer SHA-256 mismatch"
+          }
+
+          $certificate = Join-Path $env:RUNNER_TEMP "idfri-authenticode.pfx"
+          [IO.File]::WriteAllBytes($certificate, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
+          & signtool.exe sign /fd SHA256 /tr https://timestamp.digicert.com /td SHA256 /f $certificate /p $env:WINDOWS_CERTIFICATE_PASSWORD $fullInstaller $slimInstaller
+          if ($LASTEXITCODE -ne 0) { throw "Authenticode signing failed" }
+          foreach ($installer in @($fullInstaller, $slimInstaller)) {
+            if ([string](Get-AuthenticodeSignature -LiteralPath $installer).Status -cne "Valid") {
+              throw "Authenticode verification failed: $(Split-Path $installer -Leaf)"
+            }
           }
 
           $updaterHeader = [IO.File]::ReadAllBytes($slimInstaller)[0..1]
@@ -419,7 +433,7 @@ jobs:
             throw "generated updater manifest is inconsistent"
           }
 
-          $bootstrapPath = Join-Path $artifact "aliasmode-agent-bootstrap.json"
+          $bootstrapPath = Join-Path $artifact "idfri-agent-bootstrap.json"
           bun scripts/write-agent-bootstrap-manifest.ts $fullInstaller $releaseBase $bootstrapPath
           if ($LASTEXITCODE -ne 0) { throw "agent bootstrap manifest generation failed" }
           $bootstrap = Get-Content $bootstrapPath -Raw | ConvertFrom-Json
@@ -452,7 +466,7 @@ jobs:
             $slimName,
             $signatureName,
             "latest-v2.json",
-            "aliasmode-agent-bootstrap.json",
+            "idfri-agent-bootstrap.json",
             "SHA256SUMS.txt"
           )
           $entries = @(Get-ChildItem -LiteralPath $artifact -Force)
@@ -499,7 +513,7 @@ jobs:
       - name: Upload signed current producer
         uses: actions/upload-artifact@v4
         with:
-          name: aliasmode-signed-current
+          name: idfri-signed-current
           path: artifacts/signed-current
           if-no-files-found: error
           retention-days: 7
@@ -529,7 +543,7 @@ jobs:
       - run: bun install --frozen-lockfile
       - uses: actions/download-artifact@v4
         with:
-          name: aliasmode-windows-unsigned-synthetic-successor
+          name: idfri-windows-unsigned-synthetic-successor
           path: unsigned-successor
           github-token: ${{ github.token }}
           repository: ${{ github.repository }}
@@ -542,7 +556,7 @@ jobs:
           WINDOWS_SOURCE: ${{ needs.provenance.outputs.source }}
         run: |
           $ErrorActionPreference = "Stop"
-          $name = "AliasMode_$($env:SUCCESSOR_VERSION)_x64-setup.exe"
+          $name = "IDFRI_$($env:SUCCESSOR_VERSION)_x64-setup.exe"
           $requiredNames = @($name, "artifact-manifest.json") | Sort-Object
           $entries = @(Get-ChildItem -LiteralPath ".\unsigned-successor" -Force)
           $actualNames = @($entries | ForEach-Object Name | Sort-Object)
@@ -609,6 +623,8 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
           SUCCESSOR_VERSION: ${{ needs.provenance.outputs.successor_version }}
           WINDOWS_PRODUCT_KEY: ${{ needs.provenance.outputs.product_key }}
           WINDOWS_SOURCE: ${{ needs.provenance.outputs.source }}
@@ -616,13 +632,21 @@ jobs:
           $ErrorActionPreference = "Stop"
           if (
             [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY) -or
-            [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD)
+            [string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD) -or
+            [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_BASE64) -or
+            [string]::IsNullOrWhiteSpace($env:WINDOWS_CERTIFICATE_PASSWORD)
           ) {
-            throw "protected Tauri updater signing secrets are unavailable"
+            throw "protected updater or Authenticode signing secrets are unavailable"
           }
           $artifact = ".\artifacts\synthetic-successor"
-          $name = "AliasMode_$($env:SUCCESSOR_VERSION)_x64-setup.exe"
+          $name = "IDFRI_$($env:SUCCESSOR_VERSION)_x64-setup.exe"
           $installer = Join-Path $artifact $name
+          $certificate = Join-Path $env:RUNNER_TEMP "idfri-authenticode.pfx"
+          [IO.File]::WriteAllBytes($certificate, [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64))
+          & signtool.exe sign /fd SHA256 /tr https://timestamp.digicert.com /td SHA256 /f $certificate /p $env:WINDOWS_CERTIFICATE_PASSWORD $installer
+          if ($LASTEXITCODE -ne 0 -or [string](Get-AuthenticodeSignature -LiteralPath $installer).Status -cne "Valid") {
+            throw "synthetic successor Authenticode signing failed"
+          }
           try {
             bunx tauri signer sign $installer
             $signExit = $LASTEXITCODE
@@ -690,7 +714,7 @@ jobs:
       - name: Upload synthetic successor producer
         uses: actions/upload-artifact@v4
         with:
-          name: aliasmode-synthetic-successor
+          name: idfri-synthetic-successor
           path: artifacts/synthetic-successor
           if-no-files-found: error
           retention-days: 7
@@ -710,7 +734,7 @@ jobs:
           bun-version: 1.2.21
       - uses: actions/download-artifact@v4
         with:
-          name: aliasmode-release-provenance
+          name: idfri-release-provenance
           path: candidate
       - name: Verify candidate producer
         shell: pwsh
@@ -720,8 +744,8 @@ jobs:
           WINDOWS_VERSION: ${{ needs.provenance.outputs.version }}
         run: |
           $ErrorActionPreference = "Stop"
-          $fullName = "AliasMode_$($env:WINDOWS_VERSION)_x64-offline-setup.exe"
-          $slimName = "AliasMode_$($env:WINDOWS_VERSION)_x64-setup.exe"
+          $fullName = "IDFRI_$($env:WINDOWS_VERSION)_x64-offline-setup.exe"
+          $slimName = "IDFRI_$($env:WINDOWS_VERSION)_x64-setup.exe"
           $arguments = @(
             ".\candidate",
             "--role", "candidate",
@@ -736,7 +760,27 @@ jobs:
           )
           & bun scripts/windows-artifact-manifest.ts verify @arguments
           if ($LASTEXITCODE -ne 0) { throw "candidate producer verification failed" }
+      - name: Detect an earlier IDFRI release
+        id: previous_release
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          WINDOWS_VERSION: ${{ needs.provenance.outputs.version }}
+        run: |
+          $headers = @{ Authorization = "Bearer $env:GITHUB_TOKEN"; Accept = "application/vnd.github+json" }
+          $current = [Management.Automation.SemanticVersion]::Parse($env:WINDOWS_VERSION)
+          $releases = @(Invoke-RestMethod "https://api.github.com/repos/$env:GITHUB_REPOSITORY/releases?per_page=100" -Headers $headers | Write-Output)
+          $available = @($releases | Where-Object {
+            if ($_.draft -or -not $_.tag_name.StartsWith("v")) { return $false }
+            try { $version = [Management.Automation.SemanticVersion]::Parse($_.tag_name.Substring(1)) } catch { return $false }
+            $names = @($_.assets | ForEach-Object name)
+            return $version -lt $current -and $names -contains "SHA256SUMS.txt" -and @($names | Where-Object {
+              $_ -match '^IDFRI_[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?_x64(?:-offline)?-setup\.exe$'
+            }).Count -gt 0
+          }).Count -gt 0
+          "available=$($available.ToString().ToLowerInvariant())" | Add-Content $env:GITHUB_OUTPUT
       - name: Test previous-version upgrade and data preservation
+        if: steps.previous_release.outputs.available == 'true'
         timeout-minutes: 35
         shell: pwsh
         env:
@@ -747,7 +791,7 @@ jobs:
           $diagnostics = ".\diagnostics\previous-upgrade.json"
           & .\scripts\windows-previous-upgrade-acceptance.ps1 `
             -CandidateVersion $env:WINDOWS_VERSION `
-            -FullInstallerPath ".\candidate\AliasMode_$($env:WINDOWS_VERSION)_x64-offline-setup.exe" `
+            -FullInstallerPath ".\candidate\IDFRI_$($env:WINDOWS_VERSION)_x64-offline-setup.exe" `
             -ChecksumsPath ".\candidate\SHA256SUMS.txt" `
             -Repository $env:GITHUB_REPOSITORY `
             -GitHubToken $env:GITHUB_TOKEN `
@@ -756,7 +800,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: aliasmode-windows-previous-upgrade-diagnostics-${{ github.run_attempt }}
+          name: idfri-windows-previous-upgrade-diagnostics-${{ github.run_attempt }}
           path: diagnostics
           if-no-files-found: warn
           retention-days: 7
@@ -777,11 +821,11 @@ jobs:
       - run: bun install --frozen-lockfile
       - uses: actions/download-artifact@v4
         with:
-          name: aliasmode-release-provenance
+          name: idfri-release-provenance
           path: candidate
       - uses: actions/download-artifact@v4
         with:
-          name: aliasmode-synthetic-successor
+          name: idfri-synthetic-successor
           path: synthetic-successor
       - name: Verify acceptance producer artifacts
         shell: pwsh
@@ -792,8 +836,8 @@ jobs:
           WINDOWS_VERSION: ${{ needs.provenance.outputs.version }}
         run: |
           $ErrorActionPreference = "Stop"
-          $fullName = "AliasMode_$($env:WINDOWS_VERSION)_x64-offline-setup.exe"
-          $slimName = "AliasMode_$($env:WINDOWS_VERSION)_x64-setup.exe"
+          $fullName = "IDFRI_$($env:WINDOWS_VERSION)_x64-offline-setup.exe"
+          $slimName = "IDFRI_$($env:WINDOWS_VERSION)_x64-setup.exe"
           $currentArguments = @(
             ".\candidate",
             "--role", "candidate",
@@ -809,7 +853,7 @@ jobs:
           & bun scripts/windows-artifact-manifest.ts verify @currentArguments
           if ($LASTEXITCODE -ne 0) { throw "candidate producer verification failed" }
 
-          $successorName = "AliasMode_$($env:SUCCESSOR_VERSION)_x64-setup.exe"
+          $successorName = "IDFRI_$($env:SUCCESSOR_VERSION)_x64-setup.exe"
           $successorArguments = @(
             ".\synthetic-successor",
             "--role", "synthetic-successor",
@@ -830,10 +874,10 @@ jobs:
           WINDOWS_VERSION: ${{ needs.provenance.outputs.version }}
         run: |
           $ErrorActionPreference = "Stop"
-          $successorName = "AliasMode_$($env:SUCCESSOR_VERSION)_x64-setup.exe"
+          $successorName = "IDFRI_$($env:SUCCESSOR_VERSION)_x64-setup.exe"
           & .\scripts\windows-in-app-update-acceptance.ps1 `
             -SourceVersion $env:WINDOWS_VERSION `
-            -SourceInstallerPath ".\candidate\AliasMode_$($env:WINDOWS_VERSION)_x64-offline-setup.exe" `
+            -SourceInstallerPath ".\candidate\IDFRI_$($env:WINDOWS_VERSION)_x64-offline-setup.exe" `
             -SourceChecksumsPath ".\candidate\SHA256SUMS.txt" `
             -CandidateVersion $env:SUCCESSOR_VERSION `
             -CandidateInstallerPath ".\synthetic-successor\$successorName" `
@@ -844,7 +888,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: aliasmode-windows-in-app-update-diagnostics-${{ github.run_attempt }}
+          name: idfri-windows-in-app-update-diagnostics-${{ github.run_attempt }}
           path: diagnostics
           if-no-files-found: warn
           retention-days: 7
@@ -867,7 +911,7 @@ jobs:
           bun-version: 1.2.21
       - uses: actions/download-artifact@v4
         with:
-          name: aliasmode-signed-current
+          name: idfri-signed-current
           path: signed-current
       - name: Verify publish producer artifact
         shell: bash
@@ -877,8 +921,8 @@ jobs:
           WINDOWS_VERSION: ${{ needs.provenance.outputs.version }}
         run: |
           set -euo pipefail
-          full_name="AliasMode_${WINDOWS_VERSION}_x64-offline-setup.exe"
-          slim_name="AliasMode_${WINDOWS_VERSION}_x64-setup.exe"
+          full_name="IDFRI_${WINDOWS_VERSION}_x64-offline-setup.exe"
+          slim_name="IDFRI_${WINDOWS_VERSION}_x64-setup.exe"
           bun scripts/windows-artifact-manifest.ts verify ./signed-current \
             --role signed-current \
             --source "$WINDOWS_SOURCE" \
@@ -888,7 +932,7 @@ jobs:
             --file "$slim_name" \
             --file "$slim_name.sig" \
             --file latest-v2.json \
-            --file aliasmode-agent-bootstrap.json \
+            --file idfri-agent-bootstrap.json \
             --file SHA256SUMS.txt
       - name: Create, verify, and publish exact release
         shell: bash
@@ -900,16 +944,16 @@ jobs:
           set -euo pipefail
           root="$GITHUB_WORKSPACE/signed-current"
           tag="v${RELEASE_VERSION}"
-          release_name="AliasMode ${RELEASE_VERSION}"
-          marker="<!-- aliasmode-release-run:${GITHUB_RUN_ID};source:${RELEASE_SOURCE} -->"
-          full_name="AliasMode_${RELEASE_VERSION}_x64-offline-setup.exe"
-          slim_name="AliasMode_${RELEASE_VERSION}_x64-setup.exe"
+          release_name="IDFRI ${RELEASE_VERSION}"
+          marker="<!-- idfri-release-run:${GITHUB_RUN_ID};source:${RELEASE_SOURCE} -->"
+          full_name="IDFRI_${RELEASE_VERSION}_x64-offline-setup.exe"
+          slim_name="IDFRI_${RELEASE_VERSION}_x64-setup.exe"
           required=(
             "$full_name"
             "$slim_name"
             "$slim_name.sig"
             "latest-v2.json"
-            "aliasmode-agent-bootstrap.json"
+            "idfri-agent-bootstrap.json"
             "SHA256SUMS.txt"
           )
           mapfile -t expected_names < <(printf '%s\n' "${required[@]}" | sort)

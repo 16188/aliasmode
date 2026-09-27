@@ -1,9 +1,16 @@
-AliasMode
-Copyright 2026 Xreacher
+IDFRI
+Copyright 2026 IDFRI contributors
 
-This product includes software developed by third parties. Their copyright and license terms remain applicable.
+This product is derived from AliasMode, Copyright 2026 Xreacher.
+The Apache License 2.0 and all applicable upstream notices remain in force.
 
-CloakBrowser is a third-party browser engine and binary. It is not licensed under AliasMode's Apache-2.0 license and keeps its own applicable license terms. AliasMode downloads, verifies, and installs it at no extra cost; users do not need a separate CloakBrowser purchase, subscription, or account.
+This product includes software developed by third parties. Their copyright and
+license terms remain applicable.
+
+AliasMode Firefox is based on Mozilla Firefox and Camoufox and remains subject
+to the Mozilla Public License 2.0 and its applicable third-party notices. IDFRI
+packages do not redistribute the upstream bundled Windows or macOS fonts; the
+browser uses fonts already installed on the operating system.
 
 The dashboard bundles the Inter typeface (web/fonts/inter-latin.woff2 and
 web/fonts/inter-latin-ext.woff2), Copyright (c) 2016 The Inter Project Authors,

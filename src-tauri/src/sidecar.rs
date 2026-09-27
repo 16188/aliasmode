@@ -23,7 +23,7 @@ use tauri_plugin_shell::{
 use tokio::{sync::watch, time::timeout};
 use zeroize::Zeroize;
 
-const PROTOCOL: &str = "aliasmode-desktop-v1";
+const PROTOCOL: &str = "idfri-desktop-v1";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(180);
 const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(8 * 60);
@@ -109,7 +109,7 @@ impl SidecarSupervisor {
             .map_err(|_| "sidecar handle lock failed".to_owned())?;
         child
             .as_mut()
-            .ok_or_else(|| "AliasMode sidecar is not running".to_owned())?
+            .ok_or_else(|| "IDFRI sidecar is not running".to_owned())?
             .write(format!("{value}\n").as_bytes())
             .map_err(|_| "could not write to the owned sidecar".to_owned())
     }
@@ -130,7 +130,7 @@ impl SidecarSupervisor {
             .map_err(|_| "sidecar handle lock failed".to_owned())?;
         child
             .as_mut()
-            .ok_or_else(|| "AliasMode sidecar is not running".to_owned())?
+            .ok_or_else(|| "IDFRI sidecar is not running".to_owned())?
             .write(format!("{command}\n").as_bytes())
             .map_err(|_| "could not request graceful sidecar shutdown".to_owned())
     }
@@ -282,13 +282,16 @@ async fn wait_for_health(port: u16, nonce: &str, root: &Path) -> Result<(), Stri
 fn scrubbed_sidecar_command(app: &AppHandle) -> Result<Command, String> {
     Ok(app
         .shell()
-        .sidecar("aliasmode-sidecar")
+        .sidecar("idfri-sidecar")
         .map_err(|error| error.to_string())?
         .env("CLOAKBROWSER_DOWNLOAD_URL", "")
+        .env("IDFRI_CHROMIUM_BINARY_PATH", "")
+        .env("IDFRI_CHROMIUM_BINARY_SHA256", "")
         .env("ALIASMODE_ACCESS_TOKEN", "")
         .env("ALIASMODE_REFRESH_TOKEN", "")
         .env("ALIASMODE_DEVICE_CREDENTIAL", "")
         .env("ALIASMODE_QUEUE_ENCRYPTION_KEY", "")
+        .env("IDFRI_PROFILE_KEY", "")
         .env("HUB_URL", "")
         .env("HUB_PASSWORD", ""))
 }
@@ -368,16 +371,16 @@ fn present_unexpected_exit(app: &AppHandle, code: Option<i32>) {
         if let Ok(url) = fallback.parse() {
             let _ = window.navigate(url);
         }
-        let _ = window.set_title("AliasMode service stopped");
+        let _ = window.set_title("IDFRI 本地服务已停止");
     }
     let detail = code
         .map(|value| format!(" (exit code {value})"))
         .unwrap_or_default();
     app.dialog()
         .message(format!(
-            "AliasMode's local service stopped unexpectedly{detail}. Restart AliasMode before opening another browser. Browser cleanup could not be confirmed."
+            "IDFRI 本地服务意外停止{detail}。请重启 IDFRI 后再打开浏览器；当前无法确认浏览器进程已清理。"
         ))
-        .title("AliasMode service stopped")
+        .title("IDFRI 本地服务已停止")
         .kind(MessageDialogKind::Error)
         .buttons(MessageDialogButtons::Ok)
         .show(|_| {});
@@ -397,20 +400,24 @@ pub async fn launch_and_verify(
     agent_nonce: &str,
     background: bool,
 ) -> Result<(SidecarSupervisor, u16), String> {
+    let mut profile_encryption_key = credentials::load_or_create_profile_encryption_key()?;
     let command = scrubbed_sidecar_command(app)?
         .args(command_args(data_dir))
         .current_dir(data_dir)
         .env("ALIASMODE_DESKTOP_NONCE", nonce)
         .env("ALIASMODE_AGENT_NONCE", agent_nonce)
+        .env("IDFRI_PROFILE_KEY", &profile_encryption_key)
         .env("ALIASMODE_BACKGROUND", if background { "1" } else { "0" })
         .env("ALIASMODE_DESKTOP_VERSION", VERSION)
         .env("ALIASMODE_PLAYWRIGHT_RUNTIME", playwright_runtime)
-        .env("CLOAKBROWSER_BINARY_PATH", &browser.executable)
-        .env("CLOAKBROWSER_BINARY_SHA256", &browser.sha256)
+        .env("IDFRI_CHROMIUM_BINARY_PATH", &browser.executable)
+        .env("IDFRI_CHROMIUM_BINARY_SHA256", &browser.sha256)
         .env("ALIASMODE_FIREFOX_BINARY_PATH", &firefox.executable)
         .env("ALIASMODE_FIREFOX_BINARY_SHA256", &firefox.sha256);
 
-    let (mut events, child) = command.spawn().map_err(|error| error.to_string())?;
+    let spawned = command.spawn();
+    profile_encryption_key.zeroize();
+    let (mut events, child) = spawned.map_err(|error| error.to_string())?;
     let pid = child.pid();
     let ready = match timeout(STARTUP_TIMEOUT, async {
         loop {
@@ -421,7 +428,7 @@ pub async fn launch_and_verify(
                     }
                 }
                 Some(CommandEvent::Stderr(_)) => {
-                    eprintln!("AliasMode sidecar startup emitted stderr");
+                    eprintln!("IDFRI sidecar startup emitted stderr");
                 }
                 Some(CommandEvent::Error(_)) => {
                     return Err("sidecar output channel failed during startup".to_owned())
@@ -489,7 +496,7 @@ pub async fn launch_and_verify(
                             "ok": ok,
                         });
                         if control.write_control(&response).is_err() {
-                            eprintln!("AliasMode credential acknowledgement failed");
+                            eprintln!("IDFRI credential acknowledgement failed");
                         }
                         continue;
                     }
@@ -504,7 +511,7 @@ pub async fn launch_and_verify(
                             "ok": ok,
                         });
                         if control.write_control(&response).is_err() {
-                            eprintln!("AliasMode credential acknowledgement failed");
+                            eprintln!("IDFRI credential acknowledgement failed");
                         }
                         continue;
                     }
@@ -524,7 +531,7 @@ pub async fn launch_and_verify(
                     line.zeroize();
                 }
                 CommandEvent::Stderr(_) => {
-                    eprintln!("AliasMode sidecar emitted stderr");
+                    eprintln!("IDFRI sidecar emitted stderr");
                 }
                 CommandEvent::Error(_) => {
                     status.send_replace(ChildStatus::ShutdownFailed);
@@ -539,7 +546,7 @@ pub async fn launch_and_verify(
                     }
                     if should_present_unexpected_exit(shutting_down.load(Ordering::Acquire)) {
                         eprintln!(
-                            "AliasMode sidecar exited unexpectedly (code {:?})",
+                            "IDFRI sidecar exited unexpectedly (code {:?})",
                             exit.code
                         );
                         present_unexpected_exit(&app, exit.code);
@@ -637,12 +644,12 @@ mod tests {
         let record = HealthRecord {
             ok: true,
             version: VERSION.to_owned(),
-            root: "C:\\AliasMode".to_owned(),
+            root: "C:\\IDFRI".to_owned(),
             instance: NONCE.to_owned(),
         };
-        assert!(verify_health_record(&record, NONCE, Path::new("C:\\AliasMode")).is_ok());
+        assert!(verify_health_record(&record, NONCE, Path::new("C:\\IDFRI")).is_ok());
         assert!(
-            verify_health_record(&record, &"cd".repeat(32), Path::new("C:\\AliasMode")).is_err()
+            verify_health_record(&record, &"cd".repeat(32), Path::new("C:\\IDFRI")).is_err()
         );
         assert!(verify_health_record(&record, NONCE, Path::new("C:\\Other")).is_err());
     }
@@ -651,14 +658,14 @@ mod tests {
     fn import_sidecar_receives_only_migration_arguments() {
         assert_eq!(
             import_command_args(
-                Path::new(r"C:\Users\Alias\AppData\Roaming\com.aliasmode.desktop"),
+                Path::new(r"C:\Users\Alias\AppData\Roaming\com.idfri.desktop"),
                 Some(Path::new(r"C:\Cloakpit")),
                 Some(Path::new(r"D:\Legacy\profiles")),
             ),
             [
                 "__import-cloakpit",
                 "--state-root",
-                r"C:\Users\Alias\AppData\Roaming\com.aliasmode.desktop",
+                r"C:\Users\Alias\AppData\Roaming\com.idfri.desktop",
                 "--source",
                 r"C:\Cloakpit",
                 "--cloakpit-profile-root",

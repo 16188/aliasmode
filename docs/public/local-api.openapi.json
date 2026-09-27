@@ -1,28 +1,32 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "AliasMode Local API",
+    "title": "IDFRI Local API",
     "version": "0.1.0-beta.50",
-    "summary": "AliasMode Local API: an AdsPower-compatible loopback HTTP API served by a running AliasMode.",
-    "description": "AliasMode serves this API on the loopback interface only (http://127.0.0.1:50400). It has no authentication by design: any process on the same machine can call it. Never expose the listener beyond loopback with a reverse proxy, port forward, or tunnel. A CDP WebSocket URL returned by `browserStart` or `browserActive` grants full control of that browser and its logged-in sessions; treat it like a credential.\n\nThe API is a compatibility subset of the AdsPower local API, so an AdsPower REST client migrates by changing its base URL. Only the 13 operations in this document exist. Do not assume that any other AdsPower route is available. Two routes are AliasMode extensions: `browserCookies` and the `fp_verdict`/`fp_captured_at` fields of `userList`.\n\nEvery response uses HTTP status 200 and the JSON envelope `{ code, msg, data }`. `code` is `0` with `msg` `\"success\"` on success and `-1` with a reason in `msg` on failure, including unknown routes. Inspect `code`, not the HTTP status. The browser-control routes ignore the HTTP method; the group and user routes require the documented method and fall through to `unknown route` otherwise.\n\nEach operation carries `x-aliasmode-version-introduced`: the oldest AliasMode release these public contracts cover in which the route exists. All 13 routes exist in 0.1.0-beta.42 and in the current source; they may also exist in earlier builds.\n\nIn AliasMode Cloud mode the same routes are served, with `browserStart`, `browserStop`, and `browserActive` routed through the cloud coordinator and the group and user routes reading the shared workspace roster. The wire shapes do not change.",
+    "summary": "IDFRI Local API：由正在运行的 IDFRI 提供、兼容 AdsPower 的本地 HTTP API。",
+    "description": "IDFRI 只在回环接口（http://127.0.0.1:50400）提供此 API。每次启动都会生成随机 256 位 Token；所有请求必须携带 `Authorization: Bearer <token>`，并通过严格的 Host 与 Origin 校验。认证失败返回 HTTP 401，来源校验失败返回 HTTP 403。不要通过反向代理、端口转发或隧道暴露此监听器。`browserStart` 或 `browserActive` 返回的 CDP WebSocket URL 可以完全控制浏览器及登录会话，应按凭据保护。\n\n该 API 是 AdsPower Local API 的兼容子集，已有客户端只需更改基础 URL。本文档只定义 13 个操作，不应假设其他 AdsPower 路由存在。`browserCookies` 以及 `userList` 的 `fp_verdict`/`fp_captured_at` 字段是 IDFRI 扩展。\n\n通过认证后，兼容路由使用 HTTP 200 和 `{ code, msg, data }` JSON 包装；成功时 `code` 为 `0`、`msg` 为 `\"success\"`，业务失败时 `code` 为 `-1`。浏览器控制路由忽略 HTTP 方法；分组与用户路由要求文档指定的方法。\n\n每个操作保留 `x-aliasmode-version-introduced` 兼容字段，表示该兼容契约最早覆盖的上游版本。IDFRI 本地版不提供 Cloud 路由或 Cloud 协调器。",
     "license": {
       "name": "Apache-2.0",
       "identifier": "Apache-2.0"
     },
     "contact": {
-      "name": "AliasMode support",
-      "url": "https://aliasmode.com/docs/local-api/",
-      "email": "support@aliasmode.com"
+      "name": "IDFRI 项目",
+      "url": "https://github.com/16188/aliasmode"
     }
   },
   "externalDocs": {
     "description": "Local API guide",
-    "url": "https://aliasmode.com/docs/local-api/"
+    "url": "https://github.com/16188/aliasmode"
   },
   "servers": [
     {
       "url": "http://127.0.0.1:50400",
-      "description": "AliasMode loopback listener. Loopback only; unauthenticated; never expose beyond the local machine."
+      "description": "IDFRI 回环监听器。仅限本机，必须使用每次启动生成的 Bearer Token。"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
     }
   ],
   "tags": [
@@ -36,11 +40,11 @@
     },
     {
       "name": "group",
-      "description": "Profile groups. AliasMode has no group ids, so the id equals the name."
+      "description": "资料分组。IDFRI 不使用独立分组 ID，因此 ID 等于名称。"
     },
     {
       "name": "user",
-      "description": "Profile management in AdsPower's `user` vocabulary. A `user_id` is an AliasMode profile id."
+      "description": "使用 AdsPower `user` 词汇管理资料；`user_id` 即 IDFRI 资料 ID。"
     }
   ],
   "paths": {
@@ -51,7 +55,7 @@
           "status"
         ],
         "summary": "Health check (AdsPower path)",
-        "description": "`/status` is the path AdsPower's own local API serves. Returns `code: 0` while AliasMode is running. When lifecycle admission control is configured, `data.admission` reports its counters.",
+        "description": "`/status` 是 AdsPower Local API 的兼容路径。IDFRI 运行时返回 `code: 0`；启用生命周期并发控制时，`data.admission` 包含计数器。",
         "x-aliasmode-version-introduced": "0.1.0-beta.42",
         "responses": {
           "200": {
@@ -135,7 +139,7 @@
           "browser"
         ],
         "summary": "Start a profile's browser",
-        "description": "Launches the CloakBrowser process for the profile, or returns the running one. `data.ws.puppeteer` is the CDP WebSocket URL for automation clients. It grants full control of the browser; do not log or share it. Fails with `no such profile: <id>` for an unknown profile and with the launcher error otherwise.",
+        "description": "启动资料的 IDFRI Chromium（实验兼容内核），或返回已运行实例。`data.ws.puppeteer` 是自动化客户端使用的 CDP WebSocket URL，可完全控制浏览器，请勿记录或分享。未知资料返回 `no such profile: <id>`。",
         "x-aliasmode-version-introduced": "0.1.0-beta.42",
         "parameters": [
           {
@@ -363,8 +367,8 @@
         "tags": [
           "browser"
         ],
-        "summary": "Read cookies from a running browser (AliasMode extension)",
-        "description": "AliasMode extension to the AdsPower API. Reads cookies through Playwright's `context.cookies()` for the given URLs. The profile's browser must be safely running; otherwise the call fails with `profile not safely running: <id>` or `profile not running: <id>`. Cookie values are session credentials; handle the response accordingly.",
+        "summary": "Read cookies from a running browser (IDFRI extension)",
+        "description": "IDFRI 对 AdsPower API 的扩展。通过 Playwright `context.cookies()` 读取给定 URL 的 Cookie。资料浏览器必须安全运行；Cookie 值属于会话凭据，必须妥善保护。",
         "x-aliasmode-version-introduced": "0.1.0-beta.42",
         "parameters": [
           {
@@ -825,12 +829,20 @@
     }
   },
   "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "IDFRI random 256-bit token",
+        "description": "使用 IDFRI 本次启动生成的 Local API Token。"
+      }
+    },
     "parameters": {
       "UserId": {
         "name": "user_id",
         "in": "query",
         "required": true,
-        "description": "AliasMode profile id (AdsPower `user_id`). Missing values fail with `missing user_id`.",
+        "description": "IDFRI 资料 ID（AdsPower `user_id`）。缺失时返回 `missing user_id`。",
         "schema": {
           "type": "string",
           "minLength": 1
@@ -1072,7 +1084,7 @@
           },
           "warning": {
             "type": "string",
-            "description": "Present in AliasMode Cloud mode when the launch succeeded but another writer holds the profile lease, so this session will not be checkpointed."
+            "description": "上游 Cloud 兼容保留字段；IDFRI 本地版不会返回此字段。"
           }
         },
         "additionalProperties": false

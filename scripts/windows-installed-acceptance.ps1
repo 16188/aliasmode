@@ -31,7 +31,7 @@ function Resolve-InputFile([string]$Path, [string]$Description) {
 
 function Set-AcceptanceStage([string]$NextStage) {
   $script:stage = $NextStage
-  Write-Host "AliasMode installed $Shard acceptance stage: $NextStage"
+  Write-Host "IDFRI installed $Shard acceptance stage: $NextStage"
 }
 
 function Test-ProcessExited([Diagnostics.Process]$Process) {
@@ -80,7 +80,7 @@ function Install-AcceptanceArtifact(
   $installerName = Split-Path $ResolvedInstallerPath -Leaf
   $nameMatch = [Text.RegularExpressions.Regex]::Match(
     $installerName,
-    '^AliasMode_(?<version>[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?)_x64(?:-offline)?-setup\.exe$'
+    '^IDFRI_(?<version>[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?)_x64(?:-offline)?-setup\.exe$'
   )
   if (-not $nameMatch.Success) { throw "installer name is invalid" }
   $version = $nameMatch.Groups["version"].Value
@@ -124,11 +124,11 @@ function Install-AcceptanceArtifact(
   }
   if ($install.ExitCode -ne 0) { throw "silent NSIS install exited with code $($install.ExitCode)" }
 
-  $appPath = Join-Path $Destination "AliasMode.exe"
+  $appPath = Join-Path $Destination "IDFRI.exe"
   if (-not (Test-Path -LiteralPath $appPath -PathType Leaf)) {
-    throw "installed AliasMode executable is missing"
+    throw "installed IDFRI executable is missing"
   }
-  $sidecars = @(Get-ChildItem $Destination -Recurse -File -Filter "aliasmode-sidecar*.exe")
+  $sidecars = @(Get-ChildItem $Destination -Recurse -File -Filter "idfri-sidecar*.exe")
   if ($sidecars.Count -ne 1) { throw "expected exactly one installed sidecar, found $($sidecars.Count)" }
 
   return [pscustomobject]@{
@@ -141,13 +141,13 @@ function Install-AcceptanceArtifact(
 
 function Set-BrowserRuntimeEnvironment($Installation, [string]$InstallRoot) {
   $runtime = Join-Path $InstallRoot "playwright"
-  $browser = Join-Path $InstallRoot "cloakbrowser\chrome.exe"
+  $browser = Join-Path $InstallRoot "chromium\chrome.exe"
   if (-not (Test-Path -LiteralPath $browser -PathType Leaf)) {
-    throw "installed CloakBrowser executable is missing"
+    throw "installed Chromium executable is missing"
   }
   [Environment]::SetEnvironmentVariable("ALIASMODE_PLAYWRIGHT_RUNTIME", $runtime, "Process")
-  [Environment]::SetEnvironmentVariable("CLOAKBROWSER_BINARY_PATH", $browser, "Process")
-  [Environment]::SetEnvironmentVariable("CLOAKBROWSER_BINARY_SHA256", $Installation.BrowserMetadata.sha256, "Process")
+  [Environment]::SetEnvironmentVariable("IDFRI_CHROMIUM_BINARY_PATH", $browser, "Process")
+  [Environment]::SetEnvironmentVariable("IDFRI_CHROMIUM_BINARY_SHA256", $Installation.BrowserMetadata.sha256, "Process")
   [Environment]::SetEnvironmentVariable("ALIASMODE_SESSION_LAUNCH", "0", "Process")
   return [pscustomobject]@{ PlaywrightRuntime = $runtime; BrowserPath = $browser }
 }
@@ -530,14 +530,14 @@ if (-not $IsWindows) { throw "Windows installed acceptance requires Windows" }
 
 $DiagnosticsPath = [IO.Path]::GetFullPath($DiagnosticsPath)
 $runId = [Guid]::NewGuid().ToString("N")
-$runRoot = Join-Path $env:RUNNER_TEMP "aliasmode-installed-$Shard-$runId"
-$installRoot = Join-Path $runRoot "aliasmode installed"
-$appDataRoot = Join-Path $env:APPDATA "com.aliasmode.desktop"
+$runRoot = Join-Path $env:RUNNER_TEMP "idfri-installed-$Shard-$runId"
+$installRoot = Join-Path $runRoot "idfri installed"
+$appDataRoot = Join-Path $env:APPDATA "com.idfri.desktop"
 $repoRoot = Split-Path $PSScriptRoot -Parent
 $workspaceRoot = if ([string]::IsNullOrWhiteSpace($env:GITHUB_WORKSPACE)) { $repoRoot } else { $env:GITHUB_WORKSPACE }
 $registrationKeys = @(
-  "Registry::HKEY_CURRENT_USER\Software\aliasmode\AliasMode",
-  "Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Uninstall\AliasMode"
+  "Registry::HKEY_CURRENT_USER\Software\IDFRI\IDFRI",
+  "Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Uninstall\IDFRI"
 )
 $liveProxyEnvironmentNames = @(
   "ALIASMODE_LIVE_PROXY_HOST",
@@ -549,8 +549,8 @@ $liveProxyEnvironmentNames = @(
 $changedEnvironmentNames = @(
   $liveProxyEnvironmentNames
   "ALIASMODE_PLAYWRIGHT_RUNTIME"
-  "CLOAKBROWSER_BINARY_PATH"
-  "CLOAKBROWSER_BINARY_SHA256"
+  "IDFRI_CHROMIUM_BINARY_PATH"
+  "IDFRI_CHROMIUM_BINARY_SHA256"
   "ALIASMODE_FIREFOX_BINARY_PATH"
   "ALIASMODE_FIREFOX_BINARY_SHA256"
   "ALIASMODE_SESSION_LAUNCH"
@@ -616,14 +616,14 @@ try {
   $resolvedMetadata = Resolve-InputFile $BrowserMetadataPath "browser metadata"
   New-Item -ItemType Directory -Force $runRoot | Out-Null
   if (Test-Path -LiteralPath $appDataRoot) {
-    throw "runner has pre-existing AliasMode app-data state"
+    throw "runner has pre-existing IDFRI app-data state"
   }
-  if (@(Get-Process -Name "AliasMode" -ErrorAction SilentlyContinue).Count -ne 0) {
-    throw "runner has a pre-existing AliasMode process"
+  if (@(Get-Process -Name "IDFRI" -ErrorAction SilentlyContinue).Count -ne 0) {
+    throw "runner has a pre-existing IDFRI process"
   }
   foreach ($key in $registrationKeys) {
     if (Test-Path -LiteralPath $key) {
-      throw "runner has pre-existing AliasMode registration"
+      throw "runner has pre-existing IDFRI registration"
     }
   }
   $acceptanceStateOwned = $true
@@ -651,7 +651,7 @@ try {
     $bundleVersion = $installation.Version
     $appPath = $installation.AppPath
     $sidecarPath = $installation.SidecarPath
-    $helper = Join-Path $installRoot "aliasmode-mcp.exe"
+    $helper = Join-Path $installRoot "idfri-mcp.exe"
     $playwrightRuntime = Join-Path $installRoot "playwright"
   }
 
@@ -809,7 +809,7 @@ public static class AliasModeWindow {
         $descriptor = Read-ValidRuntimeDescriptor $descriptorPath $bundleVersion
         $backgroundProcess = Get-CimInstance Win32_Process -Filter "ProcessId = $($descriptor.desktopPid)"
         if (-not $backgroundProcess -or $backgroundProcess.CommandLine -notmatch '(?:^|\s)--background(?:\s|$)') {
-          throw "MCP host did not launch AliasMode in background mode"
+          throw "MCP host did not launch IDFRI in background mode"
         }
         $backgroundVisible = $false
         for ($attempt = 0; $attempt -lt 20; $attempt++) {
@@ -820,7 +820,7 @@ public static class AliasModeWindow {
           }
           Start-Sleep -Milliseconds 100
         }
-        if ($backgroundVisible) { throw "background AliasMode exposed its main window" }
+        if ($backgroundVisible) { throw "background IDFRI exposed its main window" }
 
         $preexistingProfileId = New-OpenPersistentProfile $helper "ci-preexisting"
         Select-McpBrowser $mcp $preexistingProfileId 3
@@ -952,7 +952,7 @@ public static class AliasModeWindow {
       $profileId = $profile.result.id
       $runtimeDescriptor = Read-ValidRuntimeDescriptor $descriptorPath $bundleVersion
       $nativeNetworkObservationConfigPath = Join-Path $runRoot "native-network-observation.json"
-      $chromiumBinaryPath = Join-Path $installRoot "cloakbrowser\chrome.exe"
+      $chromiumBinaryPath = Join-Path $installRoot "chromium\chrome.exe"
       Set-NativeNetworkObservationPhase $nativeNetworkObservationConfigPath "chromium-lifecycle" @(
         @{ pid = [int]$runtimeDescriptor.desktopPid; kind = "app" },
         @{ pid = [int]$runtimeDescriptor.sidecarPid; kind = "sidecar" }
@@ -962,7 +962,7 @@ public static class AliasModeWindow {
       $nativeNetworkObservationJob = Start-NativeNetworkObservation $nativeNetworkObservationConfigPath
       $opened = & $helper browser open --profile $profileId --headless | ConvertFrom-Json
       if ($LASTEXITCODE -ne 0 -or -not $opened.ok -or -not $opened.result.headless -or $opened.result.alreadyOpen) {
-        $sidecarLog = Get-ChildItem (Join-Path $appDataRoot "logs\aliasmode-*.log") -File -ErrorAction SilentlyContinue |
+        $sidecarLog = Get-ChildItem (Join-Path $appDataRoot "logs\idfri-*.log") -File -ErrorAction SilentlyContinue |
           Sort-Object LastWriteTime -Descending |
           Select-Object -First 1
         if ($sidecarLog) {
@@ -1165,19 +1165,19 @@ async def run(*, log, **_):
       $reveal = Start-Process -PassThru $appPath
       if (-not $reveal.WaitForExit(15000)) {
         Stop-Process -Id $reveal.Id -Force
-        throw "second normal AliasMode launch did not return to the background instance"
+        throw "second normal IDFRI launch did not return to the background instance"
       }
       if ($reveal.ExitCode -ne 0) {
-        throw "second normal AliasMode launch exited with code $($reveal.ExitCode)"
+        throw "second normal IDFRI launch exited with code $($reveal.ExitCode)"
       }
       $sidecarPid = $null
       $shutdownFailure = $null
       try {
         for ($attempt = 0; $attempt -lt 60; $attempt++) {
           $app.Refresh()
-          if ($app.HasExited) { throw "installed AliasMode exited before desktop readiness" }
+          if ($app.HasExited) { throw "installed IDFRI exited before desktop readiness" }
           $sidecar = Get-CimInstance Win32_Process -Filter "ParentProcessId = $($app.Id)" |
-            Where-Object { $_.Name -like "aliasmode-sidecar*.exe" } |
+            Where-Object { $_.Name -like "idfri-sidecar*.exe" } |
             Select-Object -First 1
           if ($sidecar) { $sidecarPid = [int]$sidecar.ProcessId }
           $mainWindow = [AliasModeWindow]::FindAppWindow([uint32]$descriptor.desktopPid, $true)
@@ -1344,7 +1344,7 @@ try {
       $workerStart.RedirectStandardOutput = $true
       $workerStart.RedirectStandardError = $true
       foreach ($name in @($workerStart.Environment.Keys)) {
-        if ($name -match '^(ALIASMODE_|CLOAKBROWSER_)' -or $name -match '^(NODE_OPTIONS|NODE_PATH|HUB_PASSWORD)$') {
+        if ($name -match '^(ALIASMODE_|IDFRI_|CLOAKBROWSER_)' -or $name -match '^(NODE_OPTIONS|NODE_PATH|HUB_PASSWORD)$') {
           $workerStart.Environment.Remove($name)
         }
       }
@@ -1382,7 +1382,7 @@ try {
       }
       $actualBrowserHash = (Get-FileHash -LiteralPath $browserRuntime.BrowserPath -Algorithm SHA256).Hash.ToLowerInvariant()
       if ($actualBrowserHash -ne $installation.BrowserMetadata.sha256) {
-        throw "installed CloakBrowser SHA-256 does not match browser metadata"
+        throw "installed Chromium SHA-256 does not match browser metadata"
       }
       $checks.browserMetadataHash = $true
 
@@ -1394,7 +1394,7 @@ try {
       try {
         & $installation.SidecarPath __cloud-launcher-smoke --windows-window-acceptance --state-root $windowAcceptanceRoot
         if ($LASTEXITCODE -ne 0) {
-          throw "installed native CloakBrowser window acceptance exited with code $LASTEXITCODE"
+          throw "installed native Chromium window acceptance exited with code $LASTEXITCODE"
         }
       } catch {
         $windowAcceptanceFailure = $_
@@ -1426,7 +1426,7 @@ try {
           $windowProcesses = @(Get-CimInstance Win32_Process -ErrorAction Stop |
             Where-Object { $_.CommandLine -and $_.CommandLine.Contains($windowAcceptanceRoot) })
           if ($windowProcesses.Count -ne 0 -and -not $windowCleanupFailure) {
-            $windowCleanupFailure = "native CloakBrowser acceptance processes survived cleanup"
+            $windowCleanupFailure = "native Chromium acceptance processes survived cleanup"
           }
         } catch {
           if (-not $windowCleanupFailure) { $windowCleanupFailure = $_ }
@@ -1437,7 +1437,7 @@ try {
           Start-Sleep -Milliseconds 250
         }
         if ((Test-Path -LiteralPath $windowAcceptanceRoot) -and -not $windowCleanupFailure) {
-          $windowCleanupFailure = "native CloakBrowser acceptance state survived cleanup"
+          $windowCleanupFailure = "native Chromium acceptance state survived cleanup"
         }
       }
       if ($windowAcceptanceFailure -and $windowCleanupFailure) {
@@ -1643,7 +1643,7 @@ public static class AliasModeAcceptanceCredentials {
           if ($process.HasExited) { throw "installed Cloud acceptance app exited before readiness" }
           if ($sidecarPid -le 0) {
             $sidecar = Get-CimInstance Win32_Process -Filter "ParentProcessId = $($process.Id)" -ErrorAction SilentlyContinue |
-              Where-Object { $_.Name -like "aliasmode-sidecar*.exe" } |
+              Where-Object { $_.Name -like "idfri-sidecar*.exe" } |
               Select-Object -First 1
             if ($sidecar) { $sidecarPid = [int]$sidecar.ProcessId }
           }
@@ -2148,4 +2148,4 @@ if ($cleanupFailures.Count -gt 0) {
   throw "Windows installed acceptance cleanup failed in $($cleanupFailures.Count) area(s)"
 }
 
-Write-Host "Windows installed $Shard acceptance passed for AliasMode $recordedVersion"
+Write-Host "Windows installed $Shard acceptance passed for IDFRI $recordedVersion"

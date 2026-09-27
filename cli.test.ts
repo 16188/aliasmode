@@ -14,7 +14,6 @@ import {
   OFFICIAL_CLOUD_URL,
   parseCloudRestoreFixtureOptions,
   RemoteShutdownTimeoutError,
-  runCloudCrossDeviceAcceptance,
   runCompiledSidecarSmoke,
   runCloakpitImportCommand,
   selectedCloudUrl,
@@ -138,13 +137,13 @@ test("source start loads a managed runtime from its custom state root before ver
   const applied: NodeJS.ProcessEnv = { PATH: "" };
   applySourceRuntime(root, applied);
   expect(applied.PATH).toStartWith(dirname(runtime.node));
-  expect(applied.CLOAKBROWSER_BINARY_SHA256).toBe(runtime.chromium.sha256);
+  expect(applied.IDFRI_CHROMIUM_BINARY_SHA256).toBe(runtime.chromium.sha256);
   expect(applied.ALIASMODE_FIREFOX_BINARY_SHA256).toBe(runtime.firefox.sha256);
 
   const port = await freeLoopbackPort();
   const env: NodeJS.ProcessEnv = { ...process.env, PATH: "", ALIASMODE_PLAYWRIGHT_RUNTIME: "" };
-  delete env.CLOAKBROWSER_BINARY_PATH;
-  delete env.CLOAKBROWSER_BINARY_SHA256;
+  delete env.IDFRI_CHROMIUM_BINARY_PATH;
+  delete env.IDFRI_CHROMIUM_BINARY_SHA256;
   delete env.ALIASMODE_FIREFOX_BINARY_PATH;
   delete env.ALIASMODE_FIREFOX_BINARY_SHA256;
   const child = Bun.spawn([
@@ -173,11 +172,11 @@ test("source start loads a managed runtime from its custom state root before ver
     logs = await output;
     await removeTemporaryRoot(cwd);
   }
-  expect(logs).toContain("unconfigured mode:");
+  expect(logs).toContain("local mode:");
 });
 
 for (const mode of ["unconfigured", "local", "cloud"] as const) {
-  test(`source start reports ${mode} recovery and serves the loopback dashboard`, async () => {
+  test(`source start migrates ${mode} configuration to Local and serves the loopback dashboard`, async () => {
     const stateRoot = mkdtempSync(join(tmpdir(), "aliasmode-cli-source-start-"));
     if (mode !== "unconfigured") {
       new AppConfigStore(statePaths(stateRoot).config).setMode(mode, mode === "cloud" ? "http://127.0.0.1:1" : undefined);
@@ -200,8 +199,8 @@ for (const mode of ["unconfigured", "local", "cloud"] as const) {
         ALIASMODE_CLOUD_URL: "http://127.0.0.1:1",
         ALIASMODE_SUPABASE_URL: "http://127.0.0.1:1",
         ALIASMODE_SUPABASE_ANON_KEY: "source-start-fixture",
-        CLOAKBROWSER_BINARY_PATH: process.execPath,
-        CLOAKBROWSER_BINARY_SHA256: "0".repeat(64),
+        IDFRI_CHROMIUM_BINARY_PATH: process.execPath,
+        IDFRI_CHROMIUM_BINARY_SHA256: "0".repeat(64),
       },
     });
     const output = new Response(child.stdout).text();
@@ -222,13 +221,13 @@ for (const mode of ["unconfigured", "local", "cloud"] as const) {
       await removeTemporaryRoot(stateRoot);
     }
     const logs = await output;
-    expect(logs).toContain(`${mode} mode:`);
+    expect(logs).toContain("local mode:");
     expect(logs).not.toContain("NOT connected to a hub");
     const phases = ["initializing autofill bridge", "checking 0 saved browser process(es)", "browser recovery checks complete"];
     const positions = phases.map((phase) => logs.indexOf(`startup: ${phase}`));
     expect(positions.every((position) => position >= 0)).toBe(true);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
-    expect(logs.includes("startup: verifying surviving local browsers")).toBe(mode !== "cloud");
+    expect(logs).toContain("startup: verifying surviving local browsers");
   });
 }
 
@@ -492,7 +491,7 @@ test("Windows window acceptance rejects a missing initial page before native pol
       return { createdPageTargetIds: [], nativeWindowStayedMinimized: true };
     },
     async bringToFront() {},
-  })).rejects.toThrow("managed CloakBrowser did not expose initial page targets");
+  })).rejects.toThrow("managed Chromium did not expose initial page targets");
   expect(events).toEqual([
     "open:first",
     "open:second",
@@ -754,39 +753,6 @@ test("Cloud cross-device fixture requires exact device credential pairs and retu
     activeDevice: "a",
     counters: { open: { a: 1, b: 1 }, profileOpen: 1 },
   });
-});
-
-test("Cloud cross-device acceptance preserves conflicts and blocks ambiguous local reopen", async () => {
-  const root = mkdtempSync(join(tmpdir(), "aliasmode-cross-device-acceptance-"));
-  const server = Bun.serve({
-    hostname: "127.0.0.1",
-    port: 0,
-    fetch: createCloudRestoreFixtureHandler("cross-device"),
-  });
-  try {
-    const state = await runCloudCrossDeviceAcceptance(
-      statePaths(root),
-      `http://127.0.0.1:${server.port}`,
-    );
-    expect(state).toEqual({
-      ok: true,
-      version: 42,
-      activeDevice: null,
-      counters: {
-        open: { a: 3, b: 3 },
-        close: { a: 4, b: 2 },
-        heartbeat: { a: 0, b: 0 },
-        abandon: { a: 0, b: 0 },
-        acceptedCloses: 4,
-        conflicts: 1,
-        profileOpen: 1,
-        droppedResponses: 2,
-      },
-    });
-  } finally {
-    await server.stop(true);
-    await removeTemporaryRoot(root);
-  }
 });
 
 test("Cloud restore fixture accepts only its exact refresh and device credentials", async () => {

@@ -4,13 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   browserEnvText,
-  cloakBrowserVersionForPlatform,
-  CLOAKBROWSER_MACOS_VERSION,
-  CLOAKBROWSER_VERSION,
-  CLOAKBROWSER_WINDOWS_X64_ARCHIVE_SHA256,
-  CLOAKBROWSER_WINDOWS_X64_EXECUTABLE_SHA256,
-  CLOAKBROWSER_WRAPPER_VERSION,
-  installCloakBrowser,
+  OPEN_CHROMIUM_REVISION,
+  OPEN_CHROMIUM_RUNTIME_VERSION,
+  OPEN_CHROMIUM_VERSION,
+  installOpenChromium,
 } from "./browser-install.ts";
 
 const dirs: string[] = [];
@@ -18,75 +15,66 @@ afterEach(() => {
   for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
-test("official CloakBrowser payload identity is pinned", () => {
-  expect(CLOAKBROWSER_WRAPPER_VERSION).toBe("0.4.11");
-  expect(CLOAKBROWSER_VERSION).toBe("146.0.7680.177.5");
-  expect(CLOAKBROWSER_MACOS_VERSION).toBe("145.0.7632.109.2");
-  expect(cloakBrowserVersionForPlatform("linux")).toBe(CLOAKBROWSER_VERSION);
-  expect(cloakBrowserVersionForPlatform("win32")).toBe(CLOAKBROWSER_VERSION);
-  expect(cloakBrowserVersionForPlatform("darwin")).toBe(CLOAKBROWSER_MACOS_VERSION);
-  expect(CLOAKBROWSER_WINDOWS_X64_ARCHIVE_SHA256).toBe(
-    "b213795cb32c3169f766c74ce1d0275fc89d3df256de39c04da7fb4c23b7fdbe",
-  );
-  expect(CLOAKBROWSER_WINDOWS_X64_EXECUTABLE_SHA256).toBe(
-    "03f53661a5c47e7b0a661bee2bce8a0d302b7a60834c328df417561fa0636d80",
-  );
+test("open Chromium runtime identity is pinned to playwright-core", () => {
+  expect(OPEN_CHROMIUM_RUNTIME_VERSION).toBe("playwright-core@1.58.2");
+  expect(OPEN_CHROMIUM_REVISION).toBe("1208");
+  expect(OPEN_CHROMIUM_VERSION).toBe("145.0.7632.6");
 });
 
 test("browserEnvText preserves unrelated config and replaces old browser pins", () => {
   const hash = "a".repeat(64);
   const next = browserEnvText(
-    "HUB_URL=https://hub.example\r\nCLOAKBROWSER_BINARY_PATH=C:\\old\\chrome.exe\r\nCLOAKBROWSER_BINARY_SHA256=bad\r\nHUB_PASSWORD=secret\r\n",
-    "C:\\Users\\admin\\.cloakbrowser\\chromium-146\\chrome.exe",
+    "HUB_URL=https://hub.example\r\nIDFRI_CHROMIUM_BINARY_PATH=C:\\old\\chrome.exe\r\nIDFRI_CHROMIUM_BINARY_SHA256=bad\r\nHUB_PASSWORD=secret\r\n",
+    "C:\\IDFRI\\runtime\\chromium-1208\\chrome.exe",
     hash.toUpperCase(),
     "\r\n",
   );
   expect(next).toContain("HUB_URL=https://hub.example\r\n");
   expect(next).toContain("HUB_PASSWORD=secret\r\n");
   expect(next).not.toContain("C:\\old");
-  expect(next).toContain("CLOAKBROWSER_BINARY_PATH=C:\\Users\\admin\\.cloakbrowser\\chromium-146\\chrome.exe\r\n");
-  expect(next).toContain(`CLOAKBROWSER_BINARY_SHA256=${hash}\r\n`);
+  expect(next).toContain("IDFRI_CHROMIUM_BINARY_PATH=C:\\IDFRI\\runtime\\chromium-1208\\chrome.exe\r\n");
+  expect(next).toContain(`IDFRI_CHROMIUM_BINARY_SHA256=${hash}\r\n`);
 });
 
-test("installCloakBrowser records the readable binary reported by the official installer", async () => {
+test("installOpenChromium records the readable binary reported by the Playwright installer", async () => {
   const dir = mkdtempSync(join(tmpdir(), "aliasmode-browser-install-"));
   dirs.push(dir);
   const binary = join(dir, "cache", "chrome.exe");
   writeFileSync(join(dir, ".env"), "HUB_PASSWORD=keep-me\n");
 
-  const result = await installCloakBrowser({
+  const result = await installOpenChromium({
     cwd: dir,
     runInstaller: async () => ({ code: 0, output: `Downloading...\n${binary}\n` }),
     exists: (path) => path === binary,
-    hashFile: async () => CLOAKBROWSER_WINDOWS_X64_EXECUTABLE_SHA256,
+    hashFile: async () => "c".repeat(64),
   });
 
-  expect(result).toEqual({ path: binary, sha256: CLOAKBROWSER_WINDOWS_X64_EXECUTABLE_SHA256 });
+  expect(result).toEqual({ path: binary, sha256: "c".repeat(64) });
   const env = readFileSync(join(dir, ".env"), "utf8");
   expect(env).toContain("HUB_PASSWORD=keep-me");
-  expect(env).toContain(`CLOAKBROWSER_BINARY_PATH=${binary}`);
-  expect(env).toContain(`CLOAKBROWSER_BINARY_SHA256=${CLOAKBROWSER_WINDOWS_X64_EXECUTABLE_SHA256}`);
+  expect(env).toContain(`IDFRI_CHROMIUM_BINARY_PATH=${binary}`);
+  expect(env).toContain(`IDFRI_CHROMIUM_BINARY_SHA256=${"c".repeat(64)}`);
 });
 
-test("installCloakBrowser writes nothing when the official installer fails", async () => {
+test("installOpenChromium writes nothing when the Playwright installer fails", async () => {
   const dir = mkdtempSync(join(tmpdir(), "aliasmode-browser-install-fail-"));
   dirs.push(dir);
   const envPath = join(dir, ".env");
   writeFileSync(envPath, "HUB_PASSWORD=unchanged\n");
-  await expect(installCloakBrowser({
+  await expect(installOpenChromium({
     cwd: dir,
     runInstaller: async () => ({ code: 9, output: "download failed" }),
   })).rejects.toThrow("exited with code 9");
   expect(readFileSync(envPath, "utf8")).toBe("HUB_PASSWORD=unchanged\n");
 });
 
-test("installCloakBrowser can return a verified binary without writing environment pins", async () => {
+test("installOpenChromium can return a verified binary without writing environment pins", async () => {
   const dir = mkdtempSync(join(tmpdir(), "aliasmode-browser-install-no-env-"));
   dirs.push(dir);
   const binary = join(dir, "cache", "chrome");
-  const sha256 = process.platform === "win32" ? CLOAKBROWSER_WINDOWS_X64_EXECUTABLE_SHA256 : "b".repeat(64);
+  const sha256 = "b".repeat(64);
 
-  await expect(installCloakBrowser({
+  await expect(installOpenChromium({
     cwd: dir,
     writeEnv: false,
     runInstaller: async () => ({ code: 0, output: `${binary}\n` }),

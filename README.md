@@ -1,158 +1,97 @@
-# AliasMode
+# IDFRI
 
-AliasMode is a free, open-source antidetect browser and local-first profile manager, with its own open-source engine, [AliasMode Firefox](https://github.com/aliasmode/aliasmode-firefox), and optional cloud synchronization for teams.
+IDFRI 是一个面向 Windows 的开源、本地优先指纹浏览器与多资料管理器，目标是提供 AdsPower、CloakBrowser 等产品的可审计替代方案。
 
-> **Status:** public Windows beta. Download the current installer from [aliasmode.com/download](https://aliasmode.com/download/).
+> 当前状态：Beta。项目只提供本地版，不需要账号，也不会连接 AliasMode Cloud。
 
-## Quick facts
+## 功能
 
-- **Is AliasMode open source?** Yes, from engine to app. This repository is the complete desktop application — dashboard, local runtime, Local API, and MCP server — under Apache-2.0. The AliasMode Firefox antidetect engine, with every fingerprint patch, is MPL-2.0 at [aliasmode/aliasmode-firefox](https://github.com/aliasmode/aliasmode-firefox). AliasMode Cloud is an optional hosted sync service.
-- **Which browser engines does it use?** Two, chosen per profile. AliasMode Firefox is our own open-source antidetect engine with C++ fingerprint spoofing (Windows x64, macOS Apple Silicon, Linux x64). Chromium profiles run in CloakBrowser, a third-party engine included at no extra cost.
-- **Is AliasMode a CloakBrowser wrapper?** No. AliasMode ships its own open-source engine, AliasMode Firefox, and supports CloakBrowser as a second engine for Chromium profiles. AliasMode adds fingerprint profiles, per-profile proxies, Scripts, Trash, bulk Proxy Tools, portable encrypted profile sync, the AliasMode Local API (AdsPower-compatible), Playwright over CDP, and MCP servers for AI agents.
-- **Does data stay local?** In Local mode, yes: no account, no AliasMode Cloud traffic, and profiles stay on the computer.
-- **What does it cost?** Nothing. Every feature is free, including both browser engines, which AliasMode downloads and verifies for you. No separate purchase, subscription, or account is required.
+- 资料、Cookie、代理、扩展、脚本和浏览器会话均保存在本机
+- Chromium 资料使用随安装包提供的开源 Playwright Chromium
+- 保留 `AliasMode Firefox` 引擎及其 Firefox 指纹能力
+- 兼容常用 AdsPower Local API 路由
+- 提供受保护的 Firefox 自动化网关和本地 MCP/Playwright 自动化
+- 支持批量导入、导出、代理检测、分组和回收站
+- Windows 安装包、更新包支持 Authenticode 与 Tauri 更新签名
 
-## Modes
+IDFRI 不包含 CloakBrowser 二进制文件，也不提供 Cloud 同步、远程 MCP 或团队账号功能。
 
-- **AliasMode Local:** no account and no AliasMode Cloud connection. Profiles stay on the computer.
-- **AliasMode Cloud:** verified accounts, shared workspaces, portable profile synchronization, and device access controls.
+## 下载与安装
 
-Browser cache, history, downloads, and temporary files remain local in both modes.
+Windows x64 安装包会发布在本仓库的 [GitHub Releases](https://github.com/16188/aliasmode/releases)。
 
-## What this repository contains
+- `IDFRI_<版本>_x64-offline-setup.exe`：完整离线安装包
+- `IDFRI_<版本>_x64-setup.exe`：应用内更新包
+- `SHA256SUMS.txt`：发布文件校验值
 
-This repository is the complete Apache-2.0 desktop application and local runtime:
+正式发布包必须同时通过 Authenticode 签名和更新签名验证。不要从非本仓库来源下载安装包。
 
-- React dashboard and Bun/TypeScript sidecar
-- Browser profile, group, proxy, and fingerprint management
-- Browser engine lifecycle for AliasMode Firefox and CloakBrowser: pinned download, hash verification, launch, and safe close
-- Scripts: JavaScript and Python Playwright scripts run across profiles, with a public Script Library
-- Trash for recoverable profile deletes, and bulk Proxy Tools
-- Local SQLite profile storage
-- Portable session capture and restore
-- AliasMode Local API (AdsPower-compatible, loopback only)
-- MCP server (`aliasmode-mcp.exe`) with the pinned Playwright MCP tool set for AI agents
-- AliasMode Cloud client for optional profile synchronization
+## 本地安全
 
-The managed AliasMode Cloud service and production infrastructure are maintained separately.
+- Local API 只监听 `127.0.0.1`。
+- 每次启动生成随机 256 位 Bearer Token，并校验 `Host` 与 `Origin`。
+- Token 会写入受限的本地运行时描述文件；源码启动时也会输出到本地日志。不要记录或分享 Token。
+- 密码、代理认证、Cookie、会话等敏感资料使用 AES-256-GCM 加密。
+- 主密钥在 Windows 上由 Credential Manager 保存，并由 DPAPI 绑定到当前 Windows 用户。
 
-## Development
+调用 Local API 时需要携带：
 
-Requirements:
+```http
+Authorization: Bearer <本次启动生成的 Token>
+```
 
-- [Bun](https://bun.sh/)
-- A supported CloakBrowser installation
-- Rust and Tauri prerequisites for desktop builds
+默认兼容接口位于 `http://127.0.0.1:50400/api/v1/`。Firefox 自动化网关位于 `/api/firefox/v1/tools` 与 `/api/firefox/v1/tools/call`，使用相同的 Token、Host 和 Origin 校验。
 
-```sh
-bun install
+## MCP 自动化
+
+Windows 安装包包含 `idfri-mcp.exe`。安装后可配置已安装的 Claude Code、Codex、OpenClaw 或 Hermes：
+
+```powershell
+& "$env:LOCALAPPDATA\IDFRI\idfri-mcp.exe" setup --client auto --yes --json
+```
+
+MCP 工具沿用 `aliasmode_*` 名称，以兼容已有客户端配置；产品与可执行文件品牌均为 IDFRI。
+
+## 浏览器与字体
+
+Chromium 运行时来自锁定版本的 `playwright-core`，构建和启动时均验证可执行文件 SHA-256。
+
+`AliasMode Firefox` 基于 Camoufox/Firefox，代码采用 MPL-2.0。上游构建曾捆绑 Windows 和 macOS 专有字体；IDFRI 在源码安装和 Windows 打包阶段都会剔除整个 `fonts` 目录，改用用户操作系统已经安装的字体。因此不会随 IDFRI 安装包再分发这些字体，但不同系统版本的字体指纹可能存在差异。
+
+Firefox 资料不支持 Chrome 扩展或 CDP；自动化通过 IDFRI 的 Firefox 网关完成。
+
+## 从源码运行
+
+需要 Windows、Bun 1.2.21 和 Node.js 22。安装依赖并验证：
+
+```powershell
+bun install --frozen-lockfile
 bun test
+bun run typecheck
 bun cli.ts start
 ```
 
-The dashboard and compatibility API bind to loopback only.
+打开控制台输出的本地地址即可使用。
 
-### macOS source run
+## 构建 Windows EXE
 
-A supported macOS CloakBrowser executable can run through the local web dashboard without Tauri or a separate backend. Install Bun and Node.js 18 or newer (Node 22.23.2 is recommended), then run:
+本机还需 Rust 1.89、Tauri 的 Windows 构建依赖和 NSIS：
 
-```sh
-bun install --frozen-lockfile
-export CLOAKBROWSER_BINARY_PATH="/path/to/CloakBrowser.app/Contents/MacOS/CloakBrowser"
-export CLOAKBROWSER_BINARY_SHA256="$(shasum -a 256 "$CLOAKBROWSER_BINARY_PATH" | cut -d ' ' -f 1)"
-bun run start
-```
-
-Open `http://127.0.0.1:50400`, select AliasMode Cloud, and sign in. Source mode keeps Cloud refresh and device credentials in process memory, so sign in again after restarting AliasMode. It stores only the pending-sync encryption key in `pending-sync.key` with user-only permissions, allowing queued profile state to resume. Browser data and processes remain on the Mac.
-
-### Windows desktop beta
-
-Published installers support Windows 10 version 1809 or newer, Windows 11, and Windows Server 2019 or newer on x64 processors with SSE4.2. They install for the current user and remain unsigned while release signing is configured.
-
-Desktop packaging requires Windows x64, Bun, the Rust MSVC toolchain, WebView2, and Visual Studio C++ Build Tools. The approved Alias Loop icon is included at `src-tauri/icons/icon.ico`.
-
-```sh
-bun run desktop:prepare
+```powershell
 bun run desktop:build:nsis
 ```
 
-The build obtains CloakBrowser through the pinned official wrapper, verifies the staged executable hash, and packages the third-party runtime as a bundled resource included at no extra cost. AliasMode verifies the installed executable again before startup and before every browser launch.
+发布工作流需要以下 GitHub Actions Secrets：
 
-### Import from Cloakpit
+- `TAURI_SIGNING_PRIVATE_KEY`
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`
+- `WINDOWS_CERTIFICATE_BASE64`
+- `WINDOWS_CERTIFICATE_PASSWORD`
 
-Close Cloakpit and all of its browsers. Then run:
+私钥和 PFX 证书不得提交到仓库。CI 先生成并验收候选安装包，再对 EXE 做 Authenticode 时间戳签名、生成 Tauri 更新签名，最后发布 GitHub Release。
 
-```powershell
-AliasMode.exe --import-cloakpit C:\Cloakpit
-```
+## 许可证
 
-Use `--cloakpit-profile-root <dir>` if AliasMode reports browser data in multiple historical locations. Import works only into an empty Local destination on the same Windows machine and account because Windows DPAPI protects browser secrets. It preserves persisted persona data and session-bearing browser files, but runtime or browser differences can change the fingerprint visible to an account.
+桌面主程序继续遵守 [Apache-2.0](LICENSE)，`AliasMode Firefox` 继续遵守 MPL-2.0，第三方组件的版权与许可证见 [NOTICE](NOTICE)。Fork 和换品牌不会取消上游作者及第三方权利人的许可证要求。
 
-## Agent browser automation
-
-The Windows installer includes `aliasmode-mcp.exe`. It connects AI agents to the free, open-source AliasMode client through local stdio MCP.
-
-```powershell
-& "$env:LOCALAPPDATA\AliasMode\aliasmode-mcp.exe" setup --client auto --yes --json
-```
-
-Setup configures Claude Code, Codex, OpenClaw, and Hermes when installed. Its JSON result also includes generic stdio MCP configuration. Restart an active agent harness after setup so it loads the new server.
-
-Agents can create profiles, open several headful or headless browsers, select one browser, and use the full pinned Playwright MCP tool set. AliasMode remains responsible for browser processes, profile locks, Cloud sessions, capture, and safe close. Local mode needs no account and does not contact AliasMode Cloud.
-
-Cloud mode can also expose one specific Windows installation to a remote Streamable HTTP MCP client. Keep AliasMode open on that Windows device. Open **Account & Settings → Remote MCP** and copy its pinned server URL. Claude.ai and ChatGPT connect through AliasMode sign-in and OAuth. Claude Code and other bearer-capable clients can also use the displayed access key in a secret header. See the [Claude and ChatGPT connector guide](https://aliasmode.com/docs/connectors/) for the complete setup and Playwright workflow.
-
-Advanced users can create additional independently revocable connectors from the packaged helper:
-
-```powershell
-$aliasmode = "$env:LOCALAPPDATA\AliasMode\aliasmode-mcp.exe"
-& $aliasmode remote-mcp create --name "Linux Claude"
-& $aliasmode remote-mcp list
-& $aliasmode remote-mcp revoke --id <connector-id>
-```
-
-The Settings access key is stored in Windows Credential Manager. Extra keys created by the helper are returned once, so store them in the remote client's secret settings. Do not put keys in scripts or logs. OAuth web connectors never need the access key. An offline device returns an error and never redirects work to another machine.
-
-For the same installation session, the helper also provides JSON-only commands:
-
-```powershell
-$aliasmode = "$env:LOCALAPPDATA\AliasMode\aliasmode-mcp.exe"
-& $aliasmode profiles list --json
-& $aliasmode profiles create --name research --json
-& $aliasmode browser open --profile <profile-id> --headless --json
-& $aliasmode playwright run --profile <profile-id> --file .\task.mjs --json
-& $aliasmode browser close --profile <profile-id> --json
-```
-
-The versioned bootstrap script tries winget first. It falls back to an exact GitHub Release installer and verifies its published SHA-256 manifest before installation. Unsigned beta installers can still require Windows SmartScreen or antivirus approval.
-
-### Platform matrix
-
-- **Windows:** native installer, local dashboard, local stdio MCP, and Remote MCP host.
-- **macOS:** local dashboard from source with a supported, hash-pinned CloakBrowser binary. No installer.
-- **Linux:** no native app and no local dashboard. A Linux machine can drive a running Windows AliasMode through Remote MCP, with the Claude Code bearer path or OAuth web clients.
-
-### Public documentation contracts
-
-The website copies two contracts from this repository:
-
-- `docs/public/local-api.openapi.json`: OpenAPI 3.1 for the loopback Local API. See [aliasmode.com/docs/local-api](https://aliasmode.com/docs/local-api/).
-- `docs/public/mcp-tools/`: versioned MCP tool catalogs generated from the MCP host. See [aliasmode.com/docs/mcp](https://aliasmode.com/docs/mcp/).
-
-`bun run docs:public` regenerates them. `bun run docs:public:check` fails when the committed files drift from the source.
-
-## Browser runtime
-
-AliasMode Firefox is AliasMode's own antidetect engine, built on top of Camoufox and published at [aliasmode/aliasmode-firefox](https://github.com/aliasmode/aliasmode-firefox) under MPL-2.0. AliasMode downloads it from that repository's releases and verifies the archive and executable SHA-256 hashes before launch. Firefox profiles do not support Chrome extensions or CDP.
-
-For Chromium profiles, AliasMode installs CloakBrowser through its approved official installer and pins the resulting executable hash. The runtime is included at no extra cost: no separate CloakBrowser purchase, subscription, or account is required. The CloakBrowser binary is a third-party component and is not part of this repository or the Apache-2.0 license.
-
-## Security
-
-For product help, email [support@aliasmode.com](mailto:support@aliasmode.com). Report vulnerabilities privately to [security@aliasmode.com](mailto:security@aliasmode.com) using the process in [SECURITY.md](SECURITY.md). Do not include cookies, passwords, proxy credentials, TOTP seeds, profile exports, or diagnostic archives in public issues.
-
-## License
-
-AliasMode is open source under [Apache-2.0](LICENSE): this repository is the complete desktop application. The AliasMode Firefox engine is open source under MPL-2.0 in [its own repository](https://github.com/aliasmode/aliasmode-firefox). The CloakBrowser engine is a third-party component included at no extra cost under its own license, and AliasMode Cloud is an optional hosted service.
-
-Built by the Xreacher team.
+安全问题请通过仓库的 [GitHub Security Advisory](https://github.com/16188/aliasmode/security/advisories/new) 私下报告；一般问题请使用 [GitHub Issues](https://github.com/16188/aliasmode/issues)。

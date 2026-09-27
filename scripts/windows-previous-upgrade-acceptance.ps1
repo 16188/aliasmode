@@ -34,7 +34,7 @@ function Resolve-InputFile([string]$Path, [string]$Description) {
 
 function Set-AcceptanceStage([string]$NextStage) {
   $script:stage = $NextStage
-  Write-Host "AliasMode previous-version upgrade acceptance stage: $NextStage"
+  Write-Host "IDFRI previous-version upgrade acceptance stage: $NextStage"
 }
 
 function Test-ProcessExited([Diagnostics.Process]$Process) {
@@ -64,15 +64,15 @@ function Test-PathWithin([string]$Path, [string]$Root) {
 }
 
 function Wait-AliasModeReady([string]$AppPath, [string]$ExpectedVersion) {
-  $app = Get-Process -Name "AliasMode" -ErrorAction SilentlyContinue |
+  $app = Get-Process -Name "IDFRI" -ErrorAction SilentlyContinue |
     Where-Object { $_.Path -eq $AppPath } |
     Select-Object -First 1
   if (-not $app) { $app = Start-Process -PassThru $AppPath }
   for ($attempt = 0; $attempt -lt 180; $attempt++) {
     $app.Refresh()
-    if ($app.HasExited) { throw "AliasMode exited before readiness" }
+    if ($app.HasExited) { throw "IDFRI exited before readiness" }
     $sidecar = Get-CimInstance Win32_Process -Filter "ParentProcessId = $($app.Id)" |
-      Where-Object { $_.Name -like "aliasmode-sidecar*.exe" } |
+      Where-Object { $_.Name -like "idfri-sidecar*.exe" } |
       Select-Object -First 1
     if ($sidecar) {
       $ports = Get-NetTCPConnection -State Listen -OwningProcess $sidecar.ProcessId -ErrorAction SilentlyContinue |
@@ -94,17 +94,17 @@ function Wait-AliasModeReady([string]$AppPath, [string]$ExpectedVersion) {
     }
     Start-Sleep -Milliseconds 500
   }
-  throw "AliasMode $ExpectedVersion did not become ready"
+  throw "IDFRI $ExpectedVersion did not become ready"
 }
 
 function Stop-AliasMode($Record) {
-  if (-not $Record.App.CloseMainWindow()) { throw "AliasMode rejected its close request" }
-  if (-not $Record.App.WaitForExit(180000)) { throw "AliasMode did not exit after cleanup" }
+  if (-not $Record.App.CloseMainWindow()) { throw "IDFRI rejected its close request" }
+  if (-not $Record.App.WaitForExit(180000)) { throw "IDFRI did not exit after cleanup" }
   for ($attempt = 0; $attempt -lt 60; $attempt++) {
     if (-not (Get-Process -Id $Record.SidecarPid -ErrorAction SilentlyContinue)) { return }
     Start-Sleep -Milliseconds 500
   }
-  throw "AliasMode sidecar survived shutdown"
+  throw "IDFRI sidecar survived shutdown"
 }
 
 function Stop-UpgradeProcesses([string]$InstallRoot, [string]$RunRoot, [string[]]$DataRoots) {
@@ -172,12 +172,12 @@ $temporaryRoot = if ([string]::IsNullOrWhiteSpace($env:RUNNER_TEMP)) {
 } else {
   $env:RUNNER_TEMP
 }
-$runRoot = Join-Path $temporaryRoot "aliasmode-previous-upgrade-$([Guid]::NewGuid().ToString('N'))"
-$installRoot = Join-Path $runRoot "aliasmode update acceptance"
-$defaultDataRoot = Join-Path $env:APPDATA "com.aliasmode.desktop"
+$runRoot = Join-Path $temporaryRoot "idfri-previous-upgrade-$([Guid]::NewGuid().ToString('N'))"
+$installRoot = Join-Path $runRoot "idfri update acceptance"
+$defaultDataRoot = Join-Path $env:APPDATA "com.idfri.desktop"
 $registrationKeys = @(
-  "Registry::HKEY_CURRENT_USER\Software\aliasmode\AliasMode",
-  "Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Uninstall\AliasMode"
+  "Registry::HKEY_CURRENT_USER\Software\IDFRI\IDFRI",
+  "Registry::HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Uninstall\IDFRI"
 )
 $stage = "validating-inputs"
 $previousVersion = ""
@@ -214,7 +214,7 @@ try {
   }
   $candidateInstaller = Resolve-InputFile $FullInstallerPath "candidate full installer"
   $candidateChecksums = Resolve-InputFile $ChecksumsPath "candidate checksum manifest"
-  $candidateInstallerName = "AliasMode_${CandidateVersion}_x64-offline-setup.exe"
+  $candidateInstallerName = "IDFRI_${CandidateVersion}_x64-offline-setup.exe"
   if ((Split-Path $candidateInstaller -Leaf) -ne $candidateInstallerName) {
     throw "candidate full installer name does not match candidate version"
   }
@@ -251,8 +251,8 @@ try {
   $checks.previousReleaseSelected = $true
 
   Set-AcceptanceStage "verifying-previous-installer"
-  $offlineInstallerName = "AliasMode_$($previous.Version)_x64-offline-setup.exe"
-  $legacyInstallerName = "AliasMode_$($previous.Version)_x64-setup.exe"
+  $offlineInstallerName = "IDFRI_$($previous.Version)_x64-offline-setup.exe"
+  $legacyInstallerName = "IDFRI_$($previous.Version)_x64-setup.exe"
   $oldInstallerAsset = @()
   foreach ($installerName in @($offlineInstallerName, $legacyInstallerName)) {
     $matches = @($previous.Release.assets | Where-Object { $_.name -eq $installerName })
@@ -285,12 +285,12 @@ try {
   if ((Test-Path -LiteralPath $installRoot) -or (Test-Path -LiteralPath $defaultDataRoot)) {
     throw "previous-version upgrade acceptance state was not clean"
   }
-  if (@(Get-Process -Name "AliasMode" -ErrorAction SilentlyContinue).Count -ne 0) {
-    throw "runner has a pre-existing AliasMode process"
+  if (@(Get-Process -Name "IDFRI" -ErrorAction SilentlyContinue).Count -ne 0) {
+    throw "runner has a pre-existing IDFRI process"
   }
   foreach ($key in $registrationKeys) {
     if (Test-Path -LiteralPath $key) {
-      throw "runner has pre-existing AliasMode registration"
+      throw "runner has pre-existing IDFRI registration"
     }
   }
   $acceptanceStateOwned = $true
@@ -300,7 +300,7 @@ try {
     throw "previous installer timed out"
   }
   if ($install.ExitCode -ne 0) { throw "previous installer exited with code $($install.ExitCode)" }
-  $appPath = Join-Path $installRoot "AliasMode.exe"
+  $appPath = Join-Path $installRoot "IDFRI.exe"
   $activeRecord = Wait-AliasModeReady $appPath $previousVersion
   $checks.previousVersionReady = $true
   $mode = Invoke-RestMethod "$($activeRecord.Origin)/ui/api/app-mode"
@@ -375,7 +375,7 @@ try {
   if ($activeRecord -and -not (Test-ProcessExited $activeRecord.App)) {
     try { Stop-AliasMode $activeRecord } catch {
       try { Stop-ProcessTree $activeRecord.App } catch {}
-      $cleanupFailures.Add("active AliasMode cleanup failed")
+      $cleanupFailures.Add("active IDFRI cleanup failed")
     }
   }
   $dataRoots = if ($acceptanceStateOwned) { @($oldDataRoot, $defaultDataRoot) } else { @() }

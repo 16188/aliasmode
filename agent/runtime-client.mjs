@@ -40,7 +40,7 @@ export function validateRuntimeDescriptor(value, expectedVersion = VERSION) {
 export function defaultRuntimeDescriptorPath(env = process.env) {
   if (env.ALIASMODE_RUNTIME_DESCRIPTOR) return env.ALIASMODE_RUNTIME_DESCRIPTOR;
   if (!env.APPDATA) throw new Error("APPDATA is required to discover AliasMode");
-  return join(env.APPDATA, "com.aliasmode.desktop", "agent-runtime.json");
+  return join(env.APPDATA, "com.idfri.desktop", "agent-runtime.json");
 }
 
 export function windowsProcessIdentityCommand(pid, env = process.env) {
@@ -260,12 +260,12 @@ async function connectAgent(descriptor) {
 
 function defaultDesktopExecutable(env = process.env) {
   if (env.ALIASMODE_DESKTOP_EXE) return env.ALIASMODE_DESKTOP_EXE;
-  if (!env.LOCALAPPDATA) throw new Error("LOCALAPPDATA is required to start AliasMode");
-  return join(env.LOCALAPPDATA, "AliasMode", "AliasMode.exe");
+  if (!env.LOCALAPPDATA) throw new Error("LOCALAPPDATA is required to start IDFRI");
+  return join(env.LOCALAPPDATA, "IDFRI", "IDFRI.exe");
 }
 
 function launchBackground(executable) {
-  if (!existsSync(executable)) throw new Error("AliasMode is not installed at the expected path");
+  if (!existsSync(executable)) throw new Error("IDFRI is not installed at the expected path");
   const child = spawn(executable, ["--background"], {
     detached: true,
     stdio: "ignore",

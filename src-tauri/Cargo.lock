@@ -18,7 +18,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "aliasmode-desktop"
+name = "idfri-desktop"
 version = "0.1.0-beta.50"
 dependencies = [
  "hex",

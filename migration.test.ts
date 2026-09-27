@@ -118,7 +118,7 @@ test("the migration sidecar command is not mistaken for a running source process
   sourceDb(source).close();
   addBrowserState(join(source, "profiles"), "legacy1");
   const scanProcesses = async () => ({
-    records: [{ pid: process.pid, executablePath: "C:\\AliasMode\\aliasmode-sidecar.exe", commandLine: `__import-cloakpit --source \"${source}\"` }],
+    records: [{ pid: process.pid, executablePath: "C:\\IDFRI\\idfri-sidecar.exe", commandLine: `__import-cloakpit --source \"${source}\"` }],
     incomplete: false,
   });
   await expect(migrateLegacyState(source, destination, { scanProcesses, validateDpapi: async () => {} })).resolves.toMatchObject({ status: "migrated" });

@@ -205,7 +205,7 @@ export function ScriptsPage({ onViewRun }: { onViewRun: () => void }) {
   };
 
   if (!desktop) {
-    return <div className="workspace scripts-page"><div className="emptystate"><b>Scripts require the desktop app.</b><p>Open AliasMode in the desktop app to manage local scripts.</p></div></div>;
+    return <div className="workspace scripts-page"><div className="emptystate"><b>脚本功能需要桌面应用。</b><p>请打开 IDFRI 桌面应用管理本地脚本。</p></div></div>;
   }
 
   const isPublished = script?.publishedRevision !== null && script?.publishedRevision !== undefined;

@@ -51,6 +51,8 @@ test("worker inherits normal environment without Node hooks or app secrets", () 
     Node_Options: "--require injected.js",
     NODE_PATH: "C:\\untrusted",
     ALIASMODE_DESKTOP_NONCE: "private",
+    IDFRI_PROFILE_KEY: "private",
+    idfri_chromium_binary_path: "private",
     cloakbrowser_license_key: "private",
     HUB_PASSWORD: "private",
   })).toEqual({

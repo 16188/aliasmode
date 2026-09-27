@@ -23,11 +23,14 @@ import { normalizeProfileEngine } from "./firefox-config.ts";
 import { normalizeProxySpec } from "./proxy.ts";
 import { assertSafeProfileId } from "./profile-id.ts";
 import { assertValidProfile } from "./profile-validation.ts";
+import { ProfileFieldCipher } from "./profile-crypto.ts";
 
 export class ProfileStore {
   private db: Database;
+  private cipher: ProfileFieldCipher;
 
-  constructor(path = "profiles.sqlite") {
+  constructor(path = "profiles.sqlite", encryptionKey = process.env.IDFRI_PROFILE_KEY) {
+    this.cipher = new ProfileFieldCipher(encryptionKey);
     this.db = new Database(path, { create: true });
     this.db.exec("PRAGMA journal_mode = WAL;");
     this.db.exec(`
@@ -240,6 +243,7 @@ export class ProfileStore {
 
   close(): void {
     this.db.close();
+    this.cipher.destroy();
   }
 
   /** Insert or replace a profile's identity. Preserves the existing seeded flag. */
@@ -252,13 +256,21 @@ export class ProfileStore {
     const proxy = p.proxyError ? null : normalizeProxySpec(p.proxy);
     const proxyError = p.proxyError?.trim() ?? "";
     const existing = this.db
-      .query<{ seeded: number; trashed_at: number; engine: unknown }, [string]>("SELECT seeded, trashed_at, engine FROM profiles WHERE id = ?")
+      .query<{ seeded: number; trashed_at: number; engine: unknown; proxy_json: unknown }, [string]>(
+        "SELECT seeded, trashed_at, engine, proxy_json FROM profiles WHERE id = ?",
+      )
       .get(p.id);
     if (existing?.trashed_at) throw new Error("Profile is in Trash; restore it before importing or editing it");
     if (existing && storedProfileEngine(existing.engine) !== browser.engine) {
       throw new Error("profile engine cannot change in place");
     }
     const seeded = existing ? existing.seeded : p.seeded ? 1 : 0;
+    const incomingProxyJson = proxy ? JSON.stringify(proxy) : null;
+    const existingProxyJson = existing
+      ? this.cipher.decrypt(existing.proxy_json, p.id, "proxy_json") || null
+      : null;
+    const storedProxyJson = proxyError ? existingProxyJson : incomingProxyJson;
+    const keepTimezone = !!proxyError || existingProxyJson === incomingProxyJson;
     this.db
       .query(
         `INSERT INTO profiles
@@ -273,10 +285,9 @@ export class ProfileStore {
            engine=$engine, firefox_config_json=$firefox,
            acc_id=$acc, name=$name, "group"=$group, platform=$platform, username=$user, password=$pass,
            email=$email, email_password=$emailPass, twofa=$twofa,
-           -- An unrelated edit to a quarantined profile must preserve the raw
-           -- legacy proxy for operator recovery. A valid replacement or an
-           -- explicit clear removes the quarantine and writes the new value.
-           proxy_json = CASE WHEN $proxyError <> '' THEN proxy_json ELSE $proxy END,
+           -- A quarantined legacy proxy is re-encrypted unchanged; a valid
+           -- replacement or explicit clear removes the quarantine.
+           proxy_json=$proxy,
            proxy_error = CASE WHEN $proxyError <> '' THEN $proxyError ELSE NULL END,
            extensions_json=$ext, tags_json=$tags, custom_no=$customNo, ua=$ua,
            -- Timezone on re-import:
@@ -286,12 +297,9 @@ export class ProfileStore {
            --   * else proxy changed/removed + no new tz   -> clear it
            --     (keeping it would emit --fingerprint-timezone for a proxy the
            --      profile no longer uses — a worse mismatch than the default).
-           -- In ON CONFLICT DO UPDATE the bare column (proxy_json) is the OLD
-           -- row value; $proxy is the incoming value. IS is null-safe.
            timezone = CASE
              WHEN $tz <> '' THEN $tz
-             WHEN $proxyError <> '' THEN timezone
-             WHEN proxy_json IS $proxy THEN timezone
+             WHEN $keepTimezone = 1 THEN timezone
              ELSE ''
            END,
            screen_width=$w, screen_height=$h,
@@ -315,29 +323,30 @@ export class ProfileStore {
         $id: p.id,
         $engine: browser.engine,
         $firefox: browser.firefox ? JSON.stringify(browser.firefox) : "",
-        $acc: p.accId,
+        $acc: this.cipher.encrypt(p.accId, p.id, "acc_id"),
         $name: p.name,
         $group: p.group,
         $platform: p.platform ?? "",
-        $user: p.username,
-        $pass: p.password,
-        $email: p.email ?? "",
-        $emailPass: p.emailPassword ?? "",
-        $twofa: p.twofa,
-        $proxy: proxy ? JSON.stringify(proxy) : null,
+        $user: this.cipher.encrypt(p.username, p.id, "username"),
+        $pass: this.cipher.encrypt(p.password, p.id, "password"),
+        $email: this.cipher.encrypt(p.email ?? "", p.id, "email"),
+        $emailPass: this.cipher.encrypt(p.emailPassword ?? "", p.id, "email_password"),
+        $twofa: this.cipher.encrypt(p.twofa, p.id, "twofa"),
+        $proxy: storedProxyJson === null ? null : this.cipher.encrypt(storedProxyJson, p.id, "proxy_json"),
         $proxyError: proxyError || null,
         $ext: JSON.stringify(p.extensions ?? []),
         $tags: JSON.stringify(p.tags ?? []),
         $customNo: p.customNo ?? "",
         $ua: p.ua,
         $tz: p.timezone ?? "",
+        $keepTimezone: Number(keepTimezone),
         $w: p.screenWidth,
         $h: p.screenHeight,
         $seed: p.fingerprintSeed,
         $platformOs: p.platformOs ?? "",
         $fpObserved: p.fpObserved ? JSON.stringify(p.fpObserved) : "",
         $fpExpected: p.fpExpected ? JSON.stringify(p.fpExpected) : "",
-        $cookies: JSON.stringify(p.cookies),
+        $cookies: this.cipher.encrypt(JSON.stringify(p.cookies), p.id, "cookies_json"),
         $seeded: seeded,
         // Set on INSERT; preserved on re-import (the ON CONFLICT clause never
         // updates created_at). New profiles get a real timestamp; rows imported
@@ -363,35 +372,44 @@ export class ProfileStore {
   }
 
   getSessionBundle(id: string): string | null {
-    return this.db.query<{ session_json: string }, [string]>(
+    const stored = this.db.query<{ session_json: string }, [string]>(
       `SELECT session_json FROM profiles WHERE id = ?`,
-    ).get(id)?.session_json || null;
+    ).get(id)?.session_json;
+    return stored ? this.cipher.decrypt(stored, id, "session_json") : null;
   }
 
   getPendingSessionBundle(id: string): string | null {
-    return this.db.query<{ session_json: string }, [string]>(
+    const stored = this.db.query<{ session_json: string }, [string]>(
       `SELECT session_json FROM profiles WHERE id = ? AND session_restore_pending = 1`,
-    ).get(id)?.session_json || null;
+    ).get(id)?.session_json;
+    return stored ? this.cipher.decrypt(stored, id, "session_json") : null;
   }
 
   /** Capturing live state must never arm an import restore. */
   saveSessionBundle(id: string, bundle: string): void {
-    this.db.query(`UPDATE profiles SET session_json = ? WHERE id = ?`).run(bundle, id);
+    this.db.query(`UPDATE profiles SET session_json = ? WHERE id = ?`)
+      .run(this.cipher.encrypt(bundle, id, "session_json"), id);
   }
 
   markSessionRestored(id: string, bundle: string): void {
-    this.db.query(`UPDATE profiles SET session_restore_pending = 0 WHERE id = ? AND session_json = ?`).run(id, bundle);
+    const stored = this.db.query<{ session_json: string }, [string]>(
+      `SELECT session_json FROM profiles WHERE id = ?`,
+    ).get(id)?.session_json;
+    if (stored && this.cipher.decrypt(stored, id, "session_json") === bundle) {
+      this.db.query(`UPDATE profiles SET session_restore_pending = 0 WHERE id = ? AND session_json = ?`).run(id, stored);
+    }
   }
 
   getProfile(id: string): Profile | null {
     const row = this.db
       .query<any, [string]>(`SELECT * FROM profiles WHERE id = ? AND trashed_at = 0`)
       .get(id);
-    return row ? rowToProfile(row) : null;
+    return row ? rowToProfile(row, this.cipher) : null;
   }
 
   listProfiles(): Profile[] {
-    return this.db.query<any, []>(`SELECT * FROM profiles WHERE trashed_at = 0 ORDER BY id`).all().map(rowToProfile);
+    return this.db.query<any, []>(`SELECT * FROM profiles WHERE trashed_at = 0 ORDER BY id`).all()
+      .map((row) => rowToProfile(row, this.cipher));
   }
 
   count(): number {
@@ -841,22 +859,23 @@ function optionalJson<T>(key: string, raw: unknown): Record<string, T> {
   }
 }
 
-function rowToProfile(row: any): Profile {
+function rowToProfile(row: any, cipher: ProfileFieldCipher): Profile {
   const browser = normalizeProfileEngine(row.engine, readStoredFirefoxConfig(row.firefox_config_json));
-  const stored = readStoredProxy(row.proxy_json, row.proxy_error);
+  const decrypt = (column: string) => cipher.decrypt(row[column], row.id, column);
+  const stored = readStoredProxy(decrypt("proxy_json"), row.proxy_error);
   return {
     id: row.id,
     engine: browser.engine,
     ...(browser.firefox ? { firefox: browser.firefox } : {}),
-    accId: row.acc_id ?? "",
+    accId: decrypt("acc_id"),
     name: row.name ?? "",
     group: row.group ?? "",
     platform: row.platform ?? "",
-    username: row.username ?? "",
-    password: row.password ?? "",
-    email: row.email ?? "",
-    emailPassword: row.email_password ?? "",
-    twofa: row.twofa ?? "",
+    username: decrypt("username"),
+    password: decrypt("password"),
+    email: decrypt("email"),
+    emailPassword: decrypt("email_password"),
+    twofa: decrypt("twofa"),
     proxy: stored.proxy,
     ...(stored.error ? { proxyError: stored.error } : {}),
     extensions: safeParse<string[]>(row.extensions_json, []),
@@ -871,7 +890,7 @@ function rowToProfile(row: any): Profile {
     ...optionalJson<ObservedFingerprint>("fpObserved", row.fp_observed_json),
     ...optionalJson<ObservedFingerprint>("fpExpected", row.fp_expected_json),
     ...optionalJson<FingerprintVerdict>("fpVerdict", row.fp_verdict_json),
-    cookies: safeParse<CookieRecord[]>(row.cookies_json, []),
+    cookies: safeParse<CookieRecord[]>(decrypt("cookies_json"), []),
     seeded: Boolean(row.seeded),
   };
 }

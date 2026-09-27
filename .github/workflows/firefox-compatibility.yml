@@ -146,6 +146,7 @@ jobs:
           $ErrorActionPreference = "Stop"
           foreach ($name in @(
             "GH_TOKEN", "GITHUB_TOKEN",
+            "IDFRI_CHROMIUM_BINARY_PATH", "IDFRI_CHROMIUM_BINARY_SHA256",
             "CLOAKBROWSER_BINARY_PATH", "CLOAKBROWSER_BINARY_SHA256",
             "ALIASMODE_FIREFOX_BINARY_PATH", "ALIASMODE_FIREFOX_BINARY_SHA256"
           )) {
@@ -338,7 +339,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          unset GH_TOKEN GITHUB_TOKEN CLOAKBROWSER_BINARY_PATH CLOAKBROWSER_BINARY_SHA256 ALIASMODE_FIREFOX_BINARY_PATH ALIASMODE_FIREFOX_BINARY_SHA256
+          unset GH_TOKEN GITHUB_TOKEN IDFRI_CHROMIUM_BINARY_PATH IDFRI_CHROMIUM_BINARY_SHA256 CLOAKBROWSER_BINARY_PATH CLOAKBROWSER_BINARY_SHA256 ALIASMODE_FIREFOX_BINARY_PATH ALIASMODE_FIREFOX_BINARY_SHA256
           proof="$(mktemp -d "$RUNNER_TEMP/cloud-launcher-smoke-${{ matrix.platform }}-XXXXXX")"
           bun --no-env-file "$GITHUB_WORKSPACE/cli.ts" setup --state-root "$proof"
           bun --no-env-file -e '

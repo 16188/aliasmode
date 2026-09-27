@@ -22,10 +22,10 @@ test("desktop health metadata requires a nonce, version, and root", () => {
   expect(desktopHealthMetadata({
     ALIASMODE_DESKTOP_NONCE: NONCE,
     ALIASMODE_DESKTOP_VERSION: "0.1.0-beta.1",
-  }, "C:\\Users\\me\\AppData\\Roaming\\com.aliasmode.desktop")).toEqual({
+  }, "C:\\Users\\me\\AppData\\Roaming\\com.idfri.desktop")).toEqual({
     instance: NONCE,
     version: "0.1.0-beta.1",
-    root: "C:\\Users\\me\\AppData\\Roaming\\com.aliasmode.desktop",
+    root: "C:\\Users\\me\\AppData\\Roaming\\com.idfri.desktop",
   });
   expect(() => desktopHealthMetadata({
     ALIASMODE_DESKTOP_NONCE: "not-a-nonce",
@@ -264,6 +264,6 @@ test("the Windows installer stops a leftover sidecar before overwriting it", () 
   );
   expect(hooks).toContain("!macro NSIS_HOOK_PREINSTALL");
   // A graceful attempt first, then force: a locked sidecar aborts the install.
-  expect(hooks).toContain(`nsExec::Exec 'taskkill /IM "aliasmode-sidecar.exe"'`);
-  expect(hooks).toContain(`nsExec::Exec 'taskkill /F /T /IM "aliasmode-sidecar.exe"'`);
+  expect(hooks).toContain(`nsExec::Exec 'taskkill /IM "idfri-sidecar.exe"'`);
+  expect(hooks).toContain(`nsExec::Exec 'taskkill /F /T /IM "idfri-sidecar.exe"'`);
 });

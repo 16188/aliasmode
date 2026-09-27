@@ -7,10 +7,10 @@
 !macro NSIS_HOOK_PREINSTALL
   Push $R0
 
-  nsExec::Exec 'taskkill /IM "aliasmode-sidecar.exe"'
+  nsExec::Exec 'taskkill /IM "idfri-sidecar.exe"'
   Pop $R0
   Sleep 5000
-  nsExec::Exec 'taskkill /F /T /IM "aliasmode-sidecar.exe"'
+  nsExec::Exec 'taskkill /F /T /IM "idfri-sidecar.exe"'
   Pop $R0
   Sleep 2000
 

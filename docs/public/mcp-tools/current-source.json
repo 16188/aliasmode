@@ -20,9 +20,9 @@
   "aliasModeTools": [
     {
       "name": "aliasmode_profiles_list",
-      "description": "List AliasMode profiles and their current browser state. Cloud profiles include expectedVersion and permission for editing.",
+      "description": "List IDFRI profiles and their current browser state.",
       "annotations": {
-        "title": "List AliasMode profiles",
+        "title": "List IDFRI profiles",
         "readOnlyHint": false,
         "destructiveHint": false,
         "openWorldHint": false
@@ -34,137 +34,10 @@
       }
     },
     {
-      "name": "aliasmode_profiles_replace_proxies",
-      "description": "Dry-run or apply bulk proxy replacements to closed AliasMode Cloud profiles. Apply always preflights first.",
-      "annotations": {
-        "title": "Replace AliasMode profile proxies",
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "openWorldHint": false
-      },
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "dryRun": {
-            "type": "boolean",
-            "default": true
-          },
-          "replacements": {
-            "type": "array",
-            "minItems": 1,
-            "items": {
-              "type": "object",
-              "properties": {
-                "profileId": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "username": {
-                  "type": "string",
-                  "minLength": 1,
-                  "maxLength": 255
-                },
-                "expectedVersion": {
-                  "type": "integer",
-                  "minimum": 1
-                },
-                "proxy": {
-                  "type": "object",
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "enum": [
-                        "http",
-                        "https",
-                        "socks5"
-                      ]
-                    },
-                    "host": {
-                      "type": "string"
-                    },
-                    "port": {
-                      "type": "string"
-                    },
-                    "user": {
-                      "type": "string"
-                    },
-                    "pass": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "type",
-                    "host",
-                    "port",
-                    "user",
-                    "pass"
-                  ],
-                  "additionalProperties": false
-                }
-              },
-              "required": [
-                "proxy"
-              ],
-              "oneOf": [
-                {
-                  "required": [
-                    "profileId"
-                  ],
-                  "not": {
-                    "required": [
-                      "username"
-                    ]
-                  }
-                },
-                {
-                  "required": [
-                    "username"
-                  ],
-                  "not": {
-                    "required": [
-                      "profileId"
-                    ]
-                  }
-                }
-              ],
-              "additionalProperties": false
-            }
-          },
-          "csv": {
-            "type": "string",
-            "minLength": 1
-          }
-        },
-        "oneOf": [
-          {
-            "required": [
-              "replacements"
-            ],
-            "not": {
-              "required": [
-                "csv"
-              ]
-            }
-          },
-          {
-            "required": [
-              "csv"
-            ],
-            "not": {
-              "required": [
-                "replacements"
-              ]
-            }
-          }
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
       "name": "aliasmode_profile_create",
-      "description": "Create a persistent AliasMode profile, or an explicit temporary profile.",
+      "description": "Create a persistent IDFRI profile, or an explicit temporary profile.",
       "annotations": {
-        "title": "Create an AliasMode profile",
+        "title": "Create an IDFRI profile",
         "readOnlyHint": false,
         "destructiveHint": false,
         "openWorldHint": false
@@ -233,100 +106,10 @@
       }
     },
     {
-      "name": "aliasmode_profile_update",
-      "description": "Edit a closed AliasMode Cloud profile by ID using expectedVersion from aliasmode_profiles_list. Only supplied fields change; empty strings clear fields. Sessions and cookies are preserved. Returns confirmation, not credentials.",
-      "annotations": {
-        "title": "Edit an AliasMode Cloud profile",
-        "readOnlyHint": false,
-        "destructiveHint": true,
-        "openWorldHint": false
-      },
-      "inputSchema": {
-        "type": "object",
-        "properties": {
-          "profileId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "expectedVersion": {
-            "type": "integer",
-            "minimum": 0
-          },
-          "set": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string"
-              },
-              "group": {
-                "type": "string"
-              },
-              "platform": {
-                "type": "string"
-              },
-              "username": {
-                "type": "string"
-              },
-              "password": {
-                "type": "string"
-              },
-              "email": {
-                "type": "string"
-              },
-              "emailPassword": {
-                "type": "string"
-              },
-              "twofa": {
-                "type": "string"
-              },
-              "proxy": {
-                "type": "string",
-                "description": "host:port:user:pass, or an empty string to remove the proxy"
-              },
-              "proxyType": {
-                "type": "string"
-              },
-              "resolution": {
-                "type": "string",
-                "description": "WIDTH*HEIGHT"
-              },
-              "extensions": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "tags": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "type": "array",
-                    "items": {
-                      "type": "string"
-                    }
-                  }
-                ]
-              }
-            },
-            "minProperties": 1,
-            "additionalProperties": false
-          }
-        },
-        "required": [
-          "profileId",
-          "expectedVersion",
-          "set"
-        ],
-        "additionalProperties": false
-      }
-    },
-    {
       "name": "aliasmode_profile_delete",
-      "description": "Delete a closed AliasMode profile.",
+      "description": "Delete a closed IDFRI profile.",
       "annotations": {
-        "title": "Delete an AliasMode profile",
+        "title": "Delete an IDFRI profile",
         "readOnlyHint": false,
         "destructiveHint": true,
         "openWorldHint": false
@@ -347,9 +130,9 @@
     },
     {
       "name": "aliasmode_browser_open",
-      "description": "Open an AliasMode browser and select it for Playwright actions.",
+      "description": "Open an IDFRI browser and select it for Playwright actions.",
       "annotations": {
-        "title": "Open an AliasMode browser",
+        "title": "Open an IDFRI browser",
         "readOnlyHint": false,
         "destructiveHint": true,
         "openWorldHint": true
@@ -385,9 +168,9 @@
     },
     {
       "name": "aliasmode_browser_select",
-      "description": "Select an open AliasMode browser for subsequent Playwright actions.",
+      "description": "Select an open IDFRI browser for subsequent Playwright actions.",
       "annotations": {
-        "title": "Select an AliasMode browser",
+        "title": "Select an IDFRI browser",
         "readOnlyHint": false,
         "destructiveHint": true,
         "openWorldHint": false
@@ -410,7 +193,7 @@
       "name": "aliasmode_browser_status",
       "description": "Get the selected browser state, or the state of one profile.",
       "annotations": {
-        "title": "Get AliasMode browser status",
+        "title": "Get IDFRI browser status",
         "readOnlyHint": false,
         "destructiveHint": true,
         "openWorldHint": false
@@ -428,9 +211,9 @@
     },
     {
       "name": "aliasmode_browser_close",
-      "description": "Safely capture and close one AliasMode browser.",
+      "description": "Safely capture and close one IDFRI browser.",
       "annotations": {
-        "title": "Close an AliasMode browser",
+        "title": "Close an IDFRI browser",
         "readOnlyHint": false,
         "destructiveHint": true,
         "openWorldHint": false
@@ -448,9 +231,9 @@
     },
     {
       "name": "browser_close",
-      "description": "Safely capture and close the selected AliasMode browser.",
+      "description": "Safely capture and close the selected IDFRI browser.",
       "annotations": {
-        "title": "Close the selected AliasMode browser",
+        "title": "Close the selected IDFRI browser",
         "readOnlyHint": false,
         "destructiveHint": true,
         "openWorldHint": false

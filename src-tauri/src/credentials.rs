@@ -9,6 +9,7 @@ pub enum CredentialKey {
     DeviceCredential,
     QueueEncryptionKey,
     RemoteMcpConnector,
+    ProfileEncryptionKey,
 }
 
 impl CredentialKey {
@@ -28,11 +29,27 @@ impl CredentialKey {
             Self::DeviceCredential => "AliasMode/device-credential",
             Self::QueueEncryptionKey => "AliasMode/queue-encryption-key",
             Self::RemoteMcpConnector => "AliasMode/remote-mcp-connector",
+            Self::ProfileEncryptionKey => "IDFRI/profile-encryption-key",
         }
     }
 }
 
 pub struct CredentialOrigin(pub String);
+
+pub(crate) fn load_or_create_profile_encryption_key() -> Result<String, String> {
+    if let Some(secret) = read_secret(CredentialKey::ProfileEncryptionKey)? {
+        if secret.len() == 64 && secret.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()) {
+            return Ok(secret);
+        }
+        return Err("stored profile encryption key is invalid".to_owned());
+    }
+    let mut secret = hex::encode(rand::random::<[u8; 32]>());
+    if let Err(error) = write_secret(CredentialKey::ProfileEncryptionKey, secret.as_bytes()) {
+        secret.zeroize();
+        return Err(error);
+    }
+    Ok(secret)
+}
 
 pub(crate) fn store_refresh_token(mut secret: String) -> Result<(), String> {
     let result = if secret.len() > MAX_SECRET_BYTES {
@@ -234,6 +251,11 @@ mod tests {
                 .target(),
             "AliasMode/remote-mcp-connector"
         );
+        assert_eq!(
+            CredentialKey::ProfileEncryptionKey.target(),
+            "IDFRI/profile-encryption-key"
+        );
+        assert!(CredentialKey::parse("profile_encryption_key").is_err());
         assert!(CredentialKey::parse("access_token").is_err());
         assert!(CredentialKey::parse("AliasMode/arbitrary").is_err());
         assert!(CredentialKey::parse("*").is_err());

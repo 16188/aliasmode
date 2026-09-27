@@ -34,7 +34,7 @@ function isVersion(value: unknown): value is string {
 export function parseDesktopUpdateResult(value: unknown): DesktopUpdateResult | null {
   if (value === null) return null;
   if (!value || typeof value !== "object") {
-    throw new Error("AliasMode returned an invalid update result.");
+    throw new Error("IDFRI 返回了无效的更新结果。");
   }
   const result = value as Record<string, unknown>;
   if (
@@ -65,35 +65,35 @@ export function parseDesktopUpdateResult(value: unknown): DesktopUpdateResult | 
       reason: result.reason as DesktopUpdateFailureReason,
     };
   }
-  throw new Error("AliasMode returned an invalid update result.");
+  throw new Error("IDFRI 返回了无效的更新结果。");
 }
 
 export function describeDesktopUpdateResult(result: DesktopUpdateResult): DesktopUpdateResultSummary {
   if (result.state === "succeeded") {
     return {
       tone: "success",
-      title: `AliasMode ${result.version} installed successfully.`,
-      detail: `Updated from ${result.fromVersion} and verified the installed app after restart.`,
+      title: `IDFRI ${result.version} 已安装。`,
+      detail: `已从 ${result.fromVersion} 更新，并在重启后验证安装。`,
     };
   }
   if (result.state === "installedRelaunchUnconfirmed") {
     return {
       tone: "warning",
-      title: `AliasMode ${result.version} is installed.`,
-      detail: "The automatic restart was not confirmed. Close AliasMode, then launch it from Windows Start.",
+      title: `IDFRI ${result.version} 已安装。`,
+      detail: "无法确认自动重启。请关闭 IDFRI，然后从 Windows“开始”菜单重新启动。",
     };
   }
 
   const detail = result.reason === "browserCleanup"
-    ? `AliasMode ${result.fromVersion} remains installed because browser services could not close safely.`
+    ? `浏览器服务无法安全关闭，IDFRI ${result.fromVersion} 仍保持安装。`
     : result.reason === "installerLaunch"
-      ? `AliasMode ${result.expectedVersion} could not start. AliasMode ${result.fromVersion} remains installed.`
+      ? `IDFRI ${result.expectedVersion} 无法启动，当前仍为 ${result.fromVersion}。`
       : result.reason === "startupMismatch"
-        ? `AliasMode could not verify ${result.expectedVersion} at the expected install location. Close AliasMode, then launch it from Windows Start.`
-        : `AliasMode could not confirm ${result.expectedVersion}. If the installed version did not change, run the full offline installer without uninstalling.`;
+        ? `无法在预期安装位置验证 IDFRI ${result.expectedVersion}。请关闭 IDFRI，然后从 Windows“开始”菜单重新启动。`
+        : `无法确认 IDFRI ${result.expectedVersion}。如果版本没有变化，请直接运行完整离线安装包，无需卸载。`;
   return {
     tone: "error",
-    title: "The last update did not finish.",
+    title: "上次更新未完成。",
     detail,
   };
 }

@@ -135,18 +135,18 @@ const PROFILE_PAGE_SIZE = 50;
 const PAGE_SIZES = [25, 50, 100, 200];
 
 const PAGE_TITLES: Record<"profiles" | "scripts" | "settings" | "extensions" | "proxies" | "trash", string> = {
-  profiles: "Profiles",
-  scripts: "Scripts",
-  settings: "Settings",
-  extensions: "Extensions",
-  proxies: "Proxies",
-  trash: "Trash",
+  profiles: "资料",
+  scripts: "脚本",
+  settings: "设置",
+  extensions: "扩展",
+  proxies: "代理",
+  trash: "回收站",
 };
 
 const SETTINGS_TABS = [
-  { key: "account", label: "Account" },
-  { key: "team", label: "Workspace" },
-  { key: "advanced", label: "Advanced" },
+  { key: "account", label: "账户" },
+  { key: "team", label: "工作区" },
+  { key: "advanced", label: "高级" },
 ] as const;
 
 type SettingsTab = (typeof SETTINGS_TABS)[number]["key"];
@@ -161,14 +161,14 @@ const MAX_CUSTOM_NO = 12;
  * Only the checkbox column is fixed; everything else can be hidden.
  */
 const COLUMNS = [
-  { key: "no", label: "No.", sort: true, width: 96 },
-  { key: "name", label: "Name", sort: true, width: 220 },
-  { key: "group", label: "Group", sort: true, width: 120 },
-  { key: "platform", label: "Platform", sort: true, width: 128 },
-  { key: "tags", label: "Tags", sort: false, width: 140 },
-  { key: "proxy", label: "Proxy", sort: true, width: 160 },
+  { key: "no", label: "编号", sort: true, width: 96 },
+  { key: "name", label: "名称", sort: true, width: 220 },
+  { key: "group", label: "分组", sort: true, width: 120 },
+  { key: "platform", label: "平台", sort: true, width: 128 },
+  { key: "tags", label: "标签", sort: false, width: 140 },
+  { key: "proxy", label: "代理", sort: true, width: 160 },
   /* Every row action lives here, beside Open/Close — no hover reveal. */
-  { key: "action", label: "Action", sort: false, width: 230 },
+  { key: "action", label: "操作", sort: false, width: 230 },
 ] as const;
 
 /** Width of the always-present select-all checkbox column. */
@@ -178,9 +178,9 @@ type ColumnKey = (typeof COLUMNS)[number]["key"];
 type SortKey = ColumnKey | "status";
 
 const THEMES = [
-  { key: "system", label: "System", icon: "laptop" },
-  { key: "light", label: "Light", icon: "sun" },
-  { key: "dark", label: "Dark", icon: "moon" },
+  { key: "system", label: "跟随系统", icon: "laptop" },
+  { key: "light", label: "浅色", icon: "sun" },
+  { key: "dark", label: "深色", icon: "moon" },
 ] as const;
 
 function readTheme(): ThemeChoice {
@@ -238,11 +238,11 @@ function writeSetting(key: string, value: string): void {
 const CLOUD_DIAGNOSTIC_LABELS: Record<CloudDiagnosticEvent["type"], string> = {
   open_started: "Cloud open started",
   cloud_registered: "Cloud session registered",
-  browser_started: "CloakBrowser started",
+  browser_started: "Chromium（实验兼容内核） started",
   browser_launch_preflight_failed: "Browser profile preparation failed",
   browser_launch_relay_setup_failed: "Proxy relay setup failed",
-  browser_launch_process_spawn_failed: "CloakBrowser process could not start",
-  browser_launch_cdp_readiness_failed: "CloakBrowser debugging connection was not ready",
+  browser_launch_process_spawn_failed: "Chromium（实验兼容内核） process could not start",
+  browser_launch_cdp_readiness_failed: "Chromium（实验兼容内核） debugging connection was not ready",
   session_restore_started: "Session restore started",
   session_restore_completed: "Session restore completed",
   session_restore_unclassified_failed: "Session restore failed before classification",
@@ -266,7 +266,7 @@ const CLOUD_DIAGNOSTIC_LABELS: Record<CloudDiagnosticEvent["type"], string> = {
   open_failed: "Cloud profile open failed",
   close_started: "Cloud close started",
   session_captured: "Session captured",
-  browser_stopped: "CloakBrowser stopped",
+  browser_stopped: "Chromium（实验兼容内核） stopped",
   session_synced: "Session synchronized",
   checkpoint_saved: "Session checkpoint saved",
   checkpoint_unchanged: "Session checkpoint unchanged",
@@ -355,19 +355,13 @@ const ICONS = {
 type IconName = keyof typeof ICONS;
 
 /**
- * Official project links, mirroring the footer on aliasmode.com. The GitHub URL
- * is this repository's own origin, so the two can never drift apart.
+ * Official IDFRI project links.
  */
 const PROJECT_LINKS = [
   {
-    href: "https://github.com/aliasmode/aliasmode",
+    href: "https://github.com/16188/aliasmode",
     label: "GitHub",
     path: "M12 .3a12 12 0 00-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.9 1.2 1.9 1.2 1.1 1.9 2.9 1.3 3.6 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 016 0C17.4 5.4 18.4 5.7 18.4 5.7c.6 1.7.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0012 .3z",
-  },
-  {
-    href: "https://t.me/aliasmode",
-    label: "Telegram",
-    path: "M23.91 3.79 20.3 20.84c-.25 1.21-.98 1.5-1.99.93l-5.49-4.05-2.65 2.55c-.3.3-.55.55-1.12.55l.4-5.63 10.24-9.25c.45-.4-.1-.62-.69-.22L6.44 13.09.2 11.14c-1.36-.42-1.38-1.36.28-2.01L22.17 1.8c1.13-.42 2.12.26 1.74 1.99Z",
   },
 ] as const;
 
@@ -405,15 +399,13 @@ function useDismiss<T extends HTMLElement>(open: boolean, close: () => void) {
 }
 
 /**
- * The Alias Loop mark, inlined so it can follow the theme: the dark arm is
- * near-black in the packaged SVG and would vanish on a dark surface, so here it
- * takes currentColor (the theme's ink) and the loop arm takes the accent.
+ * Minimal IDFRI mark, inlined so it follows the active theme.
  */
-function AliasLoop({ className }: { className?: string }) {
+function BrandMark({ className }: { className?: string }) {
   return (
     <svg className={className ? `alias-loop ${className}` : "alias-loop"} viewBox="0 0 512 512" aria-hidden="true">
-      <path d="M152 96H320C380 96 416 136 416 196V316C416 376 376 416 316 416H196C136 416 96 376 96 316V288" stroke="currentColor" />
-      <path className="loop-accent" d="M96 288C96 240 136 208 184 208H280" stroke="#2457D6" />
+      <path d="M128 80H384V432H128Z" stroke="currentColor" />
+      <path className="loop-accent" d="M184 152H328M256 152V360M184 360H328" stroke="#2457D6" />
     </svg>
   );
 }
@@ -460,9 +452,9 @@ function StatusDot({ running }: { running: boolean }) {
 }
 
 function HealthSources({ sources }: { sources: HealthSource[] }) {
-  if (sources.length === 0) return <div className="health-sources none">No health nodes</div>;
+  if (sources.length === 0) return <div className="health-sources none">无自动化节点</div>;
   return (
-    <div className="health-sources" aria-label="Automation node freshness">
+    <div className="health-sources" aria-label="自动化节点状态">
       {sources.map((source) => (
         <span
           key={source.sourceId}
@@ -543,7 +535,7 @@ function PlatformPill({ platform }: { platform: string }) {
 
 /**
  * Group selector used in every dialog: a styled <select> of existing groups
- * plus "➕ New group…", which flips to an inline text field so you can create a
+ * plus "➕ 新建分组…", which flips to an inline text field so you can create a
  * group on the fly. Consistent with the other modal selects (no native datalist).
  */
 function GroupPicker({ value, onChange, groups, allowCreate = true }: { value: string; onChange: (v: string) => void; groups: string[]; allowCreate?: boolean }) {
@@ -551,8 +543,8 @@ function GroupPicker({ value, onChange, groups, allowCreate = true }: { value: s
   if (creating) {
     return (
       <div className="grouppick">
-        <input autoFocus placeholder="new group name" value={value} onChange={(e) => onChange(e.target.value)} />
-        <button type="button" className="btn gp-back tip" data-tip="Pick an existing group" title="Pick an existing group" onClick={() => { setCreating(false); onChange(""); }}><Icon name="chevronLeft" /></button>
+        <input autoFocus placeholder="新分组名称" value={value} onChange={(e) => onChange(e.target.value)} />
+        <button type="button" className="btn gp-back tip" data-tip="选择已有分组" title="选择已有分组" onClick={() => { setCreating(false); onChange(""); }}><Icon name="chevronLeft" /></button>
       </div>
     );
   }
@@ -564,9 +556,9 @@ function GroupPicker({ value, onChange, groups, allowCreate = true }: { value: s
         else onChange(e.target.value);
       }}
     >
-      <option value="">(ungrouped)</option>
+      <option value="">（未分组）</option>
       {groups.map((g) => <option key={g} value={g}>{g}</option>)}
-      {allowCreate && <option value="__new__">➕ New group…</option>}
+      {allowCreate && <option value="__new__">➕ 新建分组…</option>}
     </select>
   );
 }
@@ -577,54 +569,16 @@ function PlatformPicker({ value, onChange }: { value: string; onChange: (v: stri
   if (creating || (!!value && !known)) {
     return (
       <div className="grouppick">
-        <input autoFocus placeholder="new platform (e.g. linkedin.com)" value={value} onChange={(e) => onChange(e.target.value)} />
-        <button type="button" className="btn gp-back tip" data-tip="Pick a known platform" title="Pick a known platform" onClick={() => { setCreating(false); onChange(""); }}><Icon name="chevronLeft" /></button>
+        <input autoFocus placeholder="新平台（例如 linkedin.com）" value={value} onChange={(e) => onChange(e.target.value)} />
+        <button type="button" className="btn gp-back tip" data-tip="选择已知平台" title="选择已知平台" onClick={() => { setCreating(false); onChange(""); }}><Icon name="chevronLeft" /></button>
       </div>
     );
   }
   return (
     <select value={value} onChange={(e) => { if (e.target.value === "__new__") { setCreating(true); onChange(""); } else onChange(e.target.value); }}>
       {KNOWN_PLATFORMS.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-      <option value="__new__">➕ New platform…</option>
+      <option value="__new__">➕ 新建平台…</option>
     </select>
-  );
-}
-
-function ModeSwitchConfirmation({
-  mode,
-  busy,
-  error,
-  onConfirm,
-  onCancel,
-}: {
-  mode: "local" | "cloud";
-  busy: boolean;
-  error: string | null;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  const toLocal = mode === "local";
-  return (
-    <div className="modal-backdrop" onClick={onCancel}>
-      <div className="modal mode-confirm" role="dialog" aria-modal="true" aria-labelledby="mode-confirm-title" onClick={(event) => event.stopPropagation()}>
-        <div className="modal-head" id="mode-confirm-title">Switch to {toLocal ? "Local" : "Cloud"}?</div>
-        <div className="modal-body">
-          <p>
-            {toLocal
-              ? "Cloud profiles will not appear until you switch back. Local mode does not contact AliasMode Cloud."
-              : "Your Local profiles stay on this computer. AliasMode does not upload them to Cloud automatically."}
-          </p>
-          <p className="hint">AliasMode saves and closes active browsers, then restarts automatically.</p>
-          {error && <div className="modal-err" role="alert">{error}</div>}
-        </div>
-        <div className="modal-foot">
-          <button className="btn ghost" type="button" disabled={busy} onClick={onCancel}>Cancel</button>
-          <button className="btn primary" type="button" disabled={busy} onClick={onConfirm}>
-            {busy ? "Switching…" : `Switch to ${toLocal ? "Local" : "Cloud"}`}
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -665,8 +619,8 @@ function CopyField({ label, value, onChange }: { label: string; value: string; o
         <button
           type="button"
           className={`inline-action tip${copied ? " ok" : ""}`}
-          data-tip={copied ? "Copied" : `Copy ${label.toLowerCase()}`}
-          aria-label={`Copy ${label}`}
+          data-tip={copied ? "已复制" : `复制${label}`}
+          aria-label={`复制${label}`}
           onClick={copy}
         >
           <Icon name={copied ? "check" : "copy"} className="sm" />
@@ -677,16 +631,16 @@ function CopyField({ label, value, onChange }: { label: string; value: string; o
 }
 
 const AUTOMATIC_FINGERPRINT_FIELDS = [
-  ["User agent", "Automatic"],
-  ["Browser version", "Automatic · latest installed"],
-  ["Operating system", "Automatic"],
-  ["GPU", "Automatic"],
-  ["CPU", "Automatic"],
-  ["RAM", "Automatic"],
-  ["Fingerprint seed", "Automatic · unique and stable"],
-  ["Timezone", "Stored · set from proxy on request"],
-  ["Canvas / WebGL / audio", "Automatic"],
-  ["WebRTC", "Automatic · proxy-aware"],
+  ["用户代理", "自动"],
+  ["浏览器版本", "自动 · 使用已安装的最新版"],
+  ["操作系统", "自动"],
+  ["GPU", "自动"],
+  ["CPU", "自动"],
+  ["内存", "自动"],
+  ["Fingerprint seed", "自动 · 唯一且稳定"],
+  ["时区", "已保存 · 可按代理设置"],
+  ["Canvas / WebGL / 音频", "自动"],
+  ["WebRTC", "自动 · 感知代理"],
 ] as const;
 
 function FingerprintSettings({
@@ -701,18 +655,18 @@ function FingerprintSettings({
   return (
     <details className="fingerprint-settings">
       <summary>
-        <span>Fingerprint settings</span>
-        <span className="automatic-badge">Automatic</span>
+        <span>指纹设置</span>
+        <span className="automatic-badge">自动</span>
       </summary>
       <div className="fingerprint-grid">
         <label className="fld">
-          <span>Browser</span>
-          <input value={engine === "firefox" ? "AliasMode Firefox" : "CloakBrowser"} readOnly tabIndex={-1} className="ro" />
+          <span>浏览器</span>
+          <input value={engine === "firefox" ? "AliasMode Firefox" : "Chromium（实验兼容内核）"} readOnly tabIndex={-1} className="ro" />
         </label>
         {engine === "chromium" && (
           <label className="fld">
-            <span>Screen</span>
-            <input value={screen} placeholder="Automatic · e.g. 1920x1080" onChange={(event) => onScreenChange(event.target.value)} />
+            <span>屏幕</span>
+            <input value={screen} placeholder="自动 · 例如 1920x1080" onChange={(event) => onScreenChange(event.target.value)} />
           </label>
         )}
         {AUTOMATIC_FINGERPRINT_FIELDS.map(([label, value]) => (
@@ -722,8 +676,8 @@ function FingerprintSettings({
           </label>
         ))}
         <div className="hint">{engine === "firefox"
-          ? "AliasMode Firefox uses its native profile. CDP, PDF, and Chrome extensions are unavailable."
-          : "CloakBrowser keeps the locked values coordinated. Screen is the only fingerprint setting you can override."}</div>
+          ? "AliasMode Firefox 使用原生资料，不支持 CDP、PDF 和 Chrome 扩展。"
+          : "Chromium（实验兼容内核）会协调锁定的指纹值；屏幕尺寸是唯一可覆盖的指纹设置。"}</div>
       </div>
     </details>
   );
@@ -798,7 +752,7 @@ function isUpdateHighlights(value: unknown): value is string[] {
 }
 
 function parseDesktopUpdateStatus(value: unknown): DesktopUpdateStatus {
-  if (!value || typeof value !== "object") throw new Error("AliasMode returned an invalid update status.");
+  if (!value || typeof value !== "object") throw new Error("IDFRI returned an invalid update status.");
   const status = value as Record<string, unknown>;
   if (status.state === "upToDate" && typeof status.currentVersion === "string") {
     return { state: "upToDate", currentVersion: status.currentVersion };
@@ -816,11 +770,11 @@ function parseDesktopUpdateStatus(value: unknown): DesktopUpdateStatus {
       highlights: status.highlights,
     };
   }
-  throw new Error("AliasMode returned an invalid update status.");
+  throw new Error("IDFRI returned an invalid update status.");
 }
 
 function parseDesktopUpdateMessage(value: unknown): DesktopUpdateMessage {
-  if (!value || typeof value !== "object") throw new Error("AliasMode returned invalid update progress.");
+  if (!value || typeof value !== "object") throw new Error("IDFRI returned invalid update progress.");
   const progress = value as Record<string, unknown>;
   if (progress.phase === "ready" && typeof progress.version === "string" && isUpdateHighlights(progress.highlights)) {
     return { phase: "ready", version: progress.version, highlights: progress.highlights };
@@ -840,7 +794,7 @@ function parseDesktopUpdateMessage(value: unknown): DesktopUpdateMessage {
   ) {
     return { phase: "downloading", percent: progress.percent as number | null };
   }
-  throw new Error("AliasMode returned invalid update progress.");
+  throw new Error("IDFRI 返回了无效的更新进度。");
 }
 
 function desktopInvoke(): DesktopInvoke | undefined {
@@ -851,7 +805,7 @@ function UpdateHighlights({ version, highlights }: { version: string; highlights
   if (highlights.length === 0) return null;
   return (
     <details className="update-highlights">
-      <summary>What’s new in {version}</summary>
+      <summary>{version} 更新内容</summary>
       <ul>{highlights.map((highlight) => <li key={highlight}>{highlight}</li>)}</ul>
     </details>
   );
@@ -860,18 +814,18 @@ function UpdateHighlights({ version, highlights }: { version: string; highlights
 function DesktopUpdateProgressView({ progress }: { progress: DesktopUpdateProgress }) {
   const percent = progress.phase === "downloading" ? progress.percent : null;
   const label = progress.phase === "preparing"
-    ? "Preparing update…"
+    ? "正在准备更新…"
     : progress.phase === "downloading"
-      ? percent === null ? "Downloading update…" : `Downloading update… ${percent}%`
+      ? percent === null ? "正在下载更新…" : `正在下载更新… ${percent}%`
       : progress.phase === "verifying"
-        ? "Verifying update…"
+        ? "正在验证更新…"
         : progress.phase === "closingBrowsers"
-          ? "Saving and closing browsers…"
-          : "Installing and restarting…";
+          ? "正在保存并关闭浏览器…"
+          : "正在安装并重启…";
   return (
     <div className="update-progress" role="status">
       <span>{label}</span>
-      <progress max={100} value={percent ?? undefined} aria-label="Update progress" />
+      <progress max={100} value={percent ?? undefined} aria-label="更新进度" />
     </div>
   );
 }
@@ -916,7 +870,6 @@ const BLANK_FORM = {
 };
 
 const BLANK_COOKIE_FORM = { name: "", value: "", domain: "", path: "/" };
-const PROXY_PROVIDER_URL = "https://nobleproxy.com/t/aliasmode";
 
 type ProxyCheckUiState = {
   checking: boolean;
@@ -926,87 +879,60 @@ type ProxyCheckUiState = {
 
 const EMPTY_PROXY_CHECK: ProxyCheckUiState = { checking: false, result: null, error: null };
 
-function ProxyProviderOffer({ replacement = false }: { replacement?: boolean }) {
-  return (
-    <div className="proxy-referral">
-      <strong>{replacement
-        ? "This proxy is unstable. View recommended replacements."
-        : "Need a proxy? Get one from our recommended provider."}</strong>
-      <a
-        href={PROXY_PROVIDER_URL}
-        target="_blank"
-        rel="noreferrer"
-        aria-label="View recommended proxies at NobleProxy (opens externally)"
-      >
-        {replacement ? "View replacements" : "View provider"} <span aria-hidden="true">↗</span>
-      </a>
-    </div>
-  );
-}
-
 function proxyFailureMessage(reason: ProxyCheckResult["reason"]): string {
-  if (reason === "authentication_failed") return "Proxy authentication failed.";
-  if (reason === "timeout") return "Proxy connection timed out.";
-  if (reason === "dns_failed") return "Proxy host could not be resolved.";
-  if (reason === "unreachable") return "Proxy server is unreachable.";
-  if (reason === "proxy_bypassed") return "Traffic did not use this proxy.";
-  return "Proxy connection failed.";
+  if (reason === "authentication_failed") return "代理身份验证失败。";
+  if (reason === "timeout") return "代理连接超时。";
+  if (reason === "dns_failed") return "无法解析代理主机。";
+  if (reason === "unreachable") return "无法连接代理服务器。";
+  if (reason === "proxy_bypassed") return "流量未经过此代理。";
+  return "代理连接失败。";
 }
 
 function ProxyCheckFeedback({ hasProxy, state }: { hasProxy: boolean; state: ProxyCheckUiState }) {
-  if (!hasProxy) return <ProxyProviderOffer />;
+  if (!hasProxy) return null;
   if (state.error) {
     const invalid = state.error === "invalid";
     return (
-      <>
-        <div className={`proxy-check-result ${invalid ? "failed" : "unavailable"}`} role="status">
-          <Icon name={invalid ? "alert" : "activity"} className="sm" />
-          <span>{invalid
-            ? "Proxy details are invalid. Check them and try again."
-            : "Proxy check is unavailable. Try again later."}</span>
-        </div>
-        {invalid && <ProxyProviderOffer replacement />}
-      </>
+      <div className={`proxy-check-result ${invalid ? "failed" : "unavailable"}`} role="status">
+        <Icon name={invalid ? "alert" : "activity"} className="sm" />
+        <span>{invalid
+          ? "代理信息无效，请检查后重试。"
+          : "代理检测暂不可用，请稍后重试。"}</span>
+      </div>
     );
   }
   const result = state.result;
   if (!result) return null;
   const location = [result.city, result.region, result.country].filter(Boolean).join(", ");
-  const exit = [result.ip ? `Exit IP: ${result.ip}` : "", location].filter(Boolean).join(" · ");
+  const exit = [result.ip ? `出口 IP：${result.ip}` : "", location].filter(Boolean).join(" · ");
   if (result.status === "working") {
     return (
       <div className="proxy-check-result working" role="status">
         <Icon name="check" className="sm" />
-        <span><strong>Proxy is working.</strong>{exit && <> {exit}.</>}{result.rotating && <> Rotating exit IPs detected.</>}</span>
+        <span><strong>代理可用。</strong>{exit && <> {exit}。</>}{result.rotating && <> 检测到轮换出口 IP。</>}</span>
       </div>
     );
   }
   if (result.status === "unstable") {
     return (
-      <>
-        <div className="proxy-check-result unstable" role="status">
-          <Icon name="warning" className="sm" />
-          <span><strong>Proxy checks were mixed.</strong> {result.successes} of {result.attempts} succeeded.</span>
-        </div>
-        <ProxyProviderOffer replacement />
-      </>
+      <div className="proxy-check-result unstable" role="status">
+        <Icon name="warning" className="sm" />
+        <span><strong>代理状态不稳定。</strong> {result.attempts} 次检测中有 {result.successes} 次成功。</span>
+      </div>
     );
   }
   if (result.status === "failed") {
     return (
-      <>
-        <div className="proxy-check-result failed" role="status">
-          <Icon name="alert" className="sm" />
-          <span>{proxyFailureMessage(result.reason)}</span>
-        </div>
-        <ProxyProviderOffer replacement />
-      </>
+      <div className="proxy-check-result failed" role="status">
+        <Icon name="alert" className="sm" />
+        <span>{proxyFailureMessage(result.reason)}</span>
+      </div>
     );
   }
   return (
     <div className="proxy-check-result unavailable" role="status">
       <Icon name="activity" className="sm" />
-      <span>Proxy check is unavailable. Try again later.</span>
+      <span>代理检测暂不可用，请稍后重试。</span>
     </div>
   );
 }
@@ -1019,7 +945,7 @@ function App() {
   const [modeErr, setModeErr] = useState<string | null>(null);
   const [restartRequired, setRestartRequired] = useState(false);
   // "profiles" is the roster; "settings" replaces it in the same content area
-  // rather than opening a dialog — Settings outgrew a modal. New profile and
+  // rather than opening a dialog — Settings outgrew a modal. New Profile and
   // Edit stay dialogs: short forms, and a page felt like too much ceremony.
   const [view, setView] = useState<"profiles" | "scripts" | "settings" | "extensions" | "proxies" | "trash">("profiles");
   const [scriptRunOpen, setScriptRunOpen] = useState(false);
@@ -1032,7 +958,6 @@ function App() {
   const [cloudEvents, setCloudEvents] = useState<CloudDiagnosticEvent[]>([]);
   const [cloudEventsBusy, setCloudEventsBusy] = useState(false);
   const [cloudEventsErr, setCloudEventsErr] = useState<string | null>(null);
-  const [pendingMode, setPendingMode] = useState<"local" | "cloud" | null>(null);
   const [cloudAuth, setCloudAuth] = useState<CloudAuthState | null>(null);
   const [savedSessionPhase, setSavedSessionPhase] = useState<SavedSessionPhase>("restoring");
   const [scheduledRefreshPending, setScheduledRefreshPending] = useState(false);
@@ -1204,7 +1129,6 @@ function App() {
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      if (pendingMode) { if (!modeBusy) setPendingMode(null); return; }
       if (logView || logErr) { setLogView(null); setLogErr(null); return; }
       if (showUpdate) { setShowUpdate(false); return; }
       if (showBulk) { closeBulk(); return; }
@@ -1339,7 +1263,7 @@ function App() {
       typeof created.url !== "string" || !created.url ||
       typeof created.token !== "string" || !created.token
     ) {
-      throw new Error("AliasMode Cloud returned invalid Remote MCP settings.");
+      throw new Error("IDFRI Cloud returned invalid Remote MCP settings.");
     }
     try {
       await storeDesktopRemoteMcpCredential({
@@ -1508,19 +1432,6 @@ function App() {
       return false;
     } finally {
       setModeBusy(false);
-    }
-  };
-
-  const requestModeSwitch = (mode: "local" | "cloud") => {
-    setModeErr(null);
-    setPendingMode(mode);
-  };
-
-  const confirmModeSwitch = async () => {
-    if (!pendingMode) return;
-    if (await chooseMode(pendingMode)) {
-      setPendingMode(null);
-      closeAccountSettings();
     }
   };
 
@@ -2658,7 +2569,7 @@ function App() {
     if (!ids.length) return;
     if (!confirm(
       `Convert ${ids.length} selected mobile persona(s) to stable desktop personas?\n\n` +
-      "Account data, sessions, proxies, timezones and fingerprint seeds are preserved. Android keeps the Windows desktop family used by older AliasMode; iPhone/iPad keeps macOS. A website may request device verification on first launch.",
+      "Account data, sessions, proxies, timezones and fingerprint seeds are preserved. Android keeps the Windows desktop family used by older IDFRI; iPhone/iPad keeps macOS. A website may request device verification on first launch.",
     )) return;
     setActionErr(null);
     setBusy((b) => { const n = { ...b }; ids.forEach((id) => (n[id] = true)); return n; });
@@ -2794,13 +2705,13 @@ function App() {
       <>
         <main className="onboarding">
         <section className="onboarding-card" aria-labelledby="onboarding-title">
-          <div className="onboarding-brand"><AliasLoop />AliasMode <span>by Xreacher</span></div>
+          <div className="onboarding-brand"><BrandMark />IDFRI</div>
           {restartRequired ? (
             <>
-              <h1 id="onboarding-title">Your mode is ready</h1>
-              <p>Quit and reopen AliasMode to start in {appMode?.mode === "cloud" ? "Cloud" : "Local"} mode.</p>
+              <h1 id="onboarding-title">本地模式已就绪</h1>
+              <p>请退出并重新打开 IDFRI。</p>
               {modeErr && <div className="mode-error" role="alert">{modeErr}</div>}
-              <button className="mode-primary" type="button" onClick={() => window.close()}>Quit AliasMode</button>
+              <button className="mode-primary" type="button" onClick={() => window.close()}>退出 IDFRI</button>
             </>
           ) : appMode?.mode === "cloud" ? (
             cloudAuth?.authenticated ? (
@@ -2834,13 +2745,13 @@ function App() {
                 <p>The saved session is still on this device. Reconnect and try again.</p>
                 {authErr && <div className="mode-error" role="alert">{authErr}</div>}
                 <div className="auth-actions">
-                  <button className="mode-primary" type="button" disabled={authBusy} onClick={() => void restoreSavedSession(true)}>Try again</button>
+                  <button className="mode-primary" type="button" disabled={authBusy} onClick={() => void restoreSavedSession(true)}>重试</button>
                   <button className="mode-secondary" type="button" disabled={authBusy} onClick={() => void signInInstead()}>Sign in instead</button>
                 </div>
               </>
             ) : (
               <>
-                <h1 id="onboarding-title">{authView === "signin" ? "Sign in to AliasMode Cloud" : "Create your Cloud account"}</h1>
+                <h1 id="onboarding-title">{authView === "signin" ? "Sign in to IDFRI Cloud" : "Create your Cloud account"}</h1>
                 <p>Verified accounts can synchronize portable profiles across authorized devices.</p>
                 <form className="auth-form" onSubmit={(event) => { event.preventDefault(); void submitCloudAuth(); }}>
                   <label>Email<input type="email" autoComplete="email" required value={authEmail} onChange={(event) => setAuthEmail(event.target.value)} /></label>
@@ -2864,40 +2775,26 @@ function App() {
             )
           ) : appMode ? (
             <>
-              <h1 id="onboarding-title">How do you want to use AliasMode?</h1>
-              <p>Choose where browser profiles live for this installation.</p>
+              <h1 id="onboarding-title">开始使用 IDFRI</h1>
+              <p>本版本仅在本机保存浏览器资料，不使用云端服务。</p>
               <div className="mode-options">
-                <button className="mode-option primary" type="button" disabled={modeBusy} onClick={() => chooseMode("cloud")}>
-                  <span className="badge"><Icon name="cloud" className="lg" /></span>
-                  <strong>AliasMode Cloud</strong>
-                  <span>Sync profiles across authorized devices and work with your team.</span>
-                </button>
-                <button className="mode-option" type="button" disabled={modeBusy} onClick={() => chooseMode("local")}>
+                <button className="mode-option primary" type="button" disabled={modeBusy} onClick={() => chooseMode("local")}>
                   <span className="badge"><Icon name="laptop" className="lg" /></span>
-                  <strong>AliasMode Local</strong>
-                  <span>No account. Profile data stays on this computer and analytics is off.</span>
+                  <strong>IDFRI 本地版</strong>
+                  <span>无需账号，资料仅保存在这台电脑上，默认关闭分析统计。</span>
                 </button>
               </div>
               {modeErr && <div className="mode-error" role="alert">{modeErr}</div>}
             </>
           ) : (
             <>
-              <h1 id="onboarding-title">Starting AliasMode</h1>
-              <p>{connErr ?? "Loading your configuration…"}</p>
-              {connErr && <button className="mode-primary" type="button" onClick={() => window.location.reload()}>Try again</button>}
+              <h1 id="onboarding-title">正在启动 IDFRI</h1>
+              <p>{connErr ?? "正在加载本地配置…"}</p>
+              {connErr && <button className="mode-primary" type="button" onClick={() => window.location.reload()}>重试</button>}
             </>
           )}
           </section>
         </main>
-        {pendingMode && (
-          <ModeSwitchConfirmation
-            mode={pendingMode}
-            busy={modeBusy}
-            error={modeErr}
-            onConfirm={() => void confirmModeSwitch()}
-            onCancel={() => { if (!modeBusy) setPendingMode(null); }}
-          />
-        )}
       </>
     );
   }
@@ -2949,7 +2846,7 @@ function App() {
       {!isCloudMode && dragging && (
         <div className="dropzone">
           <Icon name="fileImport" />
-          <span>Drop TXT, CSV, JSON, or XLSX profile exports to import</span>
+          <span>拖放 TXT、CSV、JSON 或 XLSX 文件以导入资料</span>
         </div>
       )}
 
@@ -2959,8 +2856,8 @@ function App() {
           <button
             type="button"
             className="rail-toggle tip"
-            data-tip={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            data-tip={sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"}
+            aria-label={sidebarCollapsed ? "展开侧边栏" : "收起侧边栏"}
             aria-expanded={!sidebarCollapsed}
             onClick={toggleSidebar}
           >
@@ -2968,82 +2865,82 @@ function App() {
           </button>
         )}
         <div className="brandrow">
-          <div className="brand"><AliasLoop />AliasMode</div>
+          <div className="brand"><BrandMark />IDFRI</div>
           {appVersion && <span className="appversion" title={appVersion}>{appVersion}</span>}
         </div>
         <div className="newrow">
-          <button className="btn primary newbtn" data-tip="New profile" title="New profile" disabled={!canEditCloud} onClick={openCreate}>
-            <Icon name="plus" /><span className="navlabel">New Profile</span>
+          <button className="btn primary newbtn" data-tip="新建资料" title="新建资料" disabled={!canEditCloud} onClick={openCreate}>
+            <Icon name="plus" /><span className="navlabel">新建资料</span>
           </button>
           <button
             className="btn importbtn tip"
-            data-tip="Import from file"
+            data-tip="从文件导入"
             disabled={!canEditCloud}
-            title="Import profiles from TXT, CSV, JSON, or XLSX"
+            title="从 TXT、CSV、JSON 或 XLSX 导入资料"
             onClick={openBulk}
           ><Icon name="fileImport" /></button>
         </div>
 
-        <nav className="sidenav" aria-label="Sections">
+        <nav className="sidenav" aria-label="功能导航">
           <button
             type="button"
             className={`navitem${view === "profiles" && group === "all" ? " active" : ""}`}
-            data-tip="All profiles"
-            title="All profiles"
+            data-tip="全部资料"
+            title="全部资料"
             onClick={() => { setView("profiles"); setGroup("all"); }}
           >
-            <Icon name="profiles" /><span className="navlabel">All profiles</span>
+            <Icon name="profiles" /><span className="navlabel">全部资料</span>
             <span className="cnt">{profiles.length}</span>
           </button>
           {!appMode?.legacyRemote && <>
-            <button type="button" className={`navitem${view === "proxies" ? " active" : ""}`} data-tip="Proxies" title="Proxies" onClick={() => setView("proxies")}>
-              <Icon name="activity" /><span className="navlabel">Proxies</span>
+            <button type="button" className={`navitem${view === "proxies" ? " active" : ""}`} data-tip="代理" title="代理" onClick={() => setView("proxies")}>
+              <Icon name="activity" /><span className="navlabel">代理</span>
             </button>
-            <button type="button" className={`navitem${view === "trash" ? " active" : ""}`} data-tip="Trash" title="Trash" onClick={() => setView("trash")}>
-              <Icon name="trash" /><span className="navlabel">Trash</span>
+            <button type="button" className={`navitem${view === "trash" ? " active" : ""}`} data-tip="回收站" title="回收站" onClick={() => setView("trash")}>
+              <Icon name="trash" /><span className="navlabel">回收站</span>
             </button>
           </>}
           <button
             type="button"
             className={`navitem${view === "scripts" ? " active" : ""}`}
-            data-tip="Scripts"
-            title="Scripts"
+            data-tip="脚本"
+            title="脚本"
             onClick={() => setView("scripts")}
           >
-            <Icon name="file" /><span className="navlabel">Scripts</span>
+            <Icon name="file" /><span className="navlabel">脚本</span>
           </button>
           <button
             type="button"
             className={`navitem${view === "extensions" ? " active" : ""}`}
-            data-tip="Manage extensions"
-            title="Manage extensions"
+            data-tip="扩展管理"
+            title="扩展管理"
             onClick={() => { setExtErr(null); setView("extensions"); }}
           >
-            <Icon name="puzzle" /><span className="navlabel">Manage extensions</span>
+            <Icon name="puzzle" /><span className="navlabel">扩展管理</span>
             {extensions.length > 0 && <span className="cnt">{extensions.length}</span>}
           </button>
           <button
             type="button"
             className="navitem"
-            title="View detailed logs"
+            title="查看详细日志"
             onClick={() => {
               setLogErr(null);
               setLogView(null);
               fetchLogs().then(setLogView).catch((e) => setLogErr(e instanceof Error ? e.message : String(e)));
             }}
-          ><Icon name="logs" /><span className="navlabel">Logs</span></button>
+          ><Icon name="logs" /><span className="navlabel">日志</span></button>
         </nav>
 
         <div className="sidesection">
           <button className="sidehead" onClick={() => setGroupsOpen((o) => !o)}>
             <span className={`chev${groupsOpen ? " open" : ""}`}><Icon name="chevronRight" className="sm" /></span>
-            <span>{isCloudMode ? "Folders" : "Groups"}</span>
+            <span>{isCloudMode ? "文件夹" : "分组"}</span>
             <span className="grow" />
             <span className="cnt">{existingGroups.length}</span>
           </button>
           {groupsOpen && <>
             <div className="folders">
-            {existingGroups.length === 0 && <div className="folders-empty">No {isCloudMode ? "folders" : "groups"} yet</div>}
+            {existingGroups.length === 0 && <div className="folders-empty">暂无{isCloudMode ? "文件夹" : "分组"}</div>}
             {existingGroups.map((g) => (
               <div
                 key={g}
@@ -3088,7 +2985,7 @@ function App() {
               <div className="newgroup">
                 <input
                   autoFocus
-                  aria-label={isCloudMode ? "New folder name" : "New group name"}
+                  aria-label={isCloudMode ? "新文件夹名称" : "新分组名称"}
                   value={sidebarGroupName}
                   onChange={(event) => setSidebarGroupName(event.target.value)}
                   onKeyDown={(event) => {
@@ -3096,37 +2993,28 @@ function App() {
                     else if (event.key === "Escape") { setAddingGroup(false); setSidebarGroupName(""); }
                   }}
                 />
-                <button type="button" title="Create" onClick={() => void createSidebarGroup()}><Icon name="check" className="sm" /></button>
-                <button type="button" title="Cancel" onClick={() => { setAddingGroup(false); setSidebarGroupName(""); }}><Icon name="close" className="sm" /></button>
+                <button type="button" title="创建" onClick={() => void createSidebarGroup()}><Icon name="check" className="sm" /></button>
+                <button type="button" title="取消" onClick={() => { setAddingGroup(false); setSidebarGroupName(""); }}><Icon name="close" className="sm" /></button>
               </div>
             ) : (
               <button className="newgroup" type="button" disabled={!canEditCloud} onClick={() => setAddingGroup(true)}>
-                <Icon name="plus" className="sm" />{isCloudMode ? "New folder" : "New group"}
+                <Icon name="plus" className="sm" />{isCloudMode ? "新建文件夹" : "新建分组"}
               </button>
             )}
           </>}
         </div>
 
         <div className="sidefoot">
-          <a
-            className="navitem"
-            href="https://t.me/aliasmode"
-            target="_blank"
-            rel="noreferrer"
-            data-tip="Support"
-            title="Support — AliasMode Telegram group"
-          >
-            <Icon name="help" /><span className="navlabel">Support</span>
+          <a className="navitem" href="https://github.com/16188/aliasmode/issues" target="_blank" rel="noreferrer" data-tip="支持" title="IDFRI GitHub Issues">
+            <Icon name="help" /><span className="navlabel">支持</span>
           </a>
-          <button type="button" className={`navitem${view === "settings" ? " active" : ""}`} data-tip="Settings" title="Settings" onClick={openAccountSettings}>
-            <Icon name="settings" /><span className="navlabel">Settings</span>
+          <button type="button" className={`navitem${view === "settings" ? " active" : ""}`} data-tip="设置" title="设置" onClick={openAccountSettings}>
+            <Icon name="settings" /><span className="navlabel">设置</span>
           </button>
           <div className="sidecredit">
-            {/* Only the name is a link, and it points at its owner: "Developed by
-                Xreacher" goes to Xreacher, not to AliasMode. The project's own
-                links are the GitHub and Telegram marks beside it. */}
+            {/* The author link and the project's GitHub link are intentionally separate. */}
             <span className="watermark">
-              Developed by
+              开发者
               <a href="https://xreacher.com/" target="_blank" rel="noreferrer" title="xreacher.com">Xreacher</a>
             </span>
             <div className="projectlinks">
@@ -3138,13 +3026,13 @@ function App() {
                   target="_blank"
                   rel="noreferrer"
                   data-tip={link.label}
-                  aria-label={`AliasMode on ${link.label}`}
+                  aria-label={`IDFRI on ${link.label}`}
                 >
                   <svg className="brandmark" viewBox="0 0 24 24" aria-hidden="true"><path d={link.path} /></svg>
                 </a>
               ))}
             </div>
-            <p className="footer-mark" aria-hidden="true">AliasMode</p>
+            <p className="footer-mark" aria-hidden="true">IDFRI</p>
           </div>
         </div>
         {modeErr && <div className="mode-error" role="alert">{modeErr}</div>}
@@ -3170,13 +3058,13 @@ function App() {
             <button
               type="button"
               className={`iconbtn tip${nodesOpen ? " on" : ""}`}
-              data-tip="Automation nodes"
-              aria-label="Automation node freshness"
+              data-tip="自动化节点"
+              aria-label="自动化节点状态"
               onClick={() => setNodesOpen((o) => !o)}
             ><Icon name="activity" /></button>
             {nodesOpen && (
               <div className="popover below-right">
-                <div className="pop-head">Automation nodes</div>
+                <div className="pop-head">自动化节点</div>
                 <HealthSources sources={healthSources} />
               </div>
             )}
@@ -3185,8 +3073,8 @@ function App() {
           <button
             type="button"
             className="iconbtn tip"
-            data-tip="Refresh"
-            aria-label="Refresh profiles"
+            data-tip="刷新"
+            aria-label="刷新资料"
             disabled={refreshing}
             onClick={() => void refreshRoster()}
           ><Icon name="refresh" /></button>
@@ -3194,13 +3082,13 @@ function App() {
             <button
               type="button"
               className={`iconbtn tip${colsOpen ? " on" : ""}`}
-              data-tip="Columns"
-              aria-label="Choose visible columns"
+              data-tip="列"
+              aria-label="选择显示列"
               onClick={() => setColsOpen((o) => !o)}
             ><Icon name="columns" /></button>
             {colsOpen && (
               <div className="popover below-right">
-                <div className="pop-head">Visible columns</div>
+                <div className="pop-head">显示列</div>
                 {COLUMNS.map((column) => (
                   <label className="pop-item" key={column.key}>
                     <input type="checkbox" checked={columnVisible(column.key)} onChange={() => toggleColumn(column.key)} />
@@ -3214,14 +3102,14 @@ function App() {
           <button
             className="account-button"
             type="button"
-            aria-label="Open Account and Settings"
-            title="Account & Settings"
+            aria-label="打开账号与设置"
+            title="账号与设置"
             onClick={openAccountSettings}
           >
             <span className="avatar"><Icon name="user" /></span>
             <span className="who">
-              <b>{isCloudMode ? cloudAuth?.user?.email ?? "Cloud account" : "Local workspace"}</b>
-              <span>{isCloudMode ? cloudAuth?.workspace?.role ?? "member" : "No account"}</span>
+              <b>{isCloudMode ? cloudAuth?.user?.email ?? "Cloud account" : "本地工作区"}</b>
+              <span>{isCloudMode ? cloudAuth?.workspace?.role ?? "member" : "无需账号"}</span>
             </span>
             <Icon name="chevronRight" className="sm" />
           </button>
@@ -3232,7 +3120,7 @@ function App() {
         <div className="error">
           <Icon name="alert" />
           <span>{actionErr ?? connErr}</span>
-          <button className="dismiss" aria-label="Dismiss error" onClick={() => { setActionErr(null); setConnErr(null); }}>
+          <button className="dismiss" aria-label="关闭错误提示" onClick={() => { setActionErr(null); setConnErr(null); }}>
             <Icon name="close" className="sm" />
           </button>
         </div>
@@ -3246,8 +3134,8 @@ function App() {
         <div className="notice" role="status">
           <Icon name="export" className="sm" />
           {exportProgress.completed >= exportProgress.total
-            ? "Building export file…"
-            : `Preparing export: ${exportProgress.completed.toLocaleString()} / ${exportProgress.total.toLocaleString()} profiles`}
+            ? "正在生成导出文件…"
+            : `正在准备导出：${exportProgress.completed.toLocaleString()} / ${exportProgress.total.toLocaleString()} 个资料`}
         </div>
       )}
       {desktopUpdateResultSummary && !desktopUpdateResultDismissed && (
@@ -3263,7 +3151,7 @@ function App() {
           <button
             className="update-result-dismiss"
             type="button"
-            aria-label="Dismiss last update result"
+            aria-label="关闭更新结果"
             onClick={() => setDesktopUpdateResultDismissed(true)}
           >
             <Icon name="close" className="sm" />
@@ -3274,13 +3162,13 @@ function App() {
         <div className="update-banner">
           <Icon name="import" />
           <div className="update-copy">
-            <span role="status"><strong>AliasMode {desktopUpdate.version} is available.</strong> The update will save active browsers and restart the app.</span>
+            <span role="status"><strong>IDFRI {desktopUpdate.version} 可用。</strong>更新会保存并关闭活动浏览器，然后重启应用。</span>
             <UpdateHighlights version={desktopUpdate.version} highlights={desktopUpdate.highlights} />
             {desktopUpdateProgress && <DesktopUpdateProgressView progress={desktopUpdateProgress} />}
             {desktopUpdateErr && <span className="modal-err" role="alert">{desktopUpdateErr}</span>}
           </div>
           <button className="btn primary" type="button" disabled={desktopUpdateChecking || desktopUpdateInstalling} onClick={() => void installDesktopUpdate()}>
-            {desktopUpdateInstalling ? "Updating…" : "Update now"}
+            {desktopUpdateInstalling ? "正在更新…" : "立即更新"}
           </button>
         </div>
       )}
@@ -3296,33 +3184,33 @@ function App() {
         <div className="filterbar">
           <select
             className="select group-filter"
-            aria-label={isCloudMode ? "Folder filter" : "Group filter"}
+            aria-label={isCloudMode ? "文件夹筛选" : "分组筛选"}
             value={group}
             onChange={(e) => setGroup(e.target.value)}
           >
-            <option value="all">All {isCloudMode ? "folders" : "groups"}</option>
+            <option value="all">全部{isCloudMode ? "文件夹" : "分组"}</option>
             {existingGroups.map((g) => <option key={g} value={g}>{g}</option>)}
           </select>
           <div className="searchfield">
             <Icon name="search" className="sm" />
             <input
               className="input search"
-              placeholder="Search by No., id or name…"
-              aria-label="Search profiles"
+              placeholder="按编号、ID 或名称搜索…"
+              aria-label="搜索资料"
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
-            {q && <button type="button" className="clear" aria-label="Clear search" onClick={() => setQ("")}><Icon name="close" className="sm" /></button>}
+            {q && <button type="button" className="clear" aria-label="清除搜索" onClick={() => setQ("")}><Icon name="close" className="sm" /></button>}
           </div>
         </div>
 
         {filtered.length > 0 && (
           <div className="toolbar" role="status">
             <button type="button" className="btn" disabled={deleting || allFilteredSelected} onClick={selectAllFiltered}>
-              {allFilteredSelected ? `All ${selectionScope} selected` : `Select all ${selectionScope}`}
+              {allFilteredSelected ? `已选择全部${selectionScope}` : `选择全部${selectionScope}`}
             </button>
-            <span className="muted">{deleting ? "Moving selected profiles…" : "Across all pages"}</span>
-            {!allFilteredSelected && selectedOutsideFilter > 0 && <span className="muted">This replaces your selection, excluding {selectedOutsideFilter} outside this view.</span>}
+            <span className="muted">{deleting ? "正在移动所选资料…" : "跨全部页面"}</span>
+            {!allFilteredSelected && selectedOutsideFilter > 0 && <span className="muted">这会替换当前选择，并排除此视图外的 {selectedOutsideFilter} 项。</span>}
           </div>
         )}
 
@@ -3332,14 +3220,14 @@ function App() {
         <div className="toolbar active">
           <span className="selcount">
             <Icon name="check" className="sm" />
-            {selected.size} selected
+            已选择 {selected.size} 项
           </span>
-          <button type="button" className="btn ghost" aria-label="Clear selection" onClick={() => setSelected(new Set())}>Clear selection</button>
-          <button className="btn primary tip" data-tip="Open selected browsers" disabled={!selected.size} onClick={openSelected}>
-            <Icon name="play" className="sm" />Open
+          <button type="button" className="btn ghost" aria-label="清除选择" onClick={() => setSelected(new Set())}>清除选择</button>
+          <button className="btn primary tip" data-tip="打开所选浏览器" disabled={!selected.size} onClick={openSelected}>
+            <Icon name="play" className="sm" />打开
           </button>
-          <button className="btn solid-danger tip" data-tip="Close selected browsers" disabled={!selected.size} onClick={closeSelected}>
-            <Icon name="power" className="sm" />Close
+          <button className="btn solid-danger tip" data-tip="关闭所选浏览器" disabled={!selected.size} onClick={closeSelected}>
+            <Icon name="power" className="sm" />关闭
           </button>
           {(!isCloudMode || selectedEditable) && <>
           <button
@@ -3349,74 +3237,74 @@ function App() {
               setScriptRunProfiles(profiles.filter((profile) => selected.has(profile.id)));
               setScriptRunOpen(true);
             }}
-          ><Icon name="play" className="sm" />Run script</button>
+          ><Icon name="play" className="sm" />运行脚本</button>
           <span className="vsep" />
           {!isCloudMode && selectedMobileCount > 0 && (
             <button className="btn warn" onClick={convertSelectedMobile}>
-              <Icon name="laptop" className="sm" />Convert mobile ({selectedMobileCount})
+              <Icon name="laptop" className="sm" />转换移动端资料（{selectedMobileCount}）
             </button>
           )}
           {/* Export and file edits work in Cloud; mobile conversion remains Local-only. */}
           <div className="menuwrap" ref={exportRef}>
-            <button className="btn tip" data-tip="Export selected profiles" disabled={!selected.size || !!exportProgress} onClick={() => setExportOpen((o) => !o)}>
-              <Icon name="export" className="sm" />Export<Icon name="chevronDown" className="sm" />
+            <button className="btn tip" data-tip="导出所选资料" disabled={!selected.size || !!exportProgress} onClick={() => setExportOpen((o) => !o)}>
+              <Icon name="export" className="sm" />导出<Icon name="chevronDown" className="sm" />
             </button>
             {exportOpen && selected.size > 0 && !exportProgress && (
               <div className="exportmenu popover below-left" onMouseLeave={() => setExportOpen(false)}>
-                <button className="pop-item" onClick={() => exportSelected("csv")}><Icon name="file" className="sm" />Export as CSV (credentials)</button>
-                <button className="pop-item" onClick={() => exportSelected("txt")}><Icon name="file" className="sm" />Export as .txt (full profile)</button>
-                <button className="pop-item" onClick={() => exportSelected("xlsx")}><Icon name="file" className="sm" />Export as Excel (full profile)</button>
+                <button className="pop-item" onClick={() => exportSelected("csv")}><Icon name="file" className="sm" />导出为 CSV（账号凭据）</button>
+                <button className="pop-item" onClick={() => exportSelected("txt")}><Icon name="file" className="sm" />导出为 TXT（完整资料）</button>
+                <button className="pop-item" onClick={() => exportSelected("xlsx")}><Icon name="file" className="sm" />导出为 Excel（完整资料）</button>
               </div>
             )}
           </div>
-          <button className="btn tip" data-tip="Export → edit → re-upload" disabled={!selected.size || !!exportProgress} onClick={openUpdate} title="Export → edit → re-upload to change credentials in bulk">
-            <Icon name="edit" className="sm" />Edit from file
+          <button className="btn tip" data-tip="导出 → 编辑 → 重新上传" disabled={!selected.size || !!exportProgress} onClick={openUpdate} title="通过导出、编辑和重新上传批量修改资料">
+            <Icon name="edit" className="sm" />从文件编辑
           </button>
           <span className="vsep" />
           <div className="movewrap">
             {newMode ? (
-              <input className="input" autoFocus placeholder="new group name" value={newGroup} onChange={(e) => setNewGroup(e.target.value)} />
+              <input className="input" autoFocus placeholder="新分组名称" value={newGroup} onChange={(e) => setNewGroup(e.target.value)} />
             ) : (
               <select
                 className="select move-group"
-                aria-label="Move to group"
-                title={moveTarget || "Choose group"}
+                aria-label="移动到分组"
+                title={moveTarget || "选择分组"}
                 disabled={!selected.size}
                 value={moveTarget}
                 onChange={(e) => (e.target.value === "__new__" ? setNewMode(true) : setMoveTarget(e.target.value))}
               >
-                <option value="">Move to…</option>
+                <option value="">移动到…</option>
                 {editableGroups.map((g) => (
                   <option key={g} value={g}>{g}</option>
                 ))}
-                <option value="__new__">+ new group…</option>
+                <option value="__new__">+ 新建分组…</option>
               </select>
             )}
             {newMode && (
-              <button className="btn ghost" onClick={() => { setNewMode(false); setNewGroup(""); }}>cancel</button>
+              <button className="btn ghost" onClick={() => { setNewMode(false); setNewGroup(""); }}>取消</button>
             )}
             <button className="btn accent" disabled={!selected.size || (newMode ? !newGroup.trim() : !moveTarget)} onClick={moveSelected}>
-              <Icon name="move" className="sm" />Move
+              <Icon name="move" className="sm" />移动
             </button>
           </div>
           {!isCloudMode && extensions.length > 0 && selectedProfilesSupportChromeExtensions && (
             <>
               <span className="vsep" />
               <div className="extctl">
-                <span className="extctl-lbl"><Icon name="puzzle" className="sm" />Extension</span>
-                <select className="select extctl-sel" aria-label="Extension for bulk assignment" disabled={!selected.size} value={bulkExt} onChange={(e) => setBulkExt(e.target.value)}>
-                  <option value="">choose…</option>
+                <span className="extctl-lbl"><Icon name="puzzle" className="sm" />扩展</span>
+                <select className="select extctl-sel" aria-label="批量分配扩展" disabled={!selected.size} value={bulkExt} onChange={(e) => setBulkExt(e.target.value)}>
+                  <option value="">选择…</option>
                   {extensions.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
                 </select>
-                <button className="btn xs" disabled={!selected.size || !bulkExt} onClick={() => bulkAssignExt("add")}>Add</button>
-                <button className="btn xs" disabled={!selected.size || !bulkExt} onClick={() => bulkAssignExt("remove")}>Remove</button>
+                <button className="btn xs" disabled={!selected.size || !bulkExt} onClick={() => bulkAssignExt("add")}>添加</button>
+                <button className="btn xs" disabled={!selected.size || !bulkExt} onClick={() => bulkAssignExt("remove")}>移除</button>
               </div>
             </>
           )}
           <span className="spacer" />
           {(!isCloudMode || selectedEditable) && (
-            <button className="btn danger tip" data-tip={appMode?.legacyRemote ? "Delete selected profiles" : "Move selected profiles to Trash"} disabled={!selected.size || deleting} onClick={deleteSelected}>
-              <Icon name="trash" className="sm" />{deleting ? "Processing…" : appMode?.legacyRemote ? "Delete" : `Move ${selected.size.toLocaleString()} to Trash`}
+            <button className="btn danger tip" data-tip={appMode?.legacyRemote ? "删除所选资料" : "将所选资料移到回收站"} disabled={!selected.size || deleting} onClick={deleteSelected}>
+              <Icon name="trash" className="sm" />{deleting ? "正在处理…" : appMode?.legacyRemote ? "删除" : `将 ${selected.size.toLocaleString()} 项移到回收站`}
             </button>
           )}
           </>}
@@ -3431,7 +3319,7 @@ function App() {
             <thead>
               <tr>
                 <th className="chk" style={{ width: CHECKBOX_COLUMN_WIDTH }}>
-                  <input type="checkbox" aria-label="Select all visible profiles" checked={allVisibleSelected} onChange={toggleAll} />
+                  <input type="checkbox" aria-label="选择当前页全部资料" checked={allVisibleSelected} onChange={toggleAll} />
                 </th>
                 {shownColumns.map(columnHead)}
               </tr>
@@ -3449,11 +3337,11 @@ function App() {
                 return (
                 <tr key={p.id} className={`${p.running ? "running" : ""}${selected.has(p.id) ? " selected" : ""}`}>
                   <td className="chk">
-                    <input type="checkbox" aria-label={`Select ${p.name}`} checked={selected.has(p.id)} onChange={() => toggle(p.id)} />
+                    <input type="checkbox" aria-label={`选择 ${p.name}`} checked={selected.has(p.id)} onChange={() => toggle(p.id)} />
                   </td>
                   {columnVisible("no") && (
                     <td className="col-no">
-                      <span className={`no-text${no.custom ? " custom" : ""}`} title={`${no.custom ? "Custom NO." : "Serial"} ${no.value}`}>{no.value}</span>
+                      <span className={`no-text${no.custom ? " custom" : ""}`} title={`${no.custom ? "自定义编号" : "序号"} ${no.value}`}>{no.value}</span>
                     </td>
                   )}
                   {columnVisible("name") && (
@@ -3462,10 +3350,10 @@ function App() {
                         <span className="n">{p.name}<FingerprintBadge p={p} /></span>
                         <span className="sub">
                           {p.id}
-                          <span title={p.engine === "firefox" ? "Native Firefox profile · no CDP, PDF, or Chrome extensions" : "CloakBrowser · CDP, PDF, and Chrome extensions"}>
-                            {p.engine === "firefox" ? "AliasMode Firefox" : "CloakBrowser"}
+                          <span title={p.engine === "firefox" ? "原生 Firefox 资料 · 不支持 CDP、PDF 或 Chrome 扩展" : "Chromium（实验兼容内核）· 支持 CDP、PDF 和 Chrome 扩展"}>
+                            {p.engine === "firefox" ? "AliasMode Firefox" : "Chromium（实验兼容内核）"}
                           </span>
-                          {p.running && <span className="live"><StatusDot running />running</span>}
+                          {p.running && <span className="live"><StatusDot running />运行中</span>}
                           {p.lockedBy && (
                             <span className="lockedby" title={`in use by ${p.lockedBy}`}>
                               <Icon name="lock" className="sm" />{p.lockedBy}
@@ -3482,14 +3370,14 @@ function App() {
                   )}
                   {columnVisible("platform") && <td className="col-platform"><PlatformPill platform={p.platform} /></td>}
                   {columnVisible("tags") && (
-                    <td className="col-tags" title={p.tags?.length ? p.tags.join(", ") : "No tags"}>
+                    <td className="col-tags" title={p.tags?.length ? p.tags.join(", ") : "无标签"}>
                       {p.tags?.length ? p.tags.map((t) => <span key={t} className="chip">{t}</span>) : <span className="muted">—</span>}
                     </td>
                   )}
                   {columnVisible("proxy") && (
                     <td className="col-proxy" title={p.proxyError || p.proxy || "no proxy"}>
                       {p.proxyError
-                        ? <span className="proxy-cell bad"><Icon name="warning" className="sm" />invalid — edit</span>
+                        ? <span className="proxy-cell bad"><Icon name="warning" className="sm" />无效 — 请编辑</span>
                         : p.proxy
                           ? <span className="proxy-cell">{p.proxy}</span>
                           : <span className="muted">—</span>}
@@ -3501,15 +3389,15 @@ function App() {
                         {!isCloudMode && p.has2fa && (
                           <button
                             className={`iconbtn twofa tip${twoFaFlash?.id === p.id ? " flash" : ""}`}
-                            data-tip={twoFaFlash?.id === p.id ? `Copied ${twoFaFlash.code}` : "Copy current 2FA code"}
-                            aria-label="Copy current 2FA code"
+                            data-tip={twoFaFlash?.id === p.id ? `已复制 ${twoFaFlash.code}` : "复制当前 2FA 验证码"}
+                            aria-label="复制当前 2FA 验证码"
                             onClick={() => copy2fa(p.id)}
                           >
                             <Icon name={twoFaFlash?.id === p.id ? "check" : "key"} className="sm" />
                           </button>
                         )}
                         {canEditRow && (
-                          <button className="iconbtn tip" data-tip="Edit profile" aria-label={`Edit ${p.name}`} onClick={() => openEdit(p.id)}>
+                          <button className="iconbtn tip" data-tip="编辑资料" aria-label={`编辑 ${p.name}`} onClick={() => openEdit(p.id)}>
                             <Icon name="edit" className="sm" />
                           </button>
                         )}
@@ -3518,26 +3406,26 @@ function App() {
                             {p.engine === "chromium" && <>
                               <button
                                 className="iconbtn tip"
-                                data-tip="Add cookie"
-                                aria-label={`Add a cookie to ${p.name}`}
+                                data-tip="添加 Cookie"
+                                aria-label={`向 ${p.name} 添加 Cookie`}
                                 onClick={() => openCookie(p)}
                               ><Icon name="cookie" className="sm" /></button>
                               <button
                                 className="iconbtn tip"
-                                data-tip="Bring to front"
-                                aria-label="Bring this browser window to the front"
+                                data-tip="置于前台"
+                                aria-label="将浏览器窗口置于前台"
                                 disabled={busy[p.id]}
                                 onClick={() => act(p.id, raiseProfile)}
                               ><Icon name="raise" className="sm" /></button>
                             </>}
-                            <button className="btn sm solid-danger" aria-label={`Close ${p.name}`} disabled={busy[p.id]} onClick={() => act(p.id, closeProfile)}>
-                              <Icon name="power" className="sm" />Close
+                            <button className="btn sm solid-danger" aria-label={`关闭 ${p.name}`} disabled={busy[p.id]} onClick={() => act(p.id, closeProfile)}>
+                              <Icon name="power" className="sm" />关闭
                             </button>
                           </>
                         ) : p.mobilePersona ? (
                           !p.lockedBy && (!isCloudMode || p.permission === "edit") ? (
-                            <button className="btn sm warn" disabled={busy[p.id]} title="Convert this mobile persona to a desktop device" onClick={() => openEdit(p.id)}>
-                              <Icon name="laptop" className="sm" />Convert
+                            <button className="btn sm warn" disabled={busy[p.id]} title="将此移动端身份转换为桌面设备" onClick={() => openEdit(p.id)}>
+                              <Icon name="laptop" className="sm" />转换
                             </button>
                           ) : null
                         ) : p.parkedSession && p.permission === "edit" ? (
@@ -3553,22 +3441,22 @@ function App() {
                             </button>
                             <button
                               className="btn sm primary"
-                              aria-label={`Open ${p.name}`}
+                              aria-label={`打开 ${p.name}`}
                               disabled={busy[p.id]}
                               onClick={() => act(p.id, openProfile)}
                             >
-                              <Icon name="play" className="sm" />Open
+                              <Icon name="play" className="sm" />打开
                             </button>
                           </>
                         ) : (
                           <button
                             className="btn sm primary"
-                            aria-label={`Open ${p.name}`}
+                            aria-label={`打开 ${p.name}`}
                             title={p.lockedBy ? `Open — session writer: ${p.lockedBy}; this browser will not save its session back` : undefined}
                             disabled={busy[p.id]}
                             onClick={() => act(p.id, openProfile)}
                           >
-                            <Icon name="play" className="sm" />Open
+                            <Icon name="play" className="sm" />打开
                           </button>
                         )}
                       </span>
@@ -3584,19 +3472,19 @@ function App() {
                       <span className="glyph"><Icon name="profiles" /></span>
                       {profiles.length === 0 ? (
                         <>
-                          <b>No profiles yet</b>
+                          <b>暂无资料</b>
                           <p>
                             {isCloudMode
                               ? "No Cloud profiles yet — click New Profile to create one."
-                              : "No profiles yet — click New Profile, or drop a TXT, CSV, JSON, or XLSX profile export anywhere in this window."}
+                              : "暂无资料。点击“新建资料”，或将 TXT、CSV、JSON、XLSX 导出文件拖到此窗口。"}
                           </p>
-                          <button className="btn primary" disabled={!canEditCloud} onClick={openCreate}><Icon name="plus" className="sm" />New Profile</button>
+                          <button className="btn primary" disabled={!canEditCloud} onClick={openCreate}><Icon name="plus" className="sm" />新建资料</button>
                         </>
                       ) : (
                         <>
-                          <b>No matches</b>
-                          <p>No profiles match the current filters.</p>
-                          <button className="btn" onClick={() => { setQ(""); setGroup("all"); }}>Clear filters</button>
+                          <b>没有匹配项</b>
+                          <p>没有资料符合当前筛选条件。</p>
+                          <button className="btn" onClick={() => { setQ(""); setGroup("all"); }}>清除筛选</button>
                         </>
                       )}
                     </div>
@@ -3617,8 +3505,8 @@ function App() {
         )}
 
         <footer className="statusbar">
-          <span className="stat"><b>{profiles.length}</b> profiles</span>
-          <span className="stat"><StatusDot running={runningCount > 0} /><b>{runningCount}</b> running</span>
+          <span className="stat"><b>{profiles.length}</b> 个资料</span>
+          <span className="stat"><StatusDot running={runningCount > 0} /><b>{runningCount}</b> 个运行中</span>
           {diag && (
             <span className="diag" onClick={() => setShowDiag((s) => !s)}>
               Diagnose · last {diagWhen}
@@ -3629,19 +3517,19 @@ function App() {
             <button
               type="button"
               className="iconbtn"
-              aria-label="Previous page"
+              aria-label="上一页"
               disabled={visibleProfilePage === 0}
               onClick={() => setProfilePage(visibleProfilePage - 1)}
             ><Icon name="chevronLeft" className="sm" /></button>
-            <span className="page-of">Page <b>{visibleProfilePage + 1}</b> / {profilePageCount}</span>
+            <span className="page-of">第 <b>{visibleProfilePage + 1}</b> / {profilePageCount} 页</span>
             <button
               type="button"
               className="iconbtn"
-              aria-label="Next page"
+              aria-label="下一页"
               disabled={visibleProfilePage + 1 >= profilePageCount}
               onClick={() => setProfilePage(visibleProfilePage + 1)}
             ><Icon name="chevronRight" className="sm" /></button>
-            <select className="select" aria-label="Rows per page" value={pageSize} onChange={(e) => applyPageSize(Number(e.target.value))}>
+            <select className="select" aria-label="每页行数" value={pageSize} onChange={(e) => applyPageSize(Number(e.target.value))}>
               {PAGE_SIZES.map((size) => <option key={size} value={size}>{size} / page</option>)}
             </select>
           </span>
@@ -3652,45 +3540,45 @@ function App() {
       ) : view === "extensions" ? (
       <div className="workspace">
         <div className="settingspage">
-          <h2 className="sect-title">Extensions</h2>
+          <h2 className="sect-title">扩展</h2>
           {extErr && <div className="modal-err"><Icon name="alert" className="sm" />{extErr}</div>}
           <section className="settings-card">
-            <header><Icon name="puzzle" className="sm" /><h2>Install from Chrome Web Store</h2></header>
+            <header><Icon name="puzzle" className="sm" /><h2>从 Chrome 应用商店安装</h2></header>
             <div className="card-body">
-              <p>Paste a Chrome Web Store extension link or its 32-character ID.</p>
+              <p>粘贴 Chrome 应用商店扩展链接或 32 位扩展 ID。</p>
               <form className="fld-row" onSubmit={(event) => { event.preventDefault(); void doInstallWebStoreExtension(); }}>
                 <input
                   className="input"
                   style={{ flex: 1 }}
-                  aria-label="Chrome Web Store URL or extension ID"
+                  aria-label="Chrome 应用商店链接或扩展 ID"
                   placeholder="https://chromewebstore.google.com/detail/…"
                   value={extSource}
                   onChange={(event) => setExtSource(event.target.value)}
                 />
                 <button className="btn primary" type="submit" disabled={extInstallBusy || extBusy}>
-                  <Icon name="plus" className="sm" />{extInstallBusy ? "Installing…" : "Install"}
+                  <Icon name="plus" className="sm" />{extInstallBusy ? "安装中…" : "Install"}
                 </button>
               </form>
             </div>
           </section>
-          <p className="formnote">The in-browser Store button does not work in CloakBrowser. Paste the Store link above, or upload a ZIP/CRX archive. Chrome extensions apply only to CloakBrowser profiles.</p>
+          <p className="formnote">Chromium（实验兼容内核）中的应用商店按钮不可用。请在上方粘贴商店链接，或上传 ZIP/CRX 文件。Chrome 扩展仅适用于 Chromium 资料。</p>
           <ol className="steps">
-            <li>Install the extension here. New installs stay unassigned.</li>
-            <li>Use <b>Edit &gt; Extensions</b> to assign it to a profile{!isCloudMode && ", or assign many at once from the roster toolbar"}.</li>
-            <li>Reopen the profile. AliasMode loads the extension when the browser starts.</li>
+            <li>先在此安装扩展；新安装的扩展默认不分配。</li>
+            <li>在<b>编辑 → 扩展</b>中分配给资料{!isCloudMode && "，也可在资料工具栏中批量分配"}。</li>
+            <li>重新打开资料后，IDFRI 会在浏览器启动时加载扩展。</li>
           </ol>
           <section className="settings-card">
-            <header><Icon name="folder" className="sm" /><h2>Group defaults</h2></header>
+            <header><Icon name="folder" className="sm" /><h2>分组默认扩展</h2></header>
             <div className="card-body">
-              <p>Choose the exact extensions assigned to this group.</p>
+              <p>选择该分组默认分配的扩展。</p>
               {editableDefaultGroups.length === 0 ? (
-                <p className="formnote">Create an editable group before setting its extension defaults.</p>
+                <p className="formnote">请先创建分组，再设置默认扩展。</p>
               ) : (
                 <>
                   <label className="fld">
-                    <span>Group</span>
+                    <span>分组</span>
                     <select
-                      aria-label="Extension default group"
+                      aria-label="默认扩展分组"
                       value={groupDefaultName}
                       onChange={(event) => {
                         const name = event.target.value;
@@ -3710,12 +3598,12 @@ function App() {
                             checked={groupDefaultExts.includes(item.id)}
                             onChange={() => toggleGroupDefaultExt(item.id)}
                           />
-                          <span>{item.name}{item.missing && <span className="muted"> · Not installed on this device</span>}</span>
+                          <span>{item.name}{item.missing && <span className="muted"> · 本机未安装</span>}</span>
                         </label>
                       ))}
                     </div>
                   ) : (
-                    <p className="formnote">No extensions are installed. Apply an empty selection to clear this default.</p>
+                    <p className="formnote">尚未安装扩展。应用空选择可清除此默认设置。</p>
                   )}
                   <p className="formnote">
                     Applying replaces assignments on {groupDefaultProfileCount} current profile(s). New and moved profiles inherit it.
@@ -3736,8 +3624,8 @@ function App() {
           {extensions.length === 0 ? (
             <div className="emptystate">
               <span className="glyph"><Icon name="puzzle" /></span>
-              <b>No extensions yet</b>
-              <p>Uploaded extensions appear here, ready to assign to any profile.</p>
+              <b>尚无扩展</b>
+              <p>上传的扩展会显示在这里，可分配给任意 Chromium 资料。</p>
               <button className="btn primary" disabled={extBusy || extInstallBusy} onClick={() => extFileRef.current?.click()}>
                 <Icon name="plus" className="sm" />{extBusy ? "Uploading…" : "Upload ZIP/CRX"}
               </button>
@@ -3749,7 +3637,7 @@ function App() {
                   <Icon name="puzzle" className="sm" />
                   <span className="extname">{x.name}</span>
                   <span className="spacer" />
-                  <button className="btn xs danger" onClick={() => doRemoveExtension(x.id, x.name)}>Remove</button>
+                  <button className="btn xs danger" onClick={() => doRemoveExtension(x.id, x.name)}>移除</button>
                 </div>
               ))}
             </div>
@@ -3774,7 +3662,7 @@ function App() {
       </div>
       ) : view === "settings" ? (
       <div className="workspace">
-        <div className="tabs" role="tablist" aria-label="Settings sections">
+        <div className="tabs" role="tablist" aria-label="设置分类">
           {SETTINGS_TABS.map((tab) => (
             <button
               key={tab.key}
@@ -3791,24 +3679,24 @@ function App() {
         <div className="settingspage">
           {settingsTab === "account" && (
             <>
-              <h2 className="sect-title">Account information</h2>
+              <h2 className="sect-title">账号信息</h2>
               <div className="identity-card">
                 <span className="identity-avatar"><Icon name="user" className="lg" /></span>
                 <span className="identity-lines">
-                  <b>{isCloudMode ? cloudAuth?.user?.email ?? "Cloud account" : "Local workspace"}</b>
+                  <b>{isCloudMode ? cloudAuth?.user?.email ?? "Cloud account" : "本地工作区"}</b>
                   <span>
                     {isCloudMode
                       ? `${cloudAuth?.workspace?.role ?? "member"} · ${cloudAuth?.workspace?.name ?? "Cloud workspace"}`
-                      : "No account · profile data stays on this computer"}
+                      : "无需账号 · 资料仅保存在本机"}
                   </span>
                 </span>
                 <span className="chip">{isCloudMode ? "Cloud" : "Local"}</span>
               </div>
 <section className="settings-card">
-            <header><Icon name="user" className="sm" /><h2>Account</h2></header>
+            <header><Icon name="user" className="sm" /><h2>账号</h2></header>
             <div className="card-body">
-            <div className="settings-row"><span>Signed in as</span><strong>{isCloudMode ? cloudAuth?.user?.email ?? "Cloud account" : "Local · no account"}</strong></div>
-            <div className="settings-row"><span>Profiles stored</span><strong>{profiles.length}</strong></div>
+            <div className="settings-row"><span>当前身份</span><strong>{isCloudMode ? cloudAuth?.user?.email ?? "Cloud account" : "本地 · 无需账号"}</strong></div>
+            <div className="settings-row"><span>已保存资料</span><strong>{profiles.length}</strong></div>
             {isCloudMode && cloudAuth?.authenticated && (
               <button className="btn danger" type="button" disabled={authBusy} onClick={() => void signOut()}>
                 <Icon name="power" className="sm" />{authBusy ? "Signing out…" : "Sign out / Switch account"}
@@ -3827,7 +3715,7 @@ function App() {
                 </span>
               </header>
               <div className="card-body">
-                <p>Connect an AI client on another computer. Browser windows open on this Windows PC, so keep AliasMode running.</p>
+                <p>Connect an AI client on another computer. Browser windows open on this Windows PC, so keep IDFRI running.</p>
                 {remoteMcp.state === "loading" && <p className="hint" role="status">Preparing your secure connection…</p>}
                 {remoteMcp.state === "active" && remoteMcp.url && remoteMcp.token && (
                   <>
@@ -3851,7 +3739,7 @@ function App() {
                       <ol>
                         <li>Add a custom MCP connector or app.</li>
                         <li>Paste the MCP server URL and select Connect.</li>
-                        <li>Sign into AliasMode and select Allow.</li>
+                        <li>Sign into IDFRI and select Allow.</li>
                       </ol>
                       <details>
                         <summary>Claude Code and other clients</summary>
@@ -3872,16 +3760,16 @@ function App() {
                   </>
                 )}
                 {remoteMcp.error && <div className="modal-err" role="alert">{remoteMcp.error}</div>}
-                {remoteMcp.state === "error" && <button className="btn" type="button" disabled={authBusy} onClick={() => void loadRemoteMcp()}>Try again</button>}
+                {remoteMcp.state === "error" && <button className="btn" type="button" disabled={authBusy} onClick={() => void loadRemoteMcp()}>重试</button>}
               </div>
             </section>
           )}
 
 <section className="settings-card">
-            <header><Icon name="sun" className="sm" /><h2>Appearance</h2></header>
+            <header><Icon name="sun" className="sm" /><h2>外观</h2></header>
             <div className="card-body">
-              <p>Choose how AliasMode looks. System follows your operating system setting.</p>
-              <div className="segmented" role="radiogroup" aria-label="Theme">
+              <p>选择 IDFRI 的外观；“跟随系统”会使用操作系统设置。</p>
+              <div className="segmented" role="radiogroup" aria-label="主题">
                 {THEMES.map((option) => (
                   <button
                     key={option.key}
@@ -3895,16 +3783,6 @@ function App() {
                   </button>
                 ))}
               </div>
-            </div>
-          </section>
-          <section className="settings-card">
-            <header><Icon name={isCloudMode ? "laptop" : "cloud"} className="sm" /><h2>Switch mode</h2></header>
-            <div className="card-body settings-mode">
-              <p>{isCloudMode ? "Local mode keeps this installation offline from AliasMode Cloud." : "Cloud mode requires an account and does not upload Local profiles automatically."}</p>
-              <button className="btn" type="button" disabled={modeBusy || desktopUpdateInstalling} onClick={() => requestModeSwitch(isCloudMode ? "local" : "cloud")}>
-                <Icon name={isCloudMode ? "laptop" : "cloud"} className="sm" />
-                Switch to {isCloudMode ? "Local" : "Cloud"}
-              </button>
             </div>
           </section>
           
@@ -3974,7 +3852,7 @@ function App() {
                 {authNotice && <p className="hint" role="status">{authNotice}</p>}
                 {authErr && <p className="modal-err" role="alert">{authErr}</p>}
               </>
-            ) : <p>Local mode has no Cloud workspace.</p>}
+            ) : <p>所有资料仅保存在这台电脑上，不会同步到远端。</p>}
             </div>
           </section>
           
@@ -3982,11 +3860,11 @@ function App() {
           )}
           {settingsTab === "advanced" && (
             <>
-              <h2 className="sect-title">Updates and diagnostics</h2>
+              <h2 className="sect-title">更新与诊断</h2>
 <section className="settings-card update-settings">
-            <header><Icon name="import" className="sm" /><h2>Updates</h2></header>
+            <header><Icon name="import" className="sm" /><h2>更新</h2></header>
             <div className="card-body">
-            <div className="settings-row"><span>Installed version</span><strong className="mono">{appVersion || desktopUpdate?.currentVersion || "—"}</strong></div>
+            <div className="settings-row"><span>已安装版本</span><strong className="mono">{appVersion || desktopUpdate?.currentVersion || "—"}</strong></div>
             {desktopUpdateResultSummary && (
               <div
                 className={`update-last-result ${desktopUpdateResultSummary.tone}`}
@@ -3996,23 +3874,23 @@ function App() {
                 <span>{desktopUpdateResultSummary.detail}</span>
               </div>
             )}
-            {desktopUpdate?.state === "upToDate" && <p role="status">AliasMode is up to date.</p>}
+            {desktopUpdate?.state === "upToDate" && <p role="status">IDFRI 已是最新版本。</p>}
             {desktopUpdate?.state === "available" && (
               <>
                 <p role="status">Version {desktopUpdate.version} is ready. Active browsers will be saved and closed.</p>
                 <UpdateHighlights version={desktopUpdate.version} highlights={desktopUpdate.highlights} />
               </>
             )}
-            {!desktopUpdate && !desktopUpdateChecking && <p>AliasMode checks for updates when it starts.</p>}
+            {!desktopUpdate && !desktopUpdateChecking && <p>IDFRI 会在启动时检查更新。</p>}
             {desktopUpdateProgress && <DesktopUpdateProgressView progress={desktopUpdateProgress} />}
             {desktopUpdateErr && <div className="modal-err" role="alert">{desktopUpdateErr}</div>}
             <div className="update-actions">
               <button className="btn" type="button" disabled={desktopUpdateChecking || desktopUpdateInstalling} onClick={() => void checkDesktopUpdate(true)}>
-                <Icon name="refresh" className="sm" />{desktopUpdateChecking ? "Checking…" : "Check for updates"}
+                <Icon name="refresh" className="sm" />{desktopUpdateChecking ? "正在检查…" : "检查更新"}
               </button>
               {desktopUpdate?.state === "available" && (
                 <button className="btn primary" type="button" disabled={desktopUpdateChecking || desktopUpdateInstalling} onClick={() => void installDesktopUpdate()}>
-                  {desktopUpdateInstalling ? "Updating…" : "Update now"}
+                  {desktopUpdateInstalling ? "正在更新…" : "立即更新"}
                 </button>
               )}
             </div>
@@ -4049,15 +3927,15 @@ function App() {
           {/* Logs are not a Cloud feature — a Local install needs them just as
               much, so this card is the one part of Advanced that always shows. */}
           <section className="settings-card">
-            <header><Icon name="logs" className="sm" /><h2>Logs</h2></header>
+            <header><Icon name="logs" className="sm" /><h2>日志</h2></header>
             <div className="card-body">
-              <p>The detailed log records launches, proxy setup and browser lifecycle for this installation.</p>
+              <p>详细日志会记录本机的浏览器启动、代理设置和生命周期事件。</p>
               <button type="button" className="btn" onClick={() => {
                 setLogErr(null);
                 fetchLogs().then(setLogView).catch((e) => setLogErr(e instanceof Error ? e.message : String(e)));
-              }}><Icon name="logs" className="sm" />View detailed logs</button>
-              {logErr && <p className="cardnote">Logs: {logErr}</p>}
-              {logDir && <p className="cardnote">File: {logDir}</p>}
+              }}><Icon name="logs" className="sm" />查看详细日志</button>
+              {logErr && <p className="cardnote">日志：{logErr}</p>}
+              {logDir && <p className="cardnote">文件：{logDir}</p>}
             </div>
           </section>
           
@@ -4067,7 +3945,7 @@ function App() {
         </div>
         <footer className="pagefoot">
           <span className="spacer" />
-          <button className="btn primary" type="button" onClick={() => setView("profiles")}>Done</button>
+          <button className="btn primary" type="button" onClick={() => setView("profiles")}>完成</button>
         </footer>
       </div>
       ) : null}
@@ -4076,7 +3954,7 @@ function App() {
       {(logView || logErr) && (
         <div className="modal-backdrop" onClick={() => { setLogView(null); setLogErr(null); }}>
           <div className="modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
-            <div className="modal-head">Detailed logs<button type="button" className="modal-close" aria-label="Close" onClick={() => { setLogView(null); setLogErr(null); }}><Icon name="close" className="sm" /></button></div>
+            <div className="modal-head">详细日志<button type="button" className="modal-close" aria-label="关闭" onClick={() => { setLogView(null); setLogErr(null); }}><Icon name="close" className="sm" /></button></div>
             <div className="modal-body">
               {logErr && <p className="hint">{logErr}</p>}
               {logView && (
@@ -4085,19 +3963,9 @@ function App() {
                 </pre>
               )}
             </div>
-            <div className="modal-foot"><button className="btn ghost" type="button" onClick={() => { setLogView(null); setLogErr(null); }}>Close</button></div>
+            <div className="modal-foot"><button className="btn ghost" type="button" onClick={() => { setLogView(null); setLogErr(null); }}>关闭</button></div>
           </div>
         </div>
-      )}
-
-      {pendingMode && (
-        <ModeSwitchConfirmation
-          mode={pendingMode}
-          busy={modeBusy}
-          error={modeErr}
-          onConfirm={() => void confirmModeSwitch()}
-          onCancel={() => { if (!modeBusy) setPendingMode(null); }}
-        />
       )}
 
       {cookieProfile && (
@@ -4110,37 +3978,37 @@ function App() {
             onSubmit={(event) => { event.preventDefault(); void submitCookie(); }}
           >
             <div className="modal-head" id="add-cookie-title">
-              <Icon name="cookie" />Add cookie<span className="mono muted">{cookieProfile.name}</span>
-              <button type="button" className="modal-close" aria-label="Close" disabled={cookieSaving} onClick={closeCookie}><Icon name="close" className="sm" /></button>
+              <Icon name="cookie" />添加 Cookie<span className="mono muted">{cookieProfile.name}</span>
+              <button type="button" className="modal-close" aria-label="关闭" disabled={cookieSaving} onClick={closeCookie}><Icon name="close" className="sm" /></button>
             </div>
             <div className="modal-body">
               {cookieErr && <div className="modal-err"><Icon name="alert" className="sm" />{cookieErr}</div>}
-              <p className="hint">Add one cookie directly to this open browser.</p>
+              <p className="hint">直接向当前打开的浏览器添加一条 Cookie。</p>
               <div className="fld-row">
                 <label className="fld grow">
-                  <span>Name</span>
+                  <span>名称</span>
                   <input autoFocus value={cookieForm.name} onChange={(event) => setCookieField("name", event.target.value)} />
                 </label>
                 <label className="fld grow">
-                  <span>Value</span>
+                  <span>值</span>
                   <input type="password" autoComplete="off" value={cookieForm.value} onChange={(event) => setCookieField("value", event.target.value)} />
                 </label>
               </div>
               <div className="fld-row">
                 <label className="fld grow">
-                  <span>Domain</span>
+                  <span>域名</span>
                   <input value={cookieForm.domain} placeholder="example.com" onChange={(event) => setCookieField("domain", event.target.value)} />
                 </label>
                 <label className="fld port">
-                  <span>Path</span>
+                  <span>路径</span>
                   <input value={cookieForm.path} onChange={(event) => setCookieField("path", event.target.value)} />
                 </label>
               </div>
             </div>
             <div className="modal-foot">
-              <button className="btn ghost" type="button" disabled={cookieSaving} onClick={closeCookie}>Cancel</button>
+              <button className="btn ghost" type="button" disabled={cookieSaving} onClick={closeCookie}>取消</button>
               <button className="btn primary" type="submit" disabled={cookieSaving || !cookieForm.name || !cookieForm.domain.trim() || !cookieForm.path.startsWith("/")}>
-                {cookieSaving ? "Adding…" : "Add cookie"}
+                {cookieSaving ? "正在添加…" : "添加 Cookie"}
               </button>
             </div>
           </form>
@@ -4153,24 +4021,24 @@ function App() {
         <div className="modal-backdrop">
           <div className="modal" role="dialog" aria-modal="true" aria-labelledby="create-profile-title" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head" id="create-profile-title">
-              <Icon name="plus" />New profile
-              <button type="button" className="modal-close" aria-label="Close" onClick={closeCreate}><Icon name="close" className="sm" /></button>
+              <Icon name="plus" />新建资料
+              <button type="button" className="modal-close" aria-label="关闭" onClick={closeCreate}><Icon name="close" className="sm" /></button>
             </div>
             <div className="modal-body">
               {createErr && <div className="modal-err"><Icon name="alert" className="sm" />{createErr}</div>}
               <div className="fld-row">
                 <label className="fld grow">
-                  <span>Name</span>
-                  <input value={form.name} placeholder="auto if blank" onChange={(e) => setF("name", e.target.value)} />
+                  <span>名称</span>
+                  <input value={form.name} placeholder="留空时自动生成" onChange={(e) => setF("name", e.target.value)} />
                 </label>
                 {!isCloudMode && (
                   <label className="fld no">
-                    <span>Custom NO.</span>
+                    <span>自定义编号</span>
                     <input
                       value={form.customNo}
                       inputMode="numeric"
                       maxLength={MAX_CUSTOM_NO}
-                      placeholder="auto"
+                      placeholder="自动"
                       onChange={(e) => setF("customNo", e.target.value.replace(/\D/g, "").slice(0, MAX_CUSTOM_NO))}
                     />
                   </label>
@@ -4178,22 +4046,22 @@ function App() {
               </div>
               <div className="fld-row">
                 <label className="fld grow">
-                  <span>Folder</span>
+                  <span>分组</span>
                   <GroupPicker value={form.group} onChange={(v) => setF("group", v)} groups={editableGroups} allowCreate={!isCloudMode} />
                 </label>
                 <label className="fld grow">
-                  <span>Platform</span>
+                  <span>平台</span>
                   <PlatformPicker value={form.platform} onChange={(v) => setF("platform", v)} />
                 </label>
               </div>
               <div className="proxy-paste-row">
                 <label className="fld grow">
-                  <span>Paste proxy to autofill <span className="muted">(select type first · host:port:username:password)</span></span>
+                  <span>粘贴代理并自动填充 <span className="muted">（先选择类型 · 主机:端口:用户名:密码）</span></span>
                   <input
                     type="password"
                     autoComplete="off"
                     value={proxyPaste}
-                    placeholder="Paste here — credentials stay hidden"
+                    placeholder="粘贴到这里，凭据不会显示"
                     onChange={(e) => { setProxyPaste(e.target.value); setProxyPasteOk(null); }}
                     onPaste={(e) => {
                       const pasted = e.clipboardData.getData("text");
@@ -4202,12 +4070,12 @@ function App() {
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); applyProxyPaste(proxyPaste); } }}
                   />
                 </label>
-                <button type="button" className="btn accent" disabled={!proxyPaste.trim()} onClick={() => applyProxyPaste(proxyPaste)}>Autofill</button>
+                <button type="button" className="btn accent" disabled={!proxyPaste.trim()} onClick={() => applyProxyPaste(proxyPaste)}>自动填充</button>
               </div>
               {proxyPasteOk && <div className="proxy-paste-ok"><Icon name="check" className="sm" />{proxyPasteOk}</div>}
               <div className="fld-row">
                 <label className="fld type">
-                  <span>Proxy type</span>
+                  <span>代理类型</span>
                   <select value={form.proxyType} onChange={(e) => setF("proxyType", e.target.value)}>
                     <option value="http">http</option>
                     <option value="https">https</option>
@@ -4215,17 +4083,17 @@ function App() {
                   </select>
                 </label>
                 <label className="fld grow">
-                  <span>Host</span>
-                  <input value={form.host} placeholder="blank = no proxy" onChange={(e) => setF("host", e.target.value)} />
+                  <span>主机</span>
+                  <input value={form.host} placeholder="留空表示不使用代理" onChange={(e) => setF("host", e.target.value)} />
                 </label>
                 <label className="fld port">
-                  <span>Port</span>
+                  <span>端口</span>
                   <input value={form.port} inputMode="numeric" placeholder="8080" onChange={(e) => setF("port", e.target.value)} />
                 </label>
               </div>
               <div className="fld-row">
-                <label className="fld grow"><span>Proxy user</span><input value={form.user} onChange={(e) => setF("user", e.target.value)} /></label>
-                <label className="fld grow"><span>Proxy pass</span><input type="password" value={form.pass} onChange={(e) => setF("pass", e.target.value)} /></label>
+                <label className="fld grow"><span>代理用户名</span><input value={form.user} onChange={(e) => setF("user", e.target.value)} /></label>
+                <label className="fld grow"><span>代理密码</span><input type="password" value={form.pass} onChange={(e) => setF("pass", e.target.value)} /></label>
               </div>
               <div className="proxy-check-actions">
                 <button
@@ -4236,15 +4104,15 @@ function App() {
                   onClick={checkCreateProxy}
                 >
                   <Icon name="activity" className="sm" />
-                  {createProxyCheck.checking ? "Checking…" : "Check proxy"}
+                  {createProxyCheck.checking ? "正在检测…" : "检测代理"}
                 </button>
               </div>
               <ProxyCheckFeedback hasProxy={createHasProxy} state={createProxyCheck} />
               <FingerprintSettings engine={form.engine} screen={form.screen} onScreenChange={(value) => setF("screen", value)} />
-              <div className="browser-options" role="radiogroup" aria-label="Browser">
+              <div className="browser-options" role="radiogroup" aria-label="浏览器">
                 {([
                   {
-                    engine: "chromium", label: "Chrome", runtime: "CloakBrowser",
+                    engine: "chromium", label: "Chromium", runtime: "实验兼容内核",
                     path: "M12 0C8.21 0 4.831 1.757 2.632 4.501l3.953 6.848A5.454 5.454 0 0 1 12 6.545h10.691A12 12 0 0 0 12 0zM1.931 5.47A11.943 11.943 0 0 0 0 12c0 6.012 4.42 10.991 10.189 11.864l3.953-6.847a5.45 5.45 0 0 1-6.865-2.29zm13.342 2.166a5.446 5.446 0 0 1 1.45 7.09l.002.001h-.002l-5.344 9.257c.206.01.413.016.621.016 6.627 0 12-5.373 12-12 0-1.54-.29-3.011-.818-4.364zM12 16.364a4.364 4.364 0 1 1 0-8.728 4.364 4.364 0 0 1 0 8.728Z",
                   },
                   {
@@ -4264,8 +4132,8 @@ function App() {
               </div>
             </div>
             <div className="modal-foot">
-              <button className="btn ghost" onClick={closeCreate}>Cancel</button>
-              <button className="btn primary" disabled={creating} onClick={submitCreate}>{creating ? "Creating…" : "Create profile"}</button>
+              <button className="btn ghost" onClick={closeCreate}>取消</button>
+              <button className="btn primary" disabled={creating} onClick={submitCreate}>{creating ? "正在创建…" : "创建资料"}</button>
             </div>
           </div>
         </div>
@@ -4277,13 +4145,13 @@ function App() {
         <div className="modal-backdrop">
           <div className="modal" role="dialog" aria-modal="true" aria-labelledby="edit-profile-title" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head" id="edit-profile-title">
-              <Icon name="edit" />Edit profile<span className="mono muted">{editId}</span>
-              <button type="button" className="modal-close" aria-label="Close" onClick={closeEdit}><Icon name="close" className="sm" /></button>
+              <Icon name="edit" />编辑资料<span className="mono muted">{editId}</span>
+              <button type="button" className="modal-close" aria-label="关闭" onClick={closeEdit}><Icon name="close" className="sm" /></button>
             </div>
             <div className="modal-body">
               {editErr && <div className="modal-err"><Icon name="alert" className="sm" />{editErr}</div>}
               {editLoading ? (
-                <p className="hint" role="status">Loading profile…</p>
+                <p className="hint" role="status">正在加载资料…</p>
               ) : (
                 <>
                   {editForm.proxyError && <div className="modal-err"><Icon name="alert" className="sm" />Stored proxy quarantined: {editForm.proxyError}. Replace it below or clear the field.</div>}
@@ -4296,9 +4164,9 @@ function App() {
                   )}
                   {!isCloudMode && editMobile && (
                     <div className="persona-warning">
-                      <strong><Icon name="warning" className="sm" />Imported mobile persona cannot open safely</strong>
+                      <strong><Icon name="warning" className="sm" />导入的移动端身份无法安全打开</strong>
                       <span>
-                        Older AliasMode opened it as a desktop browser anyway: Android became Windows; iPhone/iPad became macOS. That looked usable, but it was not coherent mobile emulation.
+                        Older IDFRI opened it as a desktop browser anyway: Android became Windows; iPhone/iPad became macOS. That looked usable, but it was not coherent mobile emulation.
                       </span>
                       <span>
                         Convert it once to {editMobile.platform === "macos" ? "macOS" : "Windows"} desktop. Cookies, login/session, proxy, timezone, credentials and fingerprint seed stay intact
@@ -4311,47 +4179,47 @@ function App() {
                   )}
                   <div className="fld-row">
                     <label className="fld grow">
-                      <span>Name</span>
+                      <span>名称</span>
                       <input value={editForm.name ?? ""} onChange={(e) => setEF("name", e.target.value)} />
                     </label>
                     {!isCloudMode && (
                       <label className="fld no">
-                        <span>Custom NO.</span>
+                        <span>自定义编号</span>
                         <input
                           value={editForm.customNo ?? ""}
                           inputMode="numeric"
                           maxLength={MAX_CUSTOM_NO}
-                          placeholder={editSerial != null ? String(editSerial) : "auto"}
+                          placeholder={editSerial != null ? String(editSerial) : "自动"}
                           onChange={(e) => setEF("customNo", e.target.value.replace(/\D/g, "").slice(0, MAX_CUSTOM_NO))}
                         />
-                        <small>Digits only · blank uses the serial</small>
+                        <small>仅限数字；留空时使用序号</small>
                       </label>
                     )}
                   </div>
                   <div className="fld-row">
                     <label className="fld grow">
-                      <span>Folder</span>
+                      <span>分组</span>
                       <GroupPicker value={editForm.group ?? ""} onChange={(v) => setEF("group", v)} groups={editableGroups} allowCreate={!isCloudMode} />
                     </label>
                     <label className="fld grow">
-                      <span>Platform</span>
+                      <span>平台</span>
                       <PlatformPicker value={editForm.platform ?? ""} onChange={(v) => setEF("platform", v)} />
                     </label>
                   </div>
                   <label className="fld">
-                    <span>Browser</span>
-                    <input value={editEngine === "firefox" ? "AliasMode Firefox" : "CloakBrowser"} readOnly className="ro" />
+                    <span>浏览器</span>
+                    <input value={editEngine === "firefox" ? "AliasMode Firefox" : "Chromium（实验兼容内核）"} readOnly className="ro" />
                     <small>{editEngine === "firefox"
-                      ? "Native Firefox profile · no CDP, PDF, or Chrome extensions."
-                      : "CDP, PDF, and Chrome extensions are available."}</small>
+                      ? "原生 Firefox 资料 · 不支持 CDP、PDF 或 Chrome 扩展."
+                      : "支持 CDP、PDF 和 Chrome 扩展。"}</small>
                   </label>
                   <label className="fld">
-                    <span>Tags <span className="muted">(comma-separated)</span></span>
+                    <span>标签 <span className="muted">（逗号分隔）</span></span>
                     <input value={editForm.tags ?? ""} placeholder="warmup, us, priority" onChange={(e) => setEF("tags", e.target.value)} />
                   </label>
                   <div className="fld-row">
                     <label className="fld type">
-                      <span>Proxy type</span>
+                      <span>代理类型</span>
                       <select value={editForm.proxyType ?? "http"} onChange={(e) => setEF("proxyType", e.target.value)}>
                         <option value="http">http</option>
                         <option value="https">https</option>
@@ -4359,9 +4227,9 @@ function App() {
                       </select>
                     </label>
                     <label className="fld grow">
-                      <span>Proxy</span>
+                      <span>代理</span>
                       <input value={editForm.proxy ?? ""} placeholder="host:port:username:password" onChange={(e) => setEF("proxy", e.target.value)} />
-                      <small>Leave blank to launch on a direct connection.</small>
+                      <small>留空时使用直连。</small>
                     </label>
                   </div>
                   <div className="proxy-check-actions">
@@ -4373,13 +4241,13 @@ function App() {
                       onClick={checkEditedProxy}
                     >
                       <Icon name="activity" className="sm" />
-                      {editProxyCheck.checking ? "Checking…" : "Check proxy"}
+                      {editProxyCheck.checking ? "正在检测…" : "检测代理"}
                     </button>
                   </div>
                   <ProxyCheckFeedback hasProxy={editHasProxy} state={editProxyCheck} />
                   {!isCloudMode && (
                     <div className="proxy-check-actions">
-                      <span className="hint">Timezone: {editForm.timezone || "not set"}</span>
+                      <span className="hint">时区：{editForm.timezone || "未设置"}</span>
                       <button
                         type="button"
                         className="btn proxy-check-btn"
@@ -4387,53 +4255,53 @@ function App() {
                         onClick={refreshEditedTimezone}
                       >
                         <Icon name="activity" className="sm" />
-                        {timezoneBusy ? "Looking up timezone…" : "Set timezone from proxy"}
+                        {timezoneBusy ? "正在查询时区…" : "按代理设置时区"}
                       </button>
                     </div>
                   )}
                   <div className="fld-row">
-                    <CopyField label="Username" value={editForm.username ?? ""} onChange={(value) => setEF("username", value)} />
-                    <CopyField label="Password" value={editForm.password ?? ""} onChange={(value) => setEF("password", value)} />
+                    <CopyField label="用户名" value={editForm.username ?? ""} onChange={(value) => setEF("username", value)} />
+                    <CopyField label="密码" value={editForm.password ?? ""} onChange={(value) => setEF("password", value)} />
                   </div>
                   <div className="fld-row">
-                    <CopyField label="Email" value={editForm.email ?? ""} onChange={(value) => setEF("email", value)} />
-                    <CopyField label="Email password" value={editForm.emailPassword ?? ""} onChange={(value) => setEF("emailPassword", value)} />
+                    <CopyField label="邮箱" value={editForm.email ?? ""} onChange={(value) => setEF("email", value)} />
+                    <CopyField label="邮箱密码" value={editForm.emailPassword ?? ""} onChange={(value) => setEF("emailPassword", value)} />
                   </div>
-                  <CopyField label="2FA secret" value={editForm.twofa ?? ""} onChange={(value) => setEF("twofa", value)} />
+                  <CopyField label="2FA 密钥" value={editForm.twofa ?? ""} onChange={(value) => setEF("twofa", value)} />
                   {!isCloudMode && editTotp && (
                     <div className="authrow">
-                      <span className="authlabel">Authenticator</span>
+                      <span className="authlabel">动态验证码</span>
                       <span className="authcode">{editTotp.code.slice(0, 3)} {editTotp.code.slice(3)}</span>
-                      <span className="authsecs" title="seconds until it refreshes">{editTotp.secs}s</span>
+                      <span className="authsecs" title="距离刷新剩余秒数">{editTotp.secs}s</span>
                       <button className="btn xs" onClick={() => navigator.clipboard?.writeText(editTotp.code)}>
-                        <Icon name="copy" className="sm" />Copy
+                        <Icon name="copy" className="sm" />复制
                       </button>
                     </div>
                   )}
                   <FingerprintSettings engine={editEngine} screen={editForm.resolution ?? ""} onScreenChange={(value) => setEF("resolution", value)} />
                   {editEngine === "chromium" && editExtensionChoices.length > 0 && (
                     <div className="fld">
-                      <span>Extensions</span>
+                      <span>扩展</span>
                       <div className="extassign">
                         {editExtensionChoices.map((x) => (
                           <label key={x.id} className="extchk">
                             <input type="checkbox" checked={editExts.includes(x.id)} onChange={() => toggleEditExt(x.id)} />
-                            <span>{x.name}{x.missing && <span className="muted"> · Not installed on this device</span>}</span>
+                            <span>{x.name}{x.missing && <span className="muted"> · 本机未安装</span>}</span>
                           </label>
                         ))}
                       </div>
                     </div>
                   )}
                   <p className="formnote">
-                    Cookies and locked fingerprint values are preserved. Only editable fields change.
-                    {editEngine === "chromium" && " Extensions load when the browser opens."}
+                    Cookie 和锁定的指纹值会保留，只修改可编辑字段。
+                    {editEngine === "chromium" && " 扩展会在浏览器打开时加载。"}
                   </p>
                 </>
               )}
             </div>
             <div className="modal-foot">
-              <button className="btn ghost" onClick={closeEdit}>Cancel</button>
-              <button className="btn primary" disabled={editSaving || editLoading} onClick={saveEdit}>{editSaving ? "Saving…" : "Save changes"}</button>
+              <button className="btn ghost" onClick={closeEdit}>取消</button>
+              <button className="btn primary" disabled={editSaving || editLoading} onClick={saveEdit}>{editSaving ? "正在保存…" : "保存更改"}</button>
             </div>
           </div>
         </div>
@@ -4445,13 +4313,13 @@ function App() {
         <div className="modal-backdrop">
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <Icon name="fileImport" />Import accounts
-              <button type="button" className="modal-close" aria-label="Close" onClick={closeBulk}><Icon name="close" className="sm" /></button>
+              <Icon name="fileImport" />导入资料
+              <button type="button" className="modal-close" aria-label="关闭" onClick={closeBulk}><Icon name="close" className="sm" /></button>
             </div>
             <div className="modal-body">
               {bulkErr && <div className="modal-err"><Icon name="alert" className="sm" />{bulkErr}</div>}
 
-              <div className="segmented" role="tablist" aria-label="Import source">
+              <div className="segmented" role="tablist" aria-label="导入来源">
                 <button
                   type="button"
                   role="tab"
@@ -4459,7 +4327,7 @@ function App() {
                   className={bulkSource === "file" ? "active" : ""}
                   onClick={() => { setBulkSource("file"); setBulkText(""); }}
                 >
-                  <Icon name="fileImport" className="sm" />From file
+                  <Icon name="fileImport" className="sm" />从文件导入
                 </button>
                 <button
                   type="button"
@@ -4468,7 +4336,7 @@ function App() {
                   className={bulkSource === "paste" ? "active" : ""}
                   onClick={() => { setBulkSource("paste"); setBulkFiles([]); }}
                 >
-                  <Icon name="copy" className="sm" />Paste text
+                  <Icon name="copy" className="sm" />粘贴文本
                 </button>
               </div>
 
@@ -4482,8 +4350,8 @@ function App() {
                     onDrop={(e) => { e.preventDefault(); setBulkOver(false); if (e.dataTransfer.files?.length) setBulkFiles(Array.from(e.dataTransfer.files)); }}
                   >
                     <Icon name="fileImport" />
-                    <b>Drag &amp; drop files, or click to choose</b>
-                    <div className="sub">Readable TXT, CSV, JSON, or XLSX exports from AdsPower, GoLogin, Multilogin, Dolphin Anty, HideMyAcc, Incogniton, Donut, and similar browsers</div>
+                    <b>拖放文件，或点击选择</b>
+                    <div className="sub">支持 AdsPower、GoLogin、Multilogin、Dolphin Anty、HideMyAcc、Incogniton、Donut 等浏览器导出的 TXT、CSV、JSON 或 XLSX 文件</div>
                   </div>
                   {bulkFiles.length > 0 && (
                     <div className="filelist">
@@ -4493,18 +4361,18 @@ function App() {
                           <span className="fname">{file.name}</span>
                           <button
                             type="button"
-                            aria-label={`Remove ${file.name}`}
+                            aria-label={`移除 ${file.name}`}
                             onClick={() => setBulkFiles((files) => files.filter((candidate) => candidate !== file))}
                           ><Icon name="close" className="sm" /></button>
                         </span>
                       ))}
-                      <button type="button" className="btn xs ghost" onClick={() => setBulkFiles([])}>Clear all</button>
+                      <button type="button" className="btn xs ghost" onClick={() => setBulkFiles([])}>全部清除</button>
                     </div>
                   )}
                 </>
               ) : (
                 <label className="fld">
-                  <span>AdsPower TXT records</span>
+                  <span>AdsPower TXT 记录</span>
                   <textarea
                     rows={9}
                     value={bulkText}
@@ -4512,8 +4380,8 @@ function App() {
                     onChange={(event) => setBulkText(event.target.value)}
                   />
                   <small>{pastedRecordCount === null
-                    ? "Paste one or more key=value records, separated by a line of asterisks."
-                    : `${pastedRecordCount} record${pastedRecordCount === 1 ? "" : "s"} detected — each one starts with its own id= line.`}</small>
+                    ? "粘贴一条或多条 key=value 记录，并用星号行分隔。"
+                    : `检测到 ${pastedRecordCount} 条记录，每条记录都以自己的 id= 行开始。`}</small>
                 </label>
               )}
 
@@ -4528,38 +4396,35 @@ function App() {
 
               <div className="fld-row">
                 <label className="fld grow">
-                  <span>{isCloudMode ? "Destination folder" : "Assign to group"}</span>
+                  <span>{isCloudMode ? "目标文件夹" : "分配到分组"}</span>
                   <GroupPicker value={bulkGroup} onChange={setBulkGroup} groups={isCloudMode ? editableGroups : existingGroups} allowCreate={!isCloudMode} />
                 </label>
                 <label className="fld grow">
-                  <span>Platform</span>
+                  <span>平台</span>
                   <select value={bulkPlatform} onChange={(e) => setBulkPlatform(e.target.value)}>
                     {KNOWN_PLATFORMS.map((platform) => <option key={platform.value} value={platform.value}>{platform.label}</option>)}
                   </select>
                 </label>
               </div>
               <p className="formnote">
-                Anything chosen above overrides that field on every imported record, including
-                provider exports that already carry a group.
+                上方选择会覆盖每条导入记录中的对应字段，包括导出文件中已有的分组。
               </p>
               <p className="formnote">
-                An AliasMode export also carries <code>seed</code>, <code>timezone</code> and{" "}
-                <code>platform_os</code>, which recreate the exact browser fingerprint. Its{" "}
-                <code>fp_*</code> columns are a <b>record</b> of the fingerprint that was measured,
-                not settings — they are checked after the browser opens, never applied to it.
+                IDFRI 导出还包含 <code>seed</code>、<code>timezone</code> 和 <code>platform_os</code>，用于重建相同的浏览器指纹。
+                <code>fp_*</code> 列只是已测量指纹的<b>记录</b>，会在浏览器打开后核对，不会作为设置应用。
               </p>
             </div>
             <div className="modal-foot">
-              <button className="tlink" onClick={() => downloadText("aliasmode-template.csv", CSV_TEMPLATE, "text/csv")}>
-                <Icon name="export" className="sm" />CSV template
+              <button className="tlink" onClick={() => downloadText("idfri-template.csv", CSV_TEMPLATE, "text/csv")}>
+                <Icon name="export" className="sm" />CSV 模板
               </button>
-              <button className="tlink" onClick={() => downloadText("aliasmode-example.txt", TXT_EXAMPLE, "text/plain")}>
-                <Icon name="export" className="sm" />.txt example
+              <button className="tlink" onClick={() => downloadText("idfri-example.txt", TXT_EXAMPLE, "text/plain")}>
+                <Icon name="export" className="sm" />TXT 示例
               </button>
               <span className="spacer" />
-              <button className="btn ghost" onClick={closeBulk}>Cancel</button>
+              <button className="btn ghost" onClick={closeBulk}>取消</button>
               <button className="btn primary" disabled={bulkBusy || (!bulkFiles.length && !bulkText.trim()) || (isCloudMode && !bulkGroup)} onClick={submitBulk}>
-                <Icon name="fileImport" className="sm" />{bulkBusy ? "Importing…" : "Import"}
+                <Icon name="fileImport" className="sm" />{bulkBusy ? "正在导入…" : "导入"}
               </button>
             </div>
           </div>
@@ -4571,21 +4436,21 @@ function App() {
            close via Cancel, the X, or Escape (the backdrop has no onClick). */
         <div className="modal-backdrop">
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-head">Update profiles from file<button type="button" className="modal-close" aria-label="Close" onClick={() => setShowUpdate(false)}><Icon name="close" className="sm" /></button></div>
+            <div className="modal-head">从文件更新资料<button type="button" className="modal-close" aria-label="关闭" onClick={() => setShowUpdate(false)}><Icon name="close" className="sm" /></button></div>
             <div className="modal-body">
               {updateErr && <div className="modal-err"><Icon name="alert" className="sm" />{updateErr}</div>}
               {updateResult && <div className="modal-ok"><Icon name="check" className="sm" />{updateResult}</div>}
               <ol className="steps">
-                <li><b>Export</b> the profiles you want to change — that gives you a file with each profile's <code>id</code> (how rows are matched).</li>
-                <li><b>Edit</b> the columns you want (name, username, password, 2FA, proxy…). Keep the <code>id</code> column; delete any column you don't want to touch.</li>
-                {!isCloudMode && <li>Add a <code>custom_no</code> column to renumber profiles in bulk — that number shows in the roster and in the launched browser's window title.</li>}
-                <li><b>Re-upload</b> the edited file below. IDs in the file determine which profiles change, not the current selection. Cookies &amp; fingerprints are preserved — editing a <code>cookie</code> or <code>ua</code> column has no effect.</li>
+                <li><b>导出</b>要修改的资料，文件中的 <code>id</code> 用于匹配资料。</li>
+                <li><b>编辑</b>需要修改的列（名称、用户名、密码、2FA、代理等）。保留 <code>id</code> 列，删除不想修改的列。</li>
+                {!isCloudMode && <li>添加 <code>custom_no</code> 列可批量修改编号；该编号会显示在资料列表和浏览器窗口标题中。</li>}
+                <li>在下方<b>重新上传</b>编辑后的文件。Cookie 和指纹会保留；修改 <code>cookie</code> 或 <code>ua</code> 列不会生效。</li>
                 {isCloudMode && <li>Close profiles before updating. Each Cloud profile saves separately; successful updates remain saved if other profiles fail.</li>}
               </ol>
               <div className="updexport">
                 {selected.size > 0 ? (
                   <span>
-                    Export {selected.size} selected:&nbsp;
+                    导出所选 {selected.size} 项：&nbsp;
                     <button className="tlink" onClick={() => exportSelected("csv")}><Icon name="export" className="sm" />CSV</button>
                     &nbsp;·&nbsp;
                     <button className="tlink" onClick={() => exportSelected("txt")}><Icon name="export" className="sm" />.txt</button>
@@ -4593,10 +4458,10 @@ function App() {
                     <button className="tlink" onClick={() => exportSelected("xlsx")}><Icon name="export" className="sm" />Excel</button>
                   </span>
                 ) : (
-                  <span className="hint">Tip: select profiles first, then export here to get an editable file.</span>
+                  <span className="hint">提示：先选择资料，再从这里导出可编辑文件。</span>
                 )}
                 <span className="grow" />
-                <button className="tlink" onClick={() => downloadText("aliasmode-update-template.csv", UPDATE_TEMPLATE_CSV, "text/csv")}><Icon name="export" className="sm" />example sheet</button>
+                <button className="tlink" onClick={() => downloadText("idfri-update-template.csv", UPDATE_TEMPLATE_CSV, "text/csv")}><Icon name="export" className="sm" />示例表格</button>
               </div>
               <div
                 className={`bulkdrop${updateOver ? " over" : ""}`}
@@ -4606,8 +4471,8 @@ function App() {
                 onDrop={(e) => { e.preventDefault(); setUpdateOver(false); if (e.dataTransfer.files?.[0]) setUpdateFile(e.dataTransfer.files[0]); }}
               >
                 <Icon name="export" />
-                <b>Drag &amp; drop the edited file, or click to choose</b>
-                <div className="sub">CSV, <code>.txt</code> or Excel <code>.xlsx</code> with an <code>id</code> column</div>
+                <b>拖放编辑后的文件，或点击选择</b>
+                <div className="sub">包含 <code>id</code> 列的 CSV、TXT 或 Excel XLSX 文件</div>
               </div>
               <input
                 ref={updateFileRef}
@@ -4616,11 +4481,11 @@ function App() {
                 style={{ display: "none" }}
                 onChange={(e) => { if (e.target.files?.[0]) setUpdateFile(e.target.files[0]); e.target.value = ""; }}
               />
-              {updateFile && <div className="bulkfiles"><Icon name="file" className="sm" />Selected: <b>{updateFile.name}</b></div>}
+              {updateFile && <div className="bulkfiles"><Icon name="file" className="sm" />已选择：<b>{updateFile.name}</b></div>}
             </div>
             <div className="modal-foot">
-              <button className="btn ghost" onClick={() => setShowUpdate(false)}>Close</button>
-              <button className="btn primary" disabled={updateBusy || !updateFile} onClick={submitUpdate}>{updateBusy ? "Updating…" : "Update profiles"}</button>
+              <button className="btn ghost" onClick={() => setShowUpdate(false)}>关闭</button>
+              <button className="btn primary" disabled={updateBusy || !updateFile} onClick={submitUpdate}>{updateBusy ? "正在更新…" : "更新资料"}</button>
             </div>
           </div>
         </div>

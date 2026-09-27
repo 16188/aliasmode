@@ -9,9 +9,9 @@ test("setup uses each client's supported MCP registration command", async () => 
     inputs.push([command, args, input]);
     return { found: true, code: 0 };
   };
-  const helper = "C:\\Program Files\\AliasMode\\aliasmode-mcp.exe";
-  const command = "C:\\Program Files\\AliasMode\\playwright\\node\\node.exe";
-  const host = "C:\\Program Files\\AliasMode\\playwright\\agent\\mcp-host.mjs";
+  const helper = "C:\\Program Files\\IDFRI\\idfri-mcp.exe";
+  const command = "C:\\Program Files\\IDFRI\\playwright\\node\\node.exe";
+  const host = "C:\\Program Files\\IDFRI\\playwright\\agent\\mcp-host.mjs";
   const result = await configureClients({ helper, command, args: [host], run });
 
   expect(result.clients).toEqual([
@@ -63,7 +63,7 @@ test("setup reports a detected client registration failure", async () => {
     code: args[1] === "add" ? 1 : 0,
   });
   const result = await configureClients({
-    helper: "C:\\AliasMode\\aliasmode-mcp.exe",
+    helper: "C:\\IDFRI\\idfri-mcp.exe",
     clients: ["claude"],
     run,
   });
@@ -83,7 +83,7 @@ test("setup is repeatable and reports clients that are not installed", async () 
     return { found: true, code: 0 };
   };
   const options = {
-    helper: "C:\\AliasMode\\aliasmode-mcp.exe",
+    helper: "C:\\IDFRI\\idfri-mcp.exe",
     clients: ["claude", "codex"] as const,
     run,
   };

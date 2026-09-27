@@ -6,7 +6,7 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-const CLOAKBROWSER_WRAPPER_VERSION: &str = "0.4.11";
+const OPEN_CHROMIUM_RUNTIME_VERSION: &str = "playwright-core@1.58.2";
 const FIREFOX_VERSION: &str = "152.0.4-beta.30";
 
 #[derive(Debug, Deserialize)]
@@ -14,7 +14,7 @@ const FIREFOX_VERSION: &str = "152.0.4-beta.30";
 struct BrowserMetadata {
     executable: String,
     sha256: String,
-    wrapper_version: String,
+    runtime_version: String,
     firefox: FirefoxMetadata,
 }
 
@@ -55,7 +55,7 @@ fn safe_relative_executable(value: &str) -> Result<PathBuf, String> {
             )
         })
     {
-        return Err("packaged CloakBrowser executable path is unsafe".to_owned());
+        return Err("packaged browser executable path is unsafe".to_owned());
     }
     Ok(path.to_owned())
 }
@@ -107,15 +107,15 @@ fn verify_resource(
 
 pub fn verify_browser_resource(resource_dir: &Path) -> Result<BrowserRuntime, String> {
     let metadata = embedded_metadata()?;
-    if metadata.wrapper_version != CLOAKBROWSER_WRAPPER_VERSION || !is_sha256(&metadata.sha256) {
-        return Err("packaged CloakBrowser metadata is not approved".to_owned());
+    if metadata.runtime_version != OPEN_CHROMIUM_RUNTIME_VERSION || !is_sha256(&metadata.sha256) {
+        return Err("packaged Chromium metadata is not approved".to_owned());
     }
     let (executable, sha256) = verify_resource(
         resource_dir,
-        "cloakbrowser",
+        "chromium",
         &metadata.executable,
         &metadata.sha256,
-        "CloakBrowser",
+        "Chromium",
     )?;
     Ok(BrowserRuntime { executable, sha256 })
 }

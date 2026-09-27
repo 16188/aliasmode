@@ -14,18 +14,18 @@ use tauri_plugin_updater::{Update, UpdaterExt};
 use tokio::sync::Mutex;
 use url::Url;
 
-const RELEASES_API: &str = "https://api.github.com/repos/aliasmode/aliasmode/releases?per_page=10";
+const RELEASES_API: &str = "https://api.github.com/repos/16188/aliasmode/releases?per_page=10";
 const UPDATE_MANIFEST: &str = "latest-v2.json";
 const UPDATE_TARGET: &str = "windows-x86_64";
 const MAX_RELEASE_HIGHLIGHTS: usize = 3;
-const UPDATE_BUSY: &str = "An update operation is already running.";
-const CHECK_FAILED: &str = "AliasMode could not check for updates. Try again.";
-const DOWNLOAD_FAILED: &str = "AliasMode could not download and verify the update. Try again.";
-const INSTALLATION_UNSAFE: &str = "AliasMode cannot safely update this installation. Close AliasMode and run the full offline installer from the release page. Do not uninstall.";
+const UPDATE_BUSY: &str = "已有更新任务正在运行。";
+const CHECK_FAILED: &str = "IDFRI 无法检查更新，请稍后重试。";
+const DOWNLOAD_FAILED: &str = "IDFRI 无法下载或验证更新，请稍后重试。";
+const INSTALLATION_UNSAFE: &str = "IDFRI 无法安全更新当前安装。请关闭 IDFRI，并从发布页运行完整离线安装包；不要卸载当前版本。";
 const CLEANUP_FAILED: &str =
-    "The update was not installed because AliasMode could not safely close browser services. The current version remains installed.";
+    "IDFRI 无法安全关闭浏览器服务，因此未安装更新；当前版本仍然保留。";
 const INSTALL_FAILED: &str =
-    "AliasMode could not start the verified update. The current version will restart.";
+    "IDFRI 无法启动已验证的更新，当前版本将重新启动。";
 
 #[derive(Debug, Deserialize)]
 struct GithubAsset {
@@ -126,7 +126,7 @@ fn is_release_asset_url(url: &Url, tag: &str, name: &str) -> bool {
         && url.password().is_none()
         && url.query().is_none()
         && url.fragment().is_none()
-        && url.path() == format!("/aliasmode/aliasmode/releases/download/{tag}/{name}")
+        && url.path() == format!("/16188/aliasmode/releases/download/{tag}/{name}")
 }
 
 fn release_manifest_url(release: &GithubRelease) -> Option<Url> {
@@ -173,7 +173,7 @@ async fn fetch_releases() -> Result<Vec<GithubRelease>, String> {
         .redirect(Policy::none())
         .timeout(Duration::from_secs(5))
         .user_agent(format!(
-            "AliasMode/{} release-updater",
+            "IDFRI/{} release-updater",
             env!("CARGO_PKG_VERSION")
         ))
         .build()
@@ -204,9 +204,9 @@ fn validate_manifest_result(
         return Err("release manifest identity did not match its GitHub release".to_owned());
     }
 
-    let installer_name = format!("AliasMode_{}_x64-setup.exe", candidate.version);
+    let installer_name = format!("IDFRI_{}_x64-setup.exe", candidate.version);
     if !is_release_asset_url(download_url, &candidate.tag, &installer_name) {
-        return Err("release manifest installer URL was not an AliasMode release asset".to_owned());
+        return Err("release manifest installer URL was not an IDFRI release asset".to_owned());
     }
 
     let raw_version = raw_json
@@ -319,7 +319,7 @@ pub async fn check_for_updates(
         }),
         Ok(None) => Ok(UpdateStatus::UpToDate { current_version }),
         Err(error) => {
-            eprintln!("AliasMode update check failed: {error}");
+            eprintln!("IDFRI update check failed: {error}");
             Err(CHECK_FAILED.to_owned())
         }
     }
@@ -330,16 +330,16 @@ pub fn last_update_result(app: AppHandle) -> Result<Option<LastUpdateResult>, St
     let data_dir = app
         .path()
         .app_data_dir()
-        .map_err(|_| "AliasMode could not read the last update result.".to_owned())?;
+        .map_err(|_| "IDFRI 无法读取上次更新结果。".to_owned())?;
     update_attempt::last_update_result(&data_dir)
-        .map_err(|_| "AliasMode could not read the last update result.".to_owned())
+        .map_err(|_| "IDFRI 无法读取上次更新结果。".to_owned())
 }
 
 fn restart_after_install_failure(app: AppHandle, error: impl std::fmt::Display) {
-    eprintln!("AliasMode update installation failed: {error}");
+    eprintln!("IDFRI update installation failed: {error}");
     app.dialog()
-        .message("AliasMode could not start the verified update. The current version will restart.")
-        .title("AliasMode update failed")
+        .message(INSTALL_FAILED)
+        .title("IDFRI 更新失败")
         .kind(MessageDialogKind::Error)
         .buttons(MessageDialogButtons::Ok)
         .show(move |_| app.request_restart());
@@ -351,7 +351,7 @@ fn record_update_failure(
     reason: UpdateFailureReason,
 ) {
     if update_attempt::record_failure(data_dir, attempt_id, reason).is_err() {
-        eprintln!("AliasMode could not store the failed update result");
+        eprintln!("IDFRI could not store the failed update result");
     }
 }
 
@@ -390,7 +390,7 @@ pub async fn update_now(
     on_progress: Channel<UpdateProgress>,
 ) -> Result<(), String> {
     if !cfg!(target_os = "windows") {
-        return Err("AliasMode updates are available only in the Windows desktop app.".to_owned());
+        return Err("IDFRI 仅支持在 Windows 桌面版中更新。".to_owned());
     }
     let _guard = coordinator
         .0
@@ -398,18 +398,18 @@ pub async fn update_now(
         .map_err(|_| UPDATE_BUSY.to_owned())?;
     let _ = on_progress.send(UpdateProgress::Preparing);
     let handoff = InstallerHandoff::prepare().map_err(|error| {
-        eprintln!("AliasMode update install-root preparation failed: {error}");
+        eprintln!("IDFRI update install-root preparation failed: {error}");
         INSTALLATION_UNSAFE.to_owned()
     })?;
     let data_dir = app.path().app_data_dir().map_err(|_| {
-        eprintln!("AliasMode update app-data path was unavailable");
+        eprintln!("IDFRI update app-data path was unavailable");
         INSTALLATION_UNSAFE.to_owned()
     })?;
     let discovered = match discover_update(&app, Some(&handoff)).await {
         Ok(Some(discovered)) => discovered,
-        Ok(None) => return Err("AliasMode is already up to date.".to_owned()),
+        Ok(None) => return Err("IDFRI 已是最新版本。".to_owned()),
         Err(error) => {
-            eprintln!("AliasMode update recheck failed: {error}");
+            eprintln!("IDFRI update recheck failed: {error}");
             return Err(CHECK_FAILED.to_owned());
         }
     };
@@ -484,15 +484,15 @@ pub async fn update_now(
             Err(INSTALL_FAILED.to_owned())
         }
         Err(UpdatePreparationError::Download(error)) => {
-            eprintln!("AliasMode update download or signature verification failed: {error}");
+            eprintln!("IDFRI update download or signature verification failed: {error}");
             Err(DOWNLOAD_FAILED.to_owned())
         }
         Err(UpdatePreparationError::Prepare(error)) => {
-            eprintln!("AliasMode update install-root validation failed: {error}");
+            eprintln!("IDFRI update install-root validation failed: {error}");
             Err(INSTALLATION_UNSAFE.to_owned())
         }
         Err(UpdatePreparationError::Cleanup(error)) => {
-            eprintln!("AliasMode update browser cleanup failed: {error}");
+            eprintln!("IDFRI update browser cleanup failed: {error}");
             record_update_failure(&data_dir, &handoff.id, UpdateFailureReason::BrowserCleanup);
             shutdown::exit_after_update_cleanup_failure(app, &sidecar, error);
             Err(CLEANUP_FAILED.to_owned())
@@ -521,7 +521,7 @@ mod tests {
     use url::Url;
 
     fn manifest_url(tag: &str) -> String {
-        format!("https://github.com/aliasmode/aliasmode/releases/download/{tag}/{UPDATE_MANIFEST}")
+        format!("https://github.com/16188/aliasmode/releases/download/{tag}/{UPDATE_MANIFEST}")
     }
 
     fn release(tag: &str, draft: bool, prerelease: bool, manifest_count: usize) -> GithubRelease {
@@ -657,10 +657,10 @@ mod tests {
         let valid = Url::parse(&manifest_url(tag)).unwrap();
         assert!(is_release_asset_url(&valid, tag, UPDATE_MANIFEST));
         for invalid in [
-            "http://github.com/aliasmode/aliasmode/releases/download/v0.1.0-beta.36/latest-v2.json",
-            "https://example.com/aliasmode/aliasmode/releases/download/v0.1.0-beta.36/latest-v2.json",
+            "http://github.com/16188/aliasmode/releases/download/v0.1.0-beta.36/latest-v2.json",
+            "https://example.com/16188/aliasmode/releases/download/v0.1.0-beta.36/latest-v2.json",
             "https://github.com/other/aliasmode/releases/download/v0.1.0-beta.36/latest-v2.json",
-            "https://github.com/aliasmode/aliasmode/releases/download/v0.1.0-beta.36/latest-v2.json?raw=1",
+            "https://github.com/16188/aliasmode/releases/download/v0.1.0-beta.36/latest-v2.json?raw=1",
         ] {
             assert!(!is_release_asset_url(
                 &Url::parse(invalid).unwrap(),
@@ -682,7 +682,7 @@ mod tests {
             assets: vec![GithubAsset {
                 name: "latest.json".to_owned(),
                 browser_download_url: format!(
-                    "https://github.com/aliasmode/aliasmode/releases/download/{tag}/latest.json"
+                    "https://github.com/16188/aliasmode/releases/download/{tag}/latest.json"
                 ),
             }],
         };
@@ -693,7 +693,7 @@ mod tests {
     #[test]
     fn binds_manifest_to_release_version_target_and_installer() {
         let candidate = candidate("0.1.0-beta.36");
-        let installer = "https://github.com/aliasmode/aliasmode/releases/download/v0.1.0-beta.36/AliasMode_0.1.0-beta.36_x64-setup.exe";
+        let installer = "https://github.com/16188/aliasmode/releases/download/v0.1.0-beta.36/IDFRI_0.1.0-beta.36_x64-setup.exe";
         let url = Url::parse(installer).unwrap();
         let raw = update_json("0.1.0-beta.36", installer, "signed");
         assert!(validate_manifest_result(

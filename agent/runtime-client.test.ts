@@ -67,7 +67,7 @@ test("Windows process identity does not depend on PowerShell modules or PATH", (
 
 test("runtime descriptor path uses the Tauri application data directory", () => {
   expect(defaultRuntimeDescriptorPath({ APPDATA: "C:\\Users\\me\\AppData\\Roaming" } as any))
-    .toBe(join("C:\\Users\\me\\AppData\\Roaming", "com.aliasmode.desktop", "agent-runtime.json"));
+    .toBe(join("C:\\Users\\me\\AppData\\Roaming", "com.idfri.desktop", "agent-runtime.json"));
   expect(defaultRuntimeDescriptorPath({
     ALIASMODE_RUNTIME_DESCRIPTOR: "C:\\fixture\\runtime.json",
   } as any)).toBe("C:\\fixture\\runtime.json");

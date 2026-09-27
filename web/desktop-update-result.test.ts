@@ -49,7 +49,7 @@ test("rejects malformed or unknown durable update results", () => {
       reason: "privateDiagnostic",
     },
   ]) {
-    expect(() => parseDesktopUpdateResult(value)).toThrow("AliasMode returned an invalid update result.");
+    expect(() => parseDesktopUpdateResult(value)).toThrow("IDFRI 返回了无效的更新结果。");
   }
 });
 
@@ -60,17 +60,17 @@ test("describes confirmed, unconfirmed, and failed updates without private diagn
     version: "0.1.0-beta.48",
   })).toEqual({
     tone: "success",
-    title: "AliasMode 0.1.0-beta.48 installed successfully.",
-    detail: "Updated from 0.1.0-beta.47 and verified the installed app after restart.",
+    title: "IDFRI 0.1.0-beta.48 已安装。",
+    detail: "已从 0.1.0-beta.47 更新，并在重启后验证安装。",
   });
   expect(describeDesktopUpdateResult({
     state: "installedRelaunchUnconfirmed",
     version: "0.1.0-beta.48",
-  }).detail).toContain("launch it from Windows Start");
+  }).detail).toContain("Windows“开始”菜单");
   expect(describeDesktopUpdateResult({
     state: "failedOrInterrupted",
     fromVersion: "0.1.0-beta.47",
     expectedVersion: "0.1.0-beta.48",
     reason: "installationUnconfirmed",
-  }).detail).toContain("full offline installer without uninstalling");
+  }).detail).toContain("完整离线安装包");
 });
