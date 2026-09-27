@@ -12,12 +12,20 @@ import type { Launcher } from "./launcher.ts";
 
 const stores: ProfileStore[] = [];
 const roots: string[] = [];
-afterEach(() => {
+afterEach(async () => {
   while (stores.length) stores.pop()!.close();
-  // Bun's transaction statements release file handles only after collection.
-  Bun.gc(true);
   for (const root of roots.splice(0)) {
-    rmSync(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
+    for (let attempt = 0; ; attempt++) {
+      try {
+        rmSync(root, { recursive: true, force: true });
+        break;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== "EBUSY" || attempt === 10) throw error;
+        // Bun's transaction statements release Windows file handles only after collection.
+        Bun.gc(true);
+        await Bun.sleep(100);
+      }
+    }
   }
 });
 function fixture(fileDatabase = false) {
