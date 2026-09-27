@@ -545,10 +545,7 @@ pub async fn launch_and_verify(
                         let _ = runtime.remove_owned();
                     }
                     if should_present_unexpected_exit(shutting_down.load(Ordering::Acquire)) {
-                        eprintln!(
-                            "IDFRI sidecar exited unexpectedly (code {:?})",
-                            exit.code
-                        );
+                        eprintln!("IDFRI sidecar exited unexpectedly (code {:?})", exit.code);
                         present_unexpected_exit(&app, exit.code);
                         app.exit(1);
                     }
@@ -648,9 +645,7 @@ mod tests {
             instance: NONCE.to_owned(),
         };
         assert!(verify_health_record(&record, NONCE, Path::new("C:\\IDFRI")).is_ok());
-        assert!(
-            verify_health_record(&record, &"cd".repeat(32), Path::new("C:\\IDFRI")).is_err()
-        );
+        assert!(verify_health_record(&record, &"cd".repeat(32), Path::new("C:\\IDFRI")).is_err());
         assert!(verify_health_record(&record, NONCE, Path::new("C:\\Other")).is_err());
     }
 

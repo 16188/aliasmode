@@ -38,7 +38,11 @@ pub struct CredentialOrigin(pub String);
 
 pub(crate) fn load_or_create_profile_encryption_key() -> Result<String, String> {
     if let Some(secret) = read_secret(CredentialKey::ProfileEncryptionKey)? {
-        if secret.len() == 64 && secret.bytes().all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase()) {
+        if secret.len() == 64
+            && secret
+                .bytes()
+                .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+        {
             return Ok(secret);
         }
         return Err("stored profile encryption key is invalid".to_owned());

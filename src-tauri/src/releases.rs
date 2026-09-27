@@ -21,11 +21,10 @@ const MAX_RELEASE_HIGHLIGHTS: usize = 3;
 const UPDATE_BUSY: &str = "已有更新任务正在运行。";
 const CHECK_FAILED: &str = "IDFRI 无法检查更新，请稍后重试。";
 const DOWNLOAD_FAILED: &str = "IDFRI 无法下载或验证更新，请稍后重试。";
-const INSTALLATION_UNSAFE: &str = "IDFRI 无法安全更新当前安装。请关闭 IDFRI，并从发布页运行完整离线安装包；不要卸载当前版本。";
-const CLEANUP_FAILED: &str =
-    "IDFRI 无法安全关闭浏览器服务，因此未安装更新；当前版本仍然保留。";
-const INSTALL_FAILED: &str =
-    "IDFRI 无法启动已验证的更新，当前版本将重新启动。";
+const INSTALLATION_UNSAFE: &str =
+    "IDFRI 无法安全更新当前安装。请关闭 IDFRI，并从发布页运行完整离线安装包；不要卸载当前版本。";
+const CLEANUP_FAILED: &str = "IDFRI 无法安全关闭浏览器服务，因此未安装更新；当前版本仍然保留。";
+const INSTALL_FAILED: &str = "IDFRI 无法启动已验证的更新，当前版本将重新启动。";
 
 #[derive(Debug, Deserialize)]
 struct GithubAsset {

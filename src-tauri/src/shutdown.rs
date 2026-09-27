@@ -85,9 +85,7 @@ pub(crate) fn exit_after_update_cleanup_failure(
         app,
         sidecar,
         "IDFRI 更新未安装",
-        format!(
-            "IDFRI 无法确认浏览器已安全清理，因此没有安装更新，当前版本保持不变：{error}"
-        ),
+        format!("IDFRI 无法确认浏览器已安全清理，因此没有安装更新，当前版本保持不变：{error}"),
     );
 }
 

@@ -232,10 +232,7 @@ mod tests {
     #[test]
     fn recognizes_only_the_explicit_background_switch() {
         assert!(background_requested(["idfri.exe", "--background"]));
-        assert!(!background_requested([
-            "idfri.exe",
-            "--background-worker"
-        ]));
+        assert!(!background_requested(["idfri.exe", "--background-worker"]));
         assert!(!background_requested(["idfri.exe"]));
     }
 
