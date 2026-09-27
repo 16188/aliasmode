@@ -400,6 +400,7 @@ async function runProductionCloudPreflight(
       call: async () => { throw new Error("Firefox owner call should not run"); },
       close: async () => {},
     },
+    findOwnedBrowserPids: async () => [],
     findProfileDirHolderPids: async () => [],
   });
   const coordinator = new CloudBrowserCoordinator({

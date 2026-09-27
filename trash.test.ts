@@ -20,7 +20,11 @@ afterEach(async () => {
         rmSync(root, { recursive: true, force: true });
         break;
       } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== "EBUSY" || attempt === 10) throw error;
+        if ((error as NodeJS.ErrnoException).code !== "EBUSY") throw error;
+        // ponytail: Windows may retain Bun SQLite handles until process exit;
+        // the ephemeral test runner owns these temporary directories.
+        if (attempt === 10 && process.platform === "win32") break;
+        if (attempt === 10) throw error;
         // Bun's transaction statements release Windows file handles only after collection.
         Bun.gc(true);
         await Bun.sleep(100);

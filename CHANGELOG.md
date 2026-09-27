@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Stabilize Windows Trash tests by retrying temporary SQLite directory cleanup while Bun releases transaction file handles.
+- Stabilize Windows tests by isolating production-boundary fixtures from host process scans and tolerating runner-owned temporary SQLite handles that Bun retains until process exit.
 - Add the reproducible `16188/idfri-browser` Chromium source build, apply IDFRI branding and Chinese browser UI, force managed Chromium launches to `zh-CN`, point the visible developer identity to the IDFRI project, and translate the remaining proxy tools, scripts, Trash, diagnostics, client-side errors, proxy-input validation, and matching UI/API test fixtures into Chinese.
 - Secure the Local API with a per-launch 256-bit bearer token plus strict loopback Host and same-origin validation.
 - Encrypt profile credentials, proxy authentication, cookies, and session state with AES-256-GCM using a master key held by Windows Credential Manager.
