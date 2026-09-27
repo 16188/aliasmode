@@ -23,7 +23,7 @@ use tauri_plugin_shell::{
 use tokio::{sync::watch, time::timeout};
 use zeroize::Zeroize;
 
-const PROTOCOL: &str = "idfri-desktop-v1";
+const PROTOCOL: &str = "aliasmode-desktop-v1";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(180);
 const SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(8 * 60);
@@ -576,6 +576,7 @@ mod tests {
 
     #[test]
     fn accepts_only_nonce_and_pid_bound_readiness() {
+        assert_eq!(PROTOCOL, "aliasmode-desktop-v1");
         let line = serde_json::json!({
             "protocol": PROTOCOL,
             "event": "ready",

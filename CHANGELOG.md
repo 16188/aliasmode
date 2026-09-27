@@ -38,3 +38,4 @@
 - Authenticate desktop and Agent readiness probes against the protected Local API.
 - Preserve sidecar logs when installed runtime acceptance fails so startup faults remain diagnosable.
 - Publish the local runtime descriptor immediately after sidecar verification instead of depending on dynamic capability or WebView initialization.
+- Restore the established desktop-sidecar protocol identifier so packaged runtimes can complete their authenticated readiness handshake.
