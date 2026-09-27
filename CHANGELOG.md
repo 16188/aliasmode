@@ -31,3 +31,4 @@
 - Prevent profile-encryption keys and other `IDFRI_*` secrets from reaching user Playwright scripts.
 - Align release and managed-browser contract tests with the IDFRI artifact and Chromium names.
 - Make public-document hashes stable across LF and CRLF checkouts.
+- Allow a write-authorized manual Client CI run to provide release artifacts when Fork push events are suppressed.

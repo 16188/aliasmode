@@ -207,6 +207,7 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(provenanceJob).toContain("successor_version: ${{ steps.successor.outputs.version }}");
   expect(provenanceJob).toContain("name: idfri-windows-unsigned-synthetic-successor");
   expect(provenanceJob).toContain("run-id: ${{ inputs.run_id }}");
+  expect(provenanceJob).toContain('($run.event -cne "push" -and $run.event -cne "workflow_dispatch")');
   expect(provenanceJob).toContain('"$($env:WINDOWS_VERSION).acceptance.1"');
   expect(provenanceJob).toContain('$($sourceSemantic.Patch + 1)-acceptance.1');
   expect(provenanceJob).toContain('$name = "IDFRI_${successorVersion}_x64-setup.exe"');
