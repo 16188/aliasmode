@@ -894,7 +894,7 @@ async function searchProvider(chromium, payload) {
   ) throw typed("invalid_request");
 
   if (await sha256File(payload.executablePath) !== payload.executableSha256) {
-    throw new Error("approved CloakBrowser binary changed before search setup");
+    throw new Error("已批准的 IDFRI Browser 在搜索设置前发生变化");
   }
   const timeout = Math.max(1, Math.min(Number(payload.connectTimeoutMs) || 20_000, 120_000));
   return withBrowser(chromium, payload.endpoint, timeout, "search-provider", async (_browser, context) => {

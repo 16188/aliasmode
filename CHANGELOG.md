@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- 临时接入经过归档与可执行文件双重 SHA-256 校验的 ClearCote Chromium 150 开源内核，同步桌面运行时元数据、Local API 启动契约和未签名预览发布校验，使用无重复项的确定性中文 Windows 指纹参数，并继续并行构建最终的 IDFRI Chromium 153。
+- Pin Chromium provenance to the IDFRI Browser source revision that retries transient Windows Node/Rollup build crashes within the existing CI time budget.
+- Replace legacy CloakBrowser fingerprint flags with a deterministic, complete IDFRI Chromium persona delivered through standard input so profile JSON never appears in process arguments or plaintext temporary files.
+- Localize the remaining managed Chromium integrity errors and identify the runtime as IDFRI Browser.
+- Replace the Playwright-downloaded Chromium binary with the pinned, SHA-256-verified IDFRI Browser Windows x64 source build and propagate its runtime identity through packaging, provenance, and desktop verification.
 - Add a provenance-checked workflow that publishes the current successful Windows candidate as an explicitly unsigned Chinese development preview.
 - Translate the remaining visible profile-session, extension-upload, account, autofill, and script-runtime copy into Chinese and apply IDFRI branding to the bundled autofill extension.
 - Stabilize Windows tests by isolating production-boundary fixtures from host process scans and tolerating runner-owned temporary SQLite handles that Bun retains until process exit.

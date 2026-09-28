@@ -87,8 +87,8 @@ test("local script imports never execute, survive reload, and check revisions", 
   expect(await h.library.list()).toEqual([expect.objectContaining({ id: script.id, revision: 1 })]);
   expect(JSON.stringify(await h.library.list())).not.toContain(input.source);
   await h.library.save({ ...input, name: "Updated" }, script.id, 1);
-  await expect(h.library.save(input, script.id, 1)).rejects.toThrow("changed");
-  await expect(h.library.delete(script.id, 1)).rejects.toThrow("changed");
+  await expect(h.library.save(input, script.id, 1)).rejects.toThrow("脚本已变更");
+  await expect(h.library.delete(script.id, 1)).rejects.toThrow("脚本已变更");
   await h.library.delete(script.id, 2);
   expect(await h.library.list()).toEqual([]);
 });
@@ -207,7 +207,7 @@ test("Stop kills active work before close, cancels remaining profiles, and rejec
   const request = { scriptId: script.id, profileIds: ["a", "b"], inputs: {}, useCredentials: false };
   h.supervisor.start(request);
   await ready;
-  expect(() => h.supervisor.start(request)).toThrow("already running");
+  expect(() => h.supervisor.start(request)).toThrow("已有脚本正在运行");
   await h.supervisor.stop();
   expect(h.events).toEqual(["open:a", "terminated", "close:a"]);
   expect(h.supervisor.status()?.profiles.map((p) => p.status)).toEqual(["cancelled", "cancelled"]);
@@ -345,8 +345,8 @@ test("Local catalog imports create independent copies without executing", async 
     current = { ...publication, source: "changed public source" };
     expect((await library.get(first.id)).source).toBe(publication.source);
     expect(await library.info()).toMatchObject({ canPublish: false, scripts: expect.any(Array) });
-    await expect(library.publish(first.id, { expectedRevision: 1, authorName: "Author", showEmail: false })).rejects.toThrow("Cloud");
-    await expect(library.unpublish(first.id)).rejects.toThrow("Cloud");
+  await expect(library.publish(first.id, { expectedRevision: 1, authorName: "Author", showEmail: false })).rejects.toThrow("请登录云端账号");
+    await expect(library.unpublish(first.id)).rejects.toThrow("请登录云端账号");
   } finally { await server.stop(true); }
 });
 
@@ -376,7 +376,7 @@ test("public import cannot save into an account that changed during download", a
     getPublishedScript: async () => { account = "account-b"; return { script: publication }; },
     createScript: async () => { created = true; },
   } } as any);
-  await expect(library.importPublished(publication.id)).rejects.toThrow("account changed");
+  await expect(library.importPublished(publication.id)).rejects.toThrow("当前登录账号已变更");
   expect(created).toBe(false);
 });
 
@@ -388,7 +388,7 @@ test("script library info exposes publication metadata and last author only in i
   expect(await library.info()).toMatchObject({ canPublish: true, publicationDefaults: { authorName: "Author" }, scripts: [expect.objectContaining({ publishedRevision: 2 })] });
   expect(JSON.stringify(await library.info())).not.toContain(input.source);
   account = undefined;
-  await expect(library.info()).rejects.toThrow("Sign in");
+  await expect(library.info()).rejects.toThrow("请先登录云端账号");
 });
 
 test("desktop library routes browse, import privately, publish, and unpublish without running", async () => {
@@ -453,7 +453,7 @@ test("account transitions pause new script runs until the transition finishes", 
   const script = await h.library.save(input);
   const request = { scriptId: script.id, profileIds: ["a"], inputs: {}, useCredentials: false };
   const resume = h.supervisor.pause();
-  expect(() => h.supervisor.start(request)).toThrow("paused");
+  expect(() => h.supervisor.start(request)).toThrow("脚本执行已暂停");
   await h.supervisor.stop();
   resume();
   h.supervisor.start(request);

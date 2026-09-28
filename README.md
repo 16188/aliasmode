@@ -7,7 +7,7 @@ IDFRI 是一个面向 Windows 的开源、本地优先指纹浏览器与多资�
 ## 功能
 
 - 资料、Cookie、代理、扩展、脚本和浏览器会话均保存在本机
-- Chromium 资料使用随安装包提供的开源 Playwright Chromium
+- Chromium 资料当前使用随安装包提供的开源 ClearCote Chromium 150 预览内核；IDFRI Chromium 153 仍在并行构建
 - 保留 `AliasMode Firefox` 引擎及其 Firefox 指纹能力
 - 兼容常用 AdsPower Local API 路由
 - 提供受保护的 Firefox 自动化网关和本地 MCP/Playwright 自动化
@@ -54,7 +54,9 @@ MCP 工具沿用 `aliasmode_*` 名称，以兼容已有客户端配置；产品�
 
 ## 浏览器与字体
 
-Chromium 运行时来自锁定版本的 `playwright-core`，构建和启动时均验证可执行文件 SHA-256。
+当前开发预览版临时使用 [ClearCote Chromium 150](https://github.com/clearcotelabs/clearcote-browser/tree/v0.1.0-pre.23)。版本固定为 `150.0.7871.114`，源码固定到提交 `c1c4a03aee4b24d2ab43139463e435614c4b9fb0`；下载时校验发布归档 SHA-256，打包和每次启动时继续校验 `chrome.exe` 的 SHA-256。它无需账号或许可证，指纹参数由 IDFRI 资料确定，并强制使用简体中文界面。该临时内核仍显示 ClearCote 上游品牌。
+
+[IDFRI Chromium 153](https://github.com/16188/idfri-browser) 的高质量源码构建继续并行进行；完成并通过验收后会替换临时内核，届时浏览器产品名、开发者信息和项目链接均使用 IDFRI。
 
 `AliasMode Firefox` 基于 Camoufox/Firefox，代码采用 MPL-2.0。上游构建曾捆绑 Windows 和 macOS 专有字体；IDFRI 在源码安装和 Windows 打包阶段都会剔除整个 `fonts` 目录，改用用户操作系统已经安装的字体。因此不会随 IDFRI 安装包再分发这些字体，但不同系统版本的字体指纹可能存在差异。
 
@@ -92,6 +94,6 @@ bun run desktop:build:nsis
 
 ## 许可证
 
-桌面主程序继续遵守 [Apache-2.0](LICENSE)，`AliasMode Firefox` 继续遵守 MPL-2.0，第三方组件的版权与许可证见 [NOTICE](NOTICE)。Fork 和换品牌不会取消上游作者及第三方权利人的许可证要求。
+桌面主程序继续遵守 [Apache-2.0](LICENSE)，`AliasMode Firefox` 继续遵守 MPL-2.0，ClearCote Chromium 150 遵守 BSD-3-Clause，第三方组件的版权与许可证见 [NOTICE](NOTICE)，该 NOTICE 也随 Windows 安装包分发。Fork 和换品牌不会取消上游作者及第三方权利人的许可证要求。
 
 安全问题请通过仓库的 [GitHub Security Advisory](https://github.com/16188/aliasmode/security/advisories/new) 私下报告；一般问题请使用 [GitHub Issues](https://github.com/16188/aliasmode/issues)。

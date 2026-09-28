@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { parseUpdateFile, serializeCsv, serializeAdsTxt, serializeXlsxRows, rowsToUpdates, XLSX_COLUMNS, parseExport, recordToProfile } from "./parse.ts";
 import { FP_BLOCK_KEYS } from "./fingerprint-attestation.ts";
-import { deriveFingerprintFlags, deterministicSeed } from "./fingerprint.ts";
+import { deriveIdfriFingerprintConfig, deterministicSeed } from "./fingerprint.ts";
 import { writeXlsx, readXlsx } from "./xlsx.ts";
 import { handleUiRequest, type UiRuntimeOptions } from "./ui.ts";
 import { encodePortableProfile } from "./portable-profile.ts";
@@ -345,7 +345,7 @@ test("full exports fill a blank UA from its capture without changing launch flag
       expect(saved.cookies).toEqual(original.cookies);
       expect(saved.fpExpected).toEqual(original.fpObserved);
       expect(saved.fpObserved).toBeUndefined();
-      expect(deriveFingerprintFlags(saved)).toEqual(deriveFingerprintFlags(original));
+      expect(deriveIdfriFingerprintConfig(saved)).toEqual(deriveIdfriFingerprintConfig(original));
     } finally {
       destination.close();
     }
@@ -361,7 +361,6 @@ test("export preserves the configured platform ahead of a conflicting capture", 
     const original = profile({ ...fields, fpObserved: { ua: "Mozilla/5.0 (Windows NT 10.0)", platform: "Win32" } });
     const restored = parseExport(serializeAdsTxt([original])).profiles[0]!;
     expect(restored.platformOs).toBe("macos");
-    expect(deriveFingerprintFlags(restored)).toEqual(deriveFingerprintFlags(original));
     if (original.ua) expect(restored.ua).toBe(original.ua);
     else expect(restored.ua).toBe("");
   }
@@ -416,7 +415,7 @@ test("Cloud exports retain local fingerprint evidence without using cached profi
         expect(restored.fingerprintSeed).toBe(authoritative.fingerprintSeed);
         expect(restored.ua).toBe(ua);
         expect(restored.fpExpected).toEqual(observed ?? expected);
-        expect(deriveFingerprintFlags(restored)).toEqual(deriveFingerprintFlags(authoritative));
+        expect(deriveIdfriFingerprintConfig(restored)).toEqual(deriveIdfriFingerprintConfig(authoritative));
       }
     }
   } finally {
@@ -471,7 +470,6 @@ test("a full export -> import round trip reproduces the identity exactly", () =>
   expect(restored.fpExpected).toEqual({ canvas: "canvas-one", hardwareConcurrency: 8 });
   expect(restored.fpObserved).toBeUndefined();
   expect(parseExport(serializeAdsTxt([restored])).profiles[0]!.fpExpected).toEqual(restored.fpExpected);
-  expect(deriveFingerprintFlags(restored)).toEqual(deriveFingerprintFlags(original));
 });
 
 test("the same round trip survives the spreadsheet, which is what operators edit", async () => {

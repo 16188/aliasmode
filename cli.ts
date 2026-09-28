@@ -11,7 +11,7 @@
  *
  * Other commands:
  *   bun cli.ts setup               # install the verified source runtime
- *   bun cli.ts install-browser     # download, verify, and pin Playwright Chromium
+ *   bun cli.ts install-browser     # 下载、验证并固定 IDFRI Browser
  *   bun cli.ts install-browser --engine firefox --archive <owned-build.zip>
  *   bun cli.ts import [file|dir]   # default: import the inbox
  *   bun cli.ts serve   [--port 50400] [--headless]
@@ -2641,7 +2641,7 @@ async function main() {
         process.exitCode = 1;
         break;
       }
-      console.log("Installing Playwright open-source Chromium (one-time download)...");
+      console.log("正在下载并验证 IDFRI Browser（仅首次需要）…");
       const installed = await installOpenChromium({ cwd: paths.root });
       console.log(`Chromium installed and pinned:\n${installed.path}\nSHA-256 ${installed.sha256}`);
       console.log("请重启 IDFRI 后使用。");

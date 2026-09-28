@@ -62,4 +62,6 @@ test("required license notices remain present", () => {
   expect(notice).toContain("Apache License 2.0");
   expect(notice).toContain("Mozilla Public License 2.0");
   expect(notice).toContain("SIL Open Font License");
+  expect(notice).toContain("Clearcote Labs and the Clearcote contributors");
+  expect(notice).toContain("BSD 3-Clause License");
 });

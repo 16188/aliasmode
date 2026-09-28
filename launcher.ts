@@ -31,7 +31,7 @@ import type { ProfileStore } from "./store.ts";
 import type { AutofillBridge } from "./autofill-bridge.ts";
 import { AUTOFILL_EXTENSION_REVISION, autofillExtensionDir } from "./autofill-extension.ts";
 import { allocatePort } from "./ports.ts";
-import { deriveFingerprintFlags, isMobileUserAgent, platformFromUA, proxyServerFlag } from "./fingerprint.ts";
+import { deriveClearcoteFingerprintArgs, isMobileUserAgent, platformFromUA, proxyServerFlag } from "./fingerprint.ts";
 export { isMobileUserAgent } from "./fingerprint.ts";
 import { startProxyRelay, type ProxyRelay } from "./proxy-relay.ts";
 import type { SearchProviderBootstrapOptions, SearchProviderSetupResult } from "./search-provider.ts";
@@ -150,7 +150,7 @@ export interface SpawnedProcess {
   spawnFailed?: Promise<string | null>;
 }
 
-export type SpawnFn = (binary: string, args: string[]) => SpawnedProcess;
+export type SpawnFn = (binary: string, args: string[], stdin?: string) => SpawnedProcess;
 export type FetchFn = (url: string) => Promise<{ ok: boolean; json(): Promise<any> }>;
 export type LaunchNavigator = (ws: string, urls: string[], replacePages?: boolean) => Promise<void>;
 export interface BrowserProcessIdentity {
@@ -719,7 +719,9 @@ export class Launcher {
     // Wrapped in an arrow so the helper's diagnostics reach THIS launcher's log
     // (this.log is assigned below; the call happens long after construction).
     this.spawnFn = opts.spawn
-      ?? (SESSION_LAUNCH ? (binary, args) => sessionLaunchSpawn(binary, args, (m) => this.log(m)) : defaultSpawn);
+      ?? (SESSION_LAUNCH
+        ? (binary, args, stdin) => sessionLaunchSpawn(binary, args, stdin, (m) => this.log(m))
+        : defaultSpawn);
     // Bound the real CDP probe: this fetch backs active() and waitForCdp(), both hitting the
     // local 127.0.0.1 debug port. A wedged/half-open port would otherwise let a bare fetch() hang
     // on the OS connect timeout (tens of seconds), stalling stop() — which the Python side waits on
@@ -826,17 +828,17 @@ export class Launcher {
           finalStat = statSync(path);
         } catch (error) {
           throw new Error(
-            `approved CloakBrowser binary changed while it was being verified: ` +
+            `已批准的 IDFRI Browser 在校验期间发生变化：` +
             (error instanceof Error ? error.message : String(error)),
           );
         }
         const finalKey = [expected, finalPath, finalStat.dev, finalStat.ino, finalStat.size, finalStat.mtimeMs].join(":");
         if (finalPath !== path || finalKey !== key || !finalStat.isFile()) {
-          throw new Error("approved CloakBrowser binary changed while it was being verified; refusing to launch");
+          throw new Error("已批准的 IDFRI Browser 在校验期间发生变化，已拒绝启动");
         }
         if (actual !== expected) {
           throw new Error(
-            `CloakBrowser kernel hash mismatch for ${path}: expected ${expected}, measured ${actual}; refusing to launch`,
+            `IDFRI Browser 内核哈希不匹配（${path}）：应为 ${expected}，实际为 ${actual}，已拒绝启动`,
           );
         }
         const verified = { key, path, sha256: actual };
@@ -930,7 +932,7 @@ export class Launcher {
   }
 
   /**
-   * Build the full CloakBrowser argv for a launch. Identity flags come from
+   * Build the full managed Chromium argv for a launch. Identity flags come from
    * the stored profile; `port`/`userDataDir` are per-launch session detail;
    * `launchArgs` are the ephemeral chrome flags automation passes through.
    */
@@ -948,8 +950,8 @@ export class Launcher {
     // Open the window at a FRACTION of the profile's resolution (default: 65% width,
     // 90% height → a tall, narrow window so the operator can line several profiles up
     // side by side instead of each browser filling the display. This is only the OS
-    // window size — the spoofed screen.width/height come from --fingerprint-screen-*
-    // above, so it doesn't change the fingerprint (it just looks like a normal
+    // window size — the spoofed screen.width/height come from the ClearCote flags,
+    // so it doesn't change the fingerprint (it just looks like a normal
     // non-maximized window, which real users have). The WIDTH floor (800) stops a profile
     // that drew a small seed resolution (e.g. 1366 -> 683px) from opening as an unusable sliver.
     const winW = Math.max(800, Math.round(profile.screenWidth * this.windowWidthScale));
@@ -962,7 +964,6 @@ export class Launcher {
       `--window-position=0,0`,
       `--no-first-run`,
       `--no-default-browser-check`,
-      `--lang=zh-CN`,
       // The session launcher opens the window MINIMIZED (/MIN) so it doesn't steal focus, and a
       // minimized/occluded Chromium window is treated as backgrounded — it throttles JS timers and
       // deprioritizes the renderer. That makes the CDP-driven login crawl and blow the 180s reconnect
@@ -977,7 +978,7 @@ export class Launcher {
       // and across thousands of Cloud profiles that reached 166 GB on one operator's
       // machine. Cookies/site data are separate stores; this only trims asset caching.
       `--disk-cache-size=${20 * 1024 * 1024}`,
-      ...deriveFingerprintFlags(profile),
+      ...deriveClearcoteFingerprintArgs(profile),
     ];
     if (profile.proxy) {
       args.push("--force-webrtc-ip-handling-policy=disable_non_proxied_udp");
@@ -1538,7 +1539,7 @@ export class Launcher {
         spawnVerifiedBinary.path !== launchBinaryPath
         || spawnVerifiedBinary.sha256 !== verifiedBinary.sha256
       ) {
-        throw new Error("approved CloakBrowser binary changed during launch preparation; refusing to spawn");
+        throw new Error("已批准的 IDFRI Browser 在启动准备期间发生变化，已拒绝启动");
       }
       // Reserve durable ownership before invoking the spawner. If the manager
       // hard-crashes after process creation but before spawn() returns, startup
@@ -4400,8 +4401,12 @@ const SESSION_HELPER = join(import.meta.dir, "packaging", "launch-in-session.ps1
 function sessionLaunchSpawn(
   binary: string,
   args: string[],
+  stdin: string | undefined,
   log: (msg: string) => void = () => {},
 ): SpawnedProcess {
+  if (stdin !== undefined) {
+    throw new Error("Windows 服务会话启动暂不支持安全传递 IDFRI 指纹配置");
+  }
   const cmdline = [binary, ...args].map(quoteWindowsCommandArg).join(" ");
   const portArg = args.find((a) => a.startsWith("--remote-debugging-port="));
   const port = portArg ? portArg.slice("--remote-debugging-port=".length) : "0";

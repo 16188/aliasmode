@@ -142,9 +142,9 @@ function newLauncher(
     binaryPath: "/fake/cloak",
     dataRoot: testDataRoot(store),
     portProbe: () => true,
-    spawn: (bin, args) => {
+    spawn: (bin, args, stdin) => {
       spawnedArgs.push(args);
-      return f.spawn(bin, args);
+      return f.spawn(bin, args, stdin);
     },
     fetch: f.fetchFn,
     ensureSearchProvider: ensureSearchProvider ?? (async () => ({
@@ -1784,6 +1784,9 @@ test("buildArgs never forwards startup URLs to chromium argv", () => {
   expect(args).toContain("--no-first-run");
   expect(args).toContain("--lang=zh-CN");
   expect(args).toContain("--no-default-browser-check");
+  expect(args).toContain("--fingerprint-brand-version=150.0.7871.114");
+  expect(args).toContain("--fingerprint-tls-profile=chrome-150");
+  expect(args.some((arg) => arg.includes("schema_version"))).toBe(false);
   expect(args).not.toContain("https://x.com/home");
   store.close();
 });
@@ -2009,6 +2012,7 @@ test("proxied launch preserves stored timezone and routes through the relay", as
   const f = fleet();
   const events: string[] = [];
   const spawnedArgs: string[][] = [];
+  let fingerprintStdin: string | undefined;
   const dataRoot = join(tmpdir(), `cloak-proxy-identity-${process.pid}`);
   rmSync(dataRoot, { recursive: true, force: true });
   const launcher = new Launcher({
@@ -2016,7 +2020,12 @@ test("proxied launch preserves stored timezone and routes through the relay", as
     binaryPath: "/fake/cloak",
     dataRoot,
     portProbe: () => true,
-    spawn: (binary, args) => { events.push("spawn"); spawnedArgs.push(args); return f.spawn(binary, args); },
+    spawn: (binary, args, stdin) => {
+      events.push("spawn");
+      spawnedArgs.push(args);
+      fingerprintStdin = stdin;
+      return f.spawn(binary, args, stdin);
+    },
     fetch: f.fetchFn,
     ensureSearchProvider: async () => {
       events.push("search");
@@ -2039,7 +2048,9 @@ test("proxied launch preserves stored timezone and routes through the relay", as
   expect(spawnedArgs[0]!.some((arg) => arg.includes("u:p%40ss"))).toBe(false);
   expect(spawnedArgs[0]!.some((arg) => arg.startsWith("--fingerprint-webrtc-ip="))).toBe(false);
   expect(spawnedArgs[0]).toContain("--force-webrtc-ip-handling-policy=disable_non_proxied_udp");
-  expect(spawnedArgs[0]).toContain("--fingerprint-timezone=Europe/London");
+  expect(spawnedArgs[0]).toContain("--fingerprint-platform=windows");
+  expect(spawnedArgs[0]).toContain("--timezone=Europe/London");
+  expect(fingerprintStdin).toBeUndefined();
   expect(store.getProfile("k1d0cd11")?.timezone).toBe("Europe/London");
   const prefs = JSON.parse(readFileSync(join(dataRoot, "k1d0cd11", "Default", "Preferences"), "utf8"));
   expect(prefs.webrtc.ip_handling_policy).toBe("disable_non_proxied_udp");

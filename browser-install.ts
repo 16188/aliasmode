@@ -2,22 +2,36 @@ import { createHash } from "node:crypto";
 import {
   createReadStream,
   existsSync,
+  mkdtempSync,
   mkdirSync,
   readFileSync,
+  readdirSync,
+  renameSync,
+  rmSync,
+  statSync,
   writeFileSync,
 } from "node:fs";
 import { join, resolve } from "node:path";
+import { extractZipTo } from "./unzip.ts";
 
-export const OPEN_CHROMIUM_RUNTIME_VERSION = "playwright-core@1.58.2";
-export const OPEN_CHROMIUM_REVISION = "1208";
-export const OPEN_CHROMIUM_VERSION = "145.0.7632.6";
+export const IDFRI_BROWSER_RELEASE = "v0.1.0-pre.23";
+export const IDFRI_BROWSER_ARCHIVE_NAME = "clearcote-150.0.7871.114-windows-x64.zip";
+export const IDFRI_BROWSER_ARCHIVE_SHA256 = "93fc03c45b931d8d82f714814318892929f44dd671b0993788332071d53f3135";
+export const IDFRI_BROWSER_EXECUTABLE_SHA256 = "f49b0d6bc5a08857e34f951ddc456abc643283ae45ff330ee7c2c39cd75b4869";
+export const IDFRI_BROWSER_ARCHIVE_URL = `https://github.com/clearcotelabs/clearcote-browser/releases/download/${IDFRI_BROWSER_RELEASE}/${IDFRI_BROWSER_ARCHIVE_NAME}`;
+export const OPEN_CHROMIUM_RUNTIME_VERSION = "clearcote@150.0.7871.114-pre.23";
+export const OPEN_CHROMIUM_REVISION = "150.0.7871.114-pre.23";
+export const OPEN_CHROMIUM_VERSION = "150.0.7871.114";
 
 export interface BrowserInstallOptions {
   cwd?: string;
   cacheDir?: string;
   writeEnv?: boolean;
-  runInstaller?: () => Promise<{ code: number; output: string }>;
-  exists?: (path: string) => boolean;
+  platform?: NodeJS.Platform;
+  arch?: string;
+  downloadArchive?: (url: string) => Promise<Uint8Array>;
+  archiveHash?: (bytes: Uint8Array) => string;
+  extractArchive?: (bytes: Uint8Array, destination: string) => Promise<number>;
   hashFile?: (path: string) => Promise<string>;
 }
 
@@ -32,38 +46,30 @@ export async function sha256File(path: string): Promise<string> {
   return hash.digest("hex");
 }
 
-async function runOfficialInstaller(cacheDir: string): Promise<{ code: number; output: string }> {
-  const cli = join(import.meta.dir, "node_modules", "playwright-core", "cli.js");
-  if (!existsSync(cli)) throw new Error("playwright-core installer is unavailable");
-  const env = { ...process.env, PLAYWRIGHT_BROWSERS_PATH: cacheDir };
-  const child = Bun.spawn(
-    [process.execPath, cli, "install", "chromium"],
-    { cwd: import.meta.dir, env, stdout: "pipe", stderr: "inherit" },
-  );
-  const output = await new Response(child.stdout).text();
-  process.stdout.write(output);
-  return { code: await child.exited, output };
+async function downloadArchive(url: string): Promise<Uint8Array> {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`ClearCote Chromium 150 下载失败（HTTP ${response.status}）`);
+  return new Uint8Array(await response.arrayBuffer());
 }
 
-function managedChromiumPath(cacheDir: string, platform = process.platform): string {
-  const root = join(cacheDir, `chromium-${OPEN_CHROMIUM_REVISION}`);
-  const candidates = platform === "win32"
-    ? [join(root, "chrome-win64", "chrome.exe")]
-    : platform === "darwin"
-      ? [
-          join(root, "chrome-mac", "Chromium.app", "Contents", "MacOS", "Chromium"),
-          join(root, "chrome-mac-arm64", "Chromium.app", "Contents", "MacOS", "Chromium"),
-        ]
-      : [join(root, "chrome-linux", "chrome"), join(root, "chrome-linux64", "chrome")];
-  const executable = candidates.find(existsSync);
-  if (!executable) throw new Error(`Playwright Chromium revision ${OPEN_CHROMIUM_REVISION} is incomplete`);
-  return executable;
+function findChromiumExecutable(root: string): string {
+  const matches: string[] = [];
+  const visit = (directory: string) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = join(directory, entry.name);
+      if (entry.isDirectory()) visit(path);
+      else if (entry.isFile() && entry.name.toLowerCase() === "chrome.exe") matches.push(path);
+    }
+  };
+  visit(root);
+  if (matches.length !== 1 || !statSync(matches[0]!).isFile()) {
+    throw new Error("ClearCote Chromium 150 归档必须且只能包含一个 chrome.exe");
+  }
+  return matches[0]!;
 }
 
-function installedPath(output: string, exists: (path: string) => boolean): string | null {
-  const ansi = /\x1b\[[0-9;?]*[ -/]*[@-~]/g;
-  const lines = output.split(/\r?\n/).map((line) => line.replace(ansi, "").trim()).filter(Boolean);
-  return lines.reverse().find((line) => exists(line)) ?? null;
+function archiveSha256(bytes: Uint8Array): string {
+  return createHash("sha256").update(bytes).digest("hex");
 }
 
 export function browserEnvText(current: string, binaryPath: string, sha256: string, newline = "\n", prefix: "IDFRI_CHROMIUM" | "ALIASMODE_FIREFOX" = "IDFRI_CHROMIUM"): string {
@@ -77,19 +83,55 @@ export function browserEnvText(current: string, binaryPath: string, sha256: stri
   return kept.join(newline);
 }
 
-/** Install Playwright's open-source Chromium build, then pin its exact executable hash. */
+/** Install the pinned ClearCote Chromium 150 preview, then pin its exact executable hash. */
 export async function installOpenChromium(opts: BrowserInstallOptions = {}): Promise<{ path: string; sha256: string }> {
   const cwd = resolve(opts.cwd ?? process.cwd());
   const cacheDir = resolve(opts.cacheDir ?? join(cwd, "runtime", "chromium-cache"));
+  if ((opts.platform ?? process.platform) !== "win32" || (opts.arch ?? process.arch) !== "x64") {
+    throw new Error("ClearCote Chromium 150 当前仅提供 Windows x64 版本");
+  }
   mkdirSync(cacheDir, { recursive: true });
-  const run = opts.runInstaller ?? (() => runOfficialInstaller(cacheDir));
-  const exists = opts.exists ?? existsSync;
-  const result = await run();
-  if (result.code !== 0) throw new Error(`Playwright Chromium installer exited with code ${result.code}`);
-  const path = installedPath(result.output, exists) ?? managedChromiumPath(cacheDir);
+  const root = join(cacheDir, `clearcote-${OPEN_CHROMIUM_REVISION}`);
+  const marker = join(root, ".archive-sha256");
+  const hashFile = opts.hashFile ?? sha256File;
+  let path: string | null = null;
+  try {
+    const cached = findChromiumExecutable(root);
+    if (
+      existsSync(marker)
+      && readFileSync(marker, "utf8").trim() === IDFRI_BROWSER_ARCHIVE_SHA256
+      && (await hashFile(cached)).toLowerCase() === IDFRI_BROWSER_EXECUTABLE_SHA256
+    ) path = cached;
+  } catch {
+    // An absent or incomplete cache is replaced from the pinned release.
+  }
+  if (!path) {
+    const bytes = await (opts.downloadArchive ?? downloadArchive)(IDFRI_BROWSER_ARCHIVE_URL);
+    const archiveHash = (opts.archiveHash ?? archiveSha256)(bytes).toLowerCase();
+    if (archiveHash !== IDFRI_BROWSER_ARCHIVE_SHA256) {
+      throw new Error("ClearCote Chromium 150 归档 SHA-256 与已批准版本不一致");
+    }
+    const staging = mkdtempSync(join(cacheDir, ".clearcote-"));
+    try {
+      await (opts.extractArchive ?? extractZipTo)(bytes, staging);
+      const extracted = findChromiumExecutable(staging);
+      if ((await hashFile(extracted)).toLowerCase() !== IDFRI_BROWSER_EXECUTABLE_SHA256) {
+        throw new Error("ClearCote Chromium 150 可执行文件 SHA-256 与已批准版本不一致");
+      }
+      writeFileSync(join(staging, ".archive-sha256"), `${archiveHash}\n`, "utf8");
+      rmSync(root, { recursive: true, force: true });
+      renameSync(staging, root);
+    } catch (error) {
+      rmSync(staging, { recursive: true, force: true });
+      throw error;
+    }
+    path = findChromiumExecutable(root);
+  }
 
-  const sha256 = (await (opts.hashFile ?? sha256File)(path)).toLowerCase();
-  if (!/^[a-f0-9]{64}$/.test(sha256)) throw new Error("installed Chromium returned an invalid SHA-256");
+  const sha256 = (await hashFile(path)).toLowerCase();
+  if (sha256 !== IDFRI_BROWSER_EXECUTABLE_SHA256) {
+    throw new Error("ClearCote Chromium 150 可执行文件 SHA-256 与已批准版本不一致");
+  }
 
   if (opts.writeEnv !== false) {
     const envPath = resolve(cwd, ".env");

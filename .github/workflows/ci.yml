@@ -206,10 +206,13 @@ jobs:
           ) -join "`n"
           $externalIdentity = @(
             "node-win-x64=22.23.2:1177b4137ba5adaa56354ae40f1080c7450e8ae09cecb47da459d1c52ac99f97"
-            "chromium-runtime=playwright-core@1.58.2"
+            "chromium-source=clearcotelabs/clearcote-browser@c1c4a03aee4b24d2ab43139463e435614c4b9fb0"
+            "chromium-runtime=clearcote@150.0.7871.114-pre.23"
             "chromium-platform=windows-x64"
-            "chromium-revision=1208"
-            "chromium-version=145.0.7632.6"
+            "chromium-release=v0.1.0-pre.23"
+            "chromium-version=150.0.7871.114"
+            "chromium-archive=clearcote-150.0.7871.114-windows-x64.zip:93fc03c45b931d8d82f714814318892929f44dd671b0993788332071d53f3135"
+            "chromium-executable-sha256=f49b0d6bc5a08857e34f951ddc456abc643283ae45ff330ee7c2c39cd75b4869"
             "aliasmode-firefox-source=aliasmode/aliasmode-firefox@0897f6e5404bc74646dd6e457d42ac6f0e19dcd4"
             "aliasmode-firefox-version=152.0.4-beta.30"
             "aliasmode-firefox-archive-sha256=$env:FIREFOX_ARCHIVE_SHA256"
@@ -385,11 +388,11 @@ jobs:
           shared-key: windows_full
           workspaces: src-tauri -> target
           cache-on-failure: true
-      - name: Cache Playwright Chromium
+      - name: Cache ClearCote Chromium 150
         uses: actions/cache@v4
         with:
           path: src-tauri/target/chromium-cache
-          key: chromium-windows-x64-v1-playwright-core-1.58.2-rev1208
+          key: clearcote-windows-x64-v1-150.0.7871.114-pre.23-93fc03c45b931d8d82f714814318892929f44dd671b0993788332071d53f3135
       - uses: actions/download-artifact@v4
         with:
           name: aliasmode-firefox-windows-x64
@@ -532,11 +535,11 @@ jobs:
     steps:
       - run: git config --global core.autocrlf false
       - uses: actions/checkout@v4
-      - name: Cache Playwright Chromium
+      - name: Cache ClearCote Chromium 150
         uses: actions/cache@v4
         with:
           path: src-tauri/target/chromium-cache
-          key: chromium-windows-x64-v1-playwright-core-1.58.2-rev1208
+          key: clearcote-windows-x64-v1-150.0.7871.114-pre.23-93fc03c45b931d8d82f714814318892929f44dd671b0993788332071d53f3135
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.2.21
@@ -635,11 +638,11 @@ jobs:
         with:
           workspaces: src-tauri -> target
           cache-on-failure: true
-      - name: Cache Playwright Chromium
+      - name: Cache ClearCote Chromium 150
         uses: actions/cache@v4
         with:
           path: src-tauri/target/chromium-cache
-          key: chromium-windows-x64-v1-playwright-core-1.58.2-rev1208
+          key: clearcote-windows-x64-v1-150.0.7871.114-pre.23-93fc03c45b931d8d82f714814318892929f44dd671b0993788332071d53f3135
       - uses: actions/download-artifact@v4
         with:
           name: aliasmode-firefox-windows-x64

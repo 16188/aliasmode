@@ -4,7 +4,8 @@ import {
   parseResolution,
   platformFromUA,
   chromeMajorFromUA,
-  deriveFingerprintFlags,
+  deriveClearcoteFingerprintArgs,
+  deriveIdfriFingerprintConfig,
   proxyServerFlag,
   isMobileUserAgent,
   convertMobilePersonaToDesktop,
@@ -114,38 +115,59 @@ test("desktop profiles cannot be accidentally converted through the mobile migra
   expect(() => convertMobilePersonaToDesktop(profile())).toThrow("does not have a mobile persona");
 });
 
-test("deriveFingerprintFlags is deterministic and uses stored identity", () => {
+test("IDFRI fingerprint config is deterministic and uses stored identity", () => {
   const p = profile();
-  const a = deriveFingerprintFlags(p);
-  const b = deriveFingerprintFlags(p);
-  expect(a).toEqual(b); // no per-call mutation
-  expect(a).toContain(`--fingerprint=${p.fingerprintSeed}`);
-  expect(a).toContain("--fingerprint-platform=windows");
-  expect(a).toContain("--fingerprint-screen-width=1680");
-  expect(a).toContain("--fingerprint-screen-height=1050");
-  expect(a.some((flag) => flag.startsWith("--fingerprint-brand-version="))).toBe(false);
+  const a = deriveIdfriFingerprintConfig(p);
+  const b = deriveIdfriFingerprintConfig(p);
+  expect(a).toEqual(b);
+  expect(a.schema_version).toBe(1);
+  expect(a.screen.width).toBe(1680);
+  expect(a.screen.height).toBe(1050);
+  expect(a.locale.timezone).toBe("Asia/Shanghai");
+  expect(a.navigator.userAgent).toContain("Chrome/150.0.0.0");
+  expect(a.clientHints.fullVersion).toBe("150.0.7871.114");
+  expect(a.gpu.webglParams.UNMASKED_RENDERER_WEBGL).toContain("RTX 4060");
 });
 
-test("deriveFingerprintFlags does NOT force --user-agent (UA/UA-CH stay consistent)", () => {
-  const flags = deriveFingerprintFlags(profile());
-  expect(flags.some((f) => f.startsWith("--user-agent"))).toBe(false);
+test("IDFRI fingerprint config keeps UA, UA-CH, locale, screen and noise coherent", () => {
+  const config = deriveIdfriFingerprintConfig(profile({ timezone: "America/New_York" }));
+  expect(config.navigator.platform).toBe("Win32");
+  expect(config.clientHints.platform).toBe("Windows");
+  expect(config.clientHints.brands).toContain("Chromium/150");
+  expect(config.locale.timezone).toBe("America/New_York");
+  expect(config.screen.availHeight).toBe(1002);
+  expect(config.noise.canvasSeed).toBeGreaterThanOrEqual(0);
+  expect(config.noise.canvasSeed).toBeLessThan(0x80000000);
 });
 
-test("a generated profile with no imported UA does not force a Windows platform", () => {
-  const flags = deriveFingerprintFlags(profile({ ua: "" }));
-  expect(flags.some((flag) => flag.startsWith("--fingerprint-platform="))).toBe(false);
+test("different profile seeds change noise without changing the measured device", () => {
+  const a = deriveIdfriFingerprintConfig(profile({ fingerprintSeed: 1 }));
+  const b = deriveIdfriFingerprintConfig(profile({ fingerprintSeed: 2 }));
+  expect(a.noise).not.toEqual(b.noise);
+  expect(a.gpu).toEqual(b.gpu);
+  expect(a.navigator).toEqual(b.navigator);
 });
 
-test("imported profiles keep their platform but use CloakBrowser's native version", () => {
-  const flags = deriveFingerprintFlags(profile({ tags: ["imported"], ua: UA_MAC }));
-  expect(flags).toContain("--fingerprint-platform=macos");
-  expect(flags.some((flag) => flag.startsWith("--fingerprint-brand-version="))).toBe(false);
+test("IDFRI Chromium refuses a non-Windows persona instead of partially spoofing it", () => {
+  expect(() => deriveIdfriFingerprintConfig(profile({ platformOs: "macos", ua: UA_MAC })))
+    .toThrow("当前仅支持 Windows 指纹资料");
 });
 
-test("deriveFingerprintFlags passes --fingerprint-timezone only when resolved", () => {
-  expect(deriveFingerprintFlags(profile({ timezone: "America/New_York" }))).toContain("--fingerprint-timezone=America/New_York");
-  // No timezone resolved → omit the flag (CloakBrowser falls back to default).
-  expect(deriveFingerprintFlags(profile({ timezone: "" })).some((f) => f.startsWith("--fingerprint-timezone"))).toBe(false);
+test("ClearCote Chromium 150 args keep version, locale, screen, GPU and TLS coherent", () => {
+  const args = deriveClearcoteFingerprintArgs(profile({ timezone: "America/New_York" }));
+  for (const expected of [
+    "--fingerprint-platform=windows",
+    "--fingerprint-brand=chrome",
+    "--fingerprint-brand-version=150.0.7871.114",
+    "--fingerprint-screen-width=1680",
+    "--fingerprint-screen-height=1050",
+    "--timezone=America/New_York",
+    "--accept-lang=zh-CN,zh,en-US,en",
+    "--lang=zh-CN",
+    "--fingerprint-tls-profile=chrome-150",
+  ]) expect(args).toContain(expected);
+  expect(args.filter((arg) => arg.startsWith("--fingerprint-device-memory="))).toHaveLength(1);
+  expect(args.some((arg) => arg.startsWith("--user-agent="))).toBe(false);
 });
 
 test("proxyServerFlag url-encodes credentials and respects scheme", () => {
@@ -159,29 +181,6 @@ test("proxyServerFlag url-encodes credentials and respects scheme", () => {
   );
 });
 
-// --- full-fidelity identity: an explicit desktop platform ---
-
-test("an explicit platformOs drives the platform flag", () => {
-  const flags = deriveFingerprintFlags(profile({ platformOs: "macos", ua: "" }));
-  expect(flags).toContain("--fingerprint-platform=macos");
-});
-
-test("platformOs wins over a UA that says otherwise", () => {
-  const flags = deriveFingerprintFlags(profile({ platformOs: "macos", ua: UA_WIN }));
-  expect(flags).toContain("--fingerprint-platform=macos");
-  expect(flags).not.toContain("--fingerprint-platform=windows");
-});
-
-test("without platformOs the UA still decides, as before", () => {
-  const flags = deriveFingerprintFlags(profile({ ua: UA_WIN }));
-  expect(flags).toContain("--fingerprint-platform=windows");
-});
-
-test("with neither, no platform flag is emitted", () => {
-  const flags = deriveFingerprintFlags(profile({ ua: "" }));
-  expect(flags.some((f) => f.startsWith("--fingerprint-platform="))).toBe(false);
-});
-
-test("hostPlatformOs reports one of the three CloakBrowser understands", () => {
+test("hostPlatformOs reports a recognized desktop platform", () => {
   expect(["windows", "macos", "linux"]).toContain(hostPlatformOs());
 });

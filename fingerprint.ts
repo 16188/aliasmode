@@ -1,17 +1,4 @@
-/**
- * Deterministic fingerprint derivation for CloakBrowser launches.
- *
- * Every value here is a pure function of the stored profile. The same profile
- * always yields the same seed and the same launch flags — there is no
- * randomness and no per-launch mutation. This is the manager-side equivalent
- * of the AdsPower invariant "launch with the profile state that already
- * exists; do not rewrite it".
- *
- * Flag names follow the CloakBrowser CLI:
- *   --fingerprint=SEED
- *   --fingerprint-platform=windows|macos|linux
- *   --fingerprint-screen-width=N / --fingerprint-screen-height=N
- */
+/** Deterministic IDFRI Browser fingerprint derivation. */
 
 import type { Profile } from "./types.ts";
 import { proxyUrl } from "./proxy.ts";
@@ -142,39 +129,207 @@ export function convertMobilePersonaToDesktop(profile: Profile): MobilePersonaCo
   };
 }
 
-/**
- * Build the deterministic CloakBrowser identity flags for a profile.
- *
- * Note: we deliberately do NOT force `--user-agent`. CloakBrowser regenerates
- * a UA from the fingerprint plus the native kernel version so that the UA and
- * UA Client Hints stay internally consistent; a flag-forced UA would desync
- * the two, which is itself a detection signal. We steer only the imported
- * desktop platform; an imported Chrome version must never override the real
- * kernel version because its APIs, renderer, codecs and network behavior do
- * not change with that cosmetic flag.
- */
-export function deriveFingerprintFlags(profile: Profile): string[] {
-  const flags = [
-    `--fingerprint=${profile.fingerprintSeed}`,
-    `--fingerprint-screen-width=${profile.screenWidth}`,
-    `--fingerprint-screen-height=${profile.screenHeight}`,
-  ];
-  // An explicit stored platform beats inferring one from the UA. This matters
-  // because create.ts stores a BLANK ua on purpose (CloakBrowser derives a
-  // coherent one from the seed), which previously meant no platform flag at
-  // all — and a browser with no platform flag silently inherits the HOST os.
-  // Move that profile to a differently-OS'd box and navigator.platform, the
-  // UA-CH brand list and the font set all shift with nothing to explain it.
-  const platform = profile.platformOs || platformFromUA(profile.ua);
-  if (platform) flags.push(`--fingerprint-platform=${platform}`);
-  // An imported account observing a normal browser upgrade is coherent. A
-  // forced old version beside a newer kernel is not.
-  // Match the browser clock to the proxy's geolocation (resolved at import).
-  if (profile.timezone) flags.push(`--fingerprint-timezone=${profile.timezone}`);
-  return flags;
+const CHROMIUM_VERSION = "150.0.7871.114";
+const CHROMIUM_MAJOR = "150";
+
+const WINDOWS_FONTS = [
+  "Arial", "Arial Black", "Bahnschrift", "Calibri", "Cambria", "Candara",
+  "Comic Sans MS", "Consolas", "Constantia", "Corbel", "Courier New", "Ebrima",
+  "Gadugi", "Georgia", "Impact", "Leelawadee UI", "MS Gothic", "MV Boli",
+  "Malgun Gothic", "Microsoft JhengHei", "Microsoft YaHei", "Nirmala UI",
+  "Segoe UI", "Segoe UI Emoji", "Segoe UI Variable", "Sitka", "Sylfaen",
+  "Tahoma", "Times New Roman", "Trebuchet MS", "Verdana", "Webdings", "Wingdings",
+  "Yu Gothic",
+];
+
+const WEBGL_EXTENSIONS = [
+  "ANGLE_instanced_arrays", "EXT_blend_minmax", "EXT_clip_control",
+  "EXT_color_buffer_half_float", "EXT_depth_clamp", "EXT_float_blend",
+  "EXT_frag_depth", "EXT_polygon_offset_clamp", "EXT_shader_texture_lod",
+  "EXT_texture_compression_bptc", "EXT_texture_compression_rgtc",
+  "EXT_texture_filter_anisotropic", "EXT_texture_mirror_clamp_to_edge", "EXT_sRGB",
+  "OES_element_index_uint", "OES_fbo_render_mipmap", "OES_standard_derivatives",
+  "OES_texture_float", "OES_texture_float_linear", "OES_texture_half_float",
+  "OES_texture_half_float_linear", "OES_vertex_array_object",
+  "WEBGL_blend_func_extended", "WEBGL_color_buffer_float",
+  "WEBGL_compressed_texture_s3tc", "WEBGL_compressed_texture_s3tc_srgb",
+  "WEBGL_debug_renderer_info", "WEBGL_debug_shaders", "WEBGL_depth_texture",
+  "WEBGL_draw_buffers", "WEBGL_lose_context", "WEBGL_multi_draw", "WEBGL_polygon_mode",
+];
+
+const WEBGL_PARAMS = {
+  MAX_TEXTURE_SIZE: 16384,
+  MAX_RENDERBUFFER_SIZE: 16384,
+  MAX_CUBE_MAP_TEXTURE_SIZE: 16384,
+  MAX_TEXTURE_IMAGE_UNITS: 16,
+  MAX_VERTEX_TEXTURE_IMAGE_UNITS: 16,
+  MAX_COMBINED_TEXTURE_IMAGE_UNITS: 32,
+  MAX_VERTEX_ATTRIBS: 16,
+  MAX_VERTEX_UNIFORM_VECTORS: 4096,
+  MAX_FRAGMENT_UNIFORM_VECTORS: 1024,
+  MAX_VARYING_VECTORS: 30,
+  RED_BITS: 8,
+  GREEN_BITS: 8,
+  BLUE_BITS: 8,
+  ALPHA_BITS: 8,
+  DEPTH_BITS: 24,
+  STENCIL_BITS: 0,
+  SUBPIXEL_BITS: 4,
+  SAMPLE_BUFFERS: 0,
+  SAMPLES: 0,
+  MAX_VIEWPORT_DIMS: "32767,32767",
+  ALIASED_LINE_WIDTH_RANGE: "1,1",
+  ALIASED_POINT_SIZE_RANGE: "1,1024",
+  VENDOR: "WebKit",
+  RENDERER: "WebKit WebGL",
+  UNMASKED_VENDOR_WEBGL: "Google Inc. (NVIDIA)",
+  UNMASKED_RENDERER_WEBGL: "ANGLE (NVIDIA, NVIDIA GeForce RTX 4060 Direct3D11 vs_5_0 ps_5_0, D3D11)",
+};
+
+const U64_MASK = (1n << 64n) - 1n;
+
+function mix64(value: bigint): bigint {
+  let z = (value + 0x9e3779b97f4a7c15n) & U64_MASK;
+  z = ((z ^ (z >> 30n)) * 0xbf58476d1ce4e5b9n) & U64_MASK;
+  z = ((z ^ (z >> 27n)) * 0x94d049bb133111ebn) & U64_MASK;
+  return (z ^ (z >> 31n)) & U64_MASK;
 }
 
-/** Render a ProxySpec as a CloakBrowser `--proxy-server` value with inline creds. */
+function subSeed(seed: number, purpose: string): number {
+  let value = BigInt(seed >>> 0);
+  for (const byte of new TextEncoder().encode(purpose)) value = mix64(value ^ BigInt(byte));
+  return Number(mix64(value) & 0x7fffffffn);
+}
+
+/**
+ * Build the complete schema consumed by the source-level IDFRI Chromium patches.
+ * The hardware values come from Fury's measured Windows 11 / RTX 4060 persona;
+ * profile-owned screen, timezone and noise seeds stay stable across launches.
+ */
+export function deriveIdfriFingerprintConfig(profile: Profile) {
+  const platform = profile.platformOs || platformFromUA(profile.ua) || "windows";
+  if (platform !== "windows") {
+    throw new Error(`IDFRI Browser 当前仅支持 Windows 指纹资料，收到：${platform}`);
+  }
+  const width = Math.max(640, Math.round(profile.screenWidth));
+  const height = Math.max(480, Math.round(profile.screenHeight));
+  const fullBrands = [
+    "Not;A=Brand/8.0.0.0",
+    `Chromium/${CHROMIUM_VERSION}`,
+    `Google Chrome/${CHROMIUM_VERSION}`,
+  ];
+  return {
+    schema_version: 1,
+    navigator: {
+      userAgent: `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROMIUM_MAJOR}.0.0.0 Safari/537.36`,
+      platform: "Win32",
+      languages: ["zh-CN", "zh"],
+      hardwareConcurrency: 12,
+      deviceMemory: 8,
+      maxTouchPoints: 0,
+    },
+    clientHints: {
+      brands: ["Not;A=Brand/8", `Chromium/${CHROMIUM_MAJOR}`, `Google Chrome/${CHROMIUM_MAJOR}`],
+      fullVersionList: fullBrands,
+      platform: "Windows",
+      platformVersion: "15.0.0",
+      architecture: "x86",
+      bitness: "64",
+      model: "",
+      mobile: false,
+      wow64: false,
+      fullVersion: CHROMIUM_VERSION,
+      formFactors: [],
+    },
+    screen: {
+      width,
+      height,
+      availWidth: width,
+      availHeight: Math.max(480, height - 48),
+      availLeft: 0,
+      availTop: 0,
+      colorDepth: 24,
+      devicePixelRatio: 1,
+      chromeHeightDelta: 139,
+      chromeWidthDelta: 0,
+      scrollbarWidth: 15,
+    },
+    gpu: {
+      webglParams: WEBGL_PARAMS,
+      webglExtensions: WEBGL_EXTENSIONS,
+      webgpu: {
+        vendor: "nvidia",
+        architecture: "ada",
+        device: "",
+        description: "",
+        limits: {
+          maxTextureDimension1D: 16384,
+          maxTextureDimension2D: 16384,
+          maxTextureDimension3D: 2048,
+          maxTextureArrayLayers: 2048,
+          maxBindGroups: 4,
+          maxBindingsPerBindGroup: 1000,
+          maxVertexAttributes: 16,
+          maxVertexBuffers: 8,
+          maxColorAttachments: 8,
+          maxBufferSize: 2147483648,
+          maxUniformBufferBindingSize: 65536,
+          maxStorageBufferBindingSize: 2147483644,
+          minUniformBufferOffsetAlignment: 256,
+          minStorageBufferOffsetAlignment: 256,
+        },
+        features: [
+          "depth-clip-control", "depth32float-stencil8", "texture-compression-bc",
+          "timestamp-query", "indirect-first-instance", "shader-f16",
+          "rg11b10ufloat-renderable", "float32-filterable",
+        ],
+      },
+    },
+    audio: { sampleRate: 48000, baseLatency: 0.01, outputLatency: 0.02 },
+    fonts: WINDOWS_FONTS,
+    locale: { timezone: profile.timezone || "Asia/Shanghai", locale: "zh-CN" },
+    noise: {
+      canvasSeed: subSeed(profile.fingerprintSeed, "canvas"),
+      audioSeed: subSeed(profile.fingerprintSeed, "audio"),
+      clientRectsSeed: subSeed(profile.fingerprintSeed, "clientRects"),
+      deviceIdSalt: subSeed(profile.fingerprintSeed, "deviceId"),
+    },
+    permissions: { notifications: "prompt", geolocation: "prompt" },
+    engine: { jsHeapSizeLimit: 4294705152 },
+    automation: { hideTraces: true },
+    webrtc: { ipHandlingPolicy: "disable_non_proxied_udp" },
+    battery: { charging: true, level: 1, chargingTime: 0, dischargingTime: -1 },
+  };
+}
+
+/** Map the stored IDFRI persona to ClearCote Chromium 150's native switches. */
+export function deriveClearcoteFingerprintArgs(profile: Profile): string[] {
+  const config = deriveIdfriFingerprintConfig(profile);
+  return [
+    `--fingerprint=${profile.fingerprintSeed}`,
+    "--fingerprint-platform=windows",
+    `--fingerprint-platform-version=${config.clientHints.platformVersion}`,
+    "--fingerprint-brand=chrome",
+    `--fingerprint-brand-version=${CHROMIUM_VERSION}`,
+    `--fingerprint-gpu-vendor=${config.gpu.webglParams.UNMASKED_VENDOR_WEBGL}`,
+    `--fingerprint-gpu-renderer=${config.gpu.webglParams.UNMASKED_RENDERER_WEBGL}`,
+    `--fingerprint-hardware-concurrency=${config.navigator.hardwareConcurrency}`,
+    `--fingerprint-device-memory=${config.navigator.deviceMemory}`,
+    `--fingerprint-screen-width=${config.screen.width}`,
+    `--fingerprint-screen-height=${config.screen.height}`,
+    `--fingerprint-avail-width=${config.screen.availWidth}`,
+    `--fingerprint-avail-height=${config.screen.availHeight}`,
+    `--fingerprint-color-depth=${config.screen.colorDepth}`,
+    `--fingerprint-device-pixel-ratio=${config.screen.devicePixelRatio}`,
+    `--fingerprint-max-touch-points=${config.navigator.maxTouchPoints}`,
+    `--timezone=${config.locale.timezone}`,
+    "--accept-lang=zh-CN,zh,en-US,en",
+    "--lang=zh-CN",
+    `--fingerprint-tls-profile=chrome-${CHROMIUM_MAJOR}`,
+  ];
+}
+
+/** Render a ProxySpec as a Chromium `--proxy-server` value with inline credentials. */
 export function proxyServerFlag(profile: Profile): string | null {
   const p = profile.proxy;
   if (!p) return null;

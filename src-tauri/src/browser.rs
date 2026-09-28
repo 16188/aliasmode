@@ -6,7 +6,7 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-const OPEN_CHROMIUM_RUNTIME_VERSION: &str = "playwright-core@1.58.2";
+const OPEN_CHROMIUM_RUNTIME_VERSION: &str = "clearcote@150.0.7871.114-pre.23";
 const FIREFOX_VERSION: &str = "152.0.4-beta.30";
 
 #[derive(Debug, Deserialize)]
