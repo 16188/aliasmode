@@ -2400,7 +2400,7 @@ function App() {
         username: editForm.username ?? "", password: editForm.password ?? "",
         email: editForm.email ?? "", emailPassword: editForm.emailPassword ?? "", twofa: editForm.twofa ?? "",
         resolution: editForm.resolution ?? "", tags: editForm.tags ?? "",
-        ...(!isCloudMode ? { customNo: editForm.customNo ?? "" } : {}),
+        ...(!isCloudMode ? { customNo: editForm.customNo ?? "", timezone: editForm.timezone ?? "" } : {}),
         ...(!sameExtensionSelection(editExts, editInitialExts) && editEngine === "chromium" ? { extensions: editExts } : {}),
       }, isCloudMode && !editLive ? editExpectedVersion ?? undefined : undefined);
       if (r.ok) { closeEdit(); await load(); }
@@ -4246,18 +4246,28 @@ function App() {
                   </div>
                   <ProxyCheckFeedback hasProxy={editHasProxy} state={editProxyCheck} />
                   {!isCloudMode && (
-                    <div className="proxy-check-actions">
-                      <span className="hint">时区：{editForm.timezone || "未设置"}</span>
-                      <button
-                        type="button"
-                        className="btn proxy-check-btn"
-                        disabled={timezoneBusy || !editHasProxy}
-                        onClick={refreshEditedTimezone}
-                      >
-                        <Icon name="activity" className="sm" />
-                        {timezoneBusy ? "正在查询时区…" : "按代理设置时区"}
-                      </button>
-                    </div>
+                    <>
+                      <label className="fld">
+                        <span>时区</span>
+                        <input
+                          value={editForm.timezone ?? ""}
+                          placeholder="Asia/Kolkata"
+                          onChange={(e) => setEF("timezone", e.target.value)}
+                        />
+                        <small>填写 IANA 时区名称，保存后在下次启动生效。</small>
+                      </label>
+                      <div className="proxy-check-actions">
+                        <button
+                          type="button"
+                          className="btn proxy-check-btn"
+                          disabled={timezoneBusy || !editHasProxy}
+                          onClick={refreshEditedTimezone}
+                        >
+                          <Icon name="activity" className="sm" />
+                          {timezoneBusy ? "正在查询时区…" : "按代理自动设置时区"}
+                        </button>
+                      </div>
+                    </>
                   )}
                   <div className="fld-row">
                     <CopyField label="用户名" value={editForm.username ?? ""} onChange={(value) => setEF("username", value)} />

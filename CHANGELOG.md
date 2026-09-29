@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- 允许本地资料手动填写并校验 IANA 时区，同步 Firefox 持久指纹配置，并在代理时区自动查询失败时明确提示而不是静默保留旧值。
 - 临时接入经过归档与可执行文件双重 SHA-256 校验的 ClearCote Chromium 150 开源内核，同步桌面运行时元数据、Local API 启动契约、许可证回归测试和未签名预览发布校验；预览内核不再因其设置页不兼容而强制修改默认搜索引擎，使用无重复项的确定性中文 Windows 指纹参数，并继续并行构建最终的 IDFRI Chromium 153。
 - Pin Chromium provenance to the IDFRI Browser source revision that retries transient Windows Node/Rollup build crashes within the existing CI time budget.
 - Replace legacy CloakBrowser fingerprint flags with a deterministic, complete IDFRI Chromium persona delivered through standard input so profile JSON never appears in process arguments or plaintext temporary files.

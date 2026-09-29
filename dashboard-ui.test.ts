@@ -47,6 +47,8 @@ test("profile forms retain proxy checking and both browser engines", () => {
   }
   expect(createModal).toContain('engine: "chromium", label: "IDFRI Browser", runtime: "IDFRI Chromium 内核"');
   expect(createModal).toContain('engine: "firefox", label: "Firefox", runtime: "AliasMode Firefox"');
+  expect(editModal).toContain('placeholder="Asia/Kolkata"');
+  expect(editModal).toContain("按代理自动设置时区");
 });
 
 test("desktop layout keeps navigation and roster usable", () => {

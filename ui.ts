@@ -425,6 +425,17 @@ function applyEdits(p: Profile, set: Record<string, unknown>): boolean {
   if ("email" in set) p.email = String(set.email ?? "");
   if ("emailPassword" in set) p.emailPassword = String(set.emailPassword ?? "");
   if ("twofa" in set) p.twofa = String(set.twofa ?? "");
+  if ("timezone" in set) {
+    const timezone = String(set.timezone ?? "").trim();
+    if (timezone) {
+      try {
+        new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format();
+      } catch {
+        throw new Error("时区无效，请使用 IANA 时区名称，例如 Asia/Kolkata");
+      }
+    }
+    p.timezone = timezone;
+  }
   if ("resolution" in set) {
     const r = parseStrictResolution(set.resolution);
     if (profileEngine(p) === "firefox" && (p.screenWidth !== r.width || p.screenHeight !== r.height)) {
@@ -1773,7 +1784,13 @@ export async function handleUiRequest(
       const profile = store.getProfile(id);
       if (!profile) return Response.json({ ok: false, error: "no such profile" }, { status: 404 });
       if (!profile.proxy) return Response.json({ ok: false, error: "profile has no proxy" }, { status: 400 });
-      await attachTimezones([profile], options.timezoneFetch);
+      const { resolved } = await attachTimezones([profile], options.timezoneFetch);
+      if (!resolved) {
+        return Response.json(
+          { ok: false, error: "无法根据代理确定时区，请手动填写 IANA 时区名称" },
+          { status: 502 },
+        );
+      }
       syncFirefoxTimezone(profile);
       store.upsertProfile(profile);
       return Response.json({ ok: true, timezone: profile.timezone });
@@ -1979,6 +1996,7 @@ export async function handleUiRequest(
       if (!p) return Response.json({ ok: false, error: "no such profile" }, { status: 404 });
       const previousGroup = p.group;
       applyEdits(p, set);
+      if ("timezone" in set) syncFirefoxTimezone(p);
       if (!remote) store.applyGroupExtensionDefaults(p, previousGroup, "extensions" in set);
       if (remote) await remote.saveProfile(p);
       else store.upsertProfile(p);

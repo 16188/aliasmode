@@ -1378,6 +1378,60 @@ test("an explicit timezone action updates Firefox configuration", async () => {
   s.close();
 });
 
+test("a manual IANA timezone edit validates and updates Firefox configuration", async () => {
+  const s = store();
+  s.upsertProfile(firefoxProfile(s, "firefox-manual-timezone"));
+  const update = (timezone: string) => handleUiRequest(
+    new Request("http://x/ui/api/profiles/firefox-manual-timezone/update", {
+      method: "POST",
+      body: JSON.stringify({ set: { timezone } }),
+    }),
+    {} as any,
+    s,
+  );
+
+  const saved = await update("Asia/Kolkata");
+  expect(saved!.status).toBe(200);
+  expect(s.getProfile("firefox-manual-timezone")!).toMatchObject({
+    timezone: "Asia/Kolkata",
+    firefox: { config: { timezone: "Asia/Kolkata" } },
+  });
+
+  const rejected = await update("India/Not_A_Zone");
+  expect(rejected!.status).toBe(500);
+  expect(await rejected!.json()).toMatchObject({
+    ok: false,
+    error: "时区无效，请使用 IANA 时区名称，例如 Asia/Kolkata",
+  });
+  expect(s.getProfile("firefox-manual-timezone")!.timezone).toBe("Asia/Kolkata");
+  s.close();
+});
+
+test("an unresolved automatic timezone lookup reports the failure", async () => {
+  const s = store();
+  const before = s.getProfile("k1d0cd11")!;
+  before.timezone = "Asia/Shanghai";
+  s.upsertProfile(before);
+  const res = await handleUiRequest(
+    new Request("http://x/ui/api/profiles/k1d0cd11/timezone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    }),
+    {} as any,
+    s,
+    null,
+    { timezoneFetch: timezoneFetch({}) },
+  );
+  expect(res!.status).toBe(502);
+  expect(await res!.json()).toMatchObject({
+    ok: false,
+    error: "无法根据代理确定时区，请手动填写 IANA 时区名称",
+  });
+  expect(s.getProfile("k1d0cd11")!.timezone).toBe("Asia/Shanghai");
+  s.close();
+});
+
 test("legacy remote proxy edits preserve stored timezone without a lookup", async () => {
   const s = store();
   const local = s.getProfile("k1d0cd11")!;

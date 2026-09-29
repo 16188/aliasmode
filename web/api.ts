@@ -670,7 +670,7 @@ export interface EditProfile {
   tags: string;
   /** Operator-chosen "custom NO."; "" falls back to the store serial. Local mode only. */
   customNo?: string;
-  /** Stored timezone. It changes only through the explicit Local lookup action. */
+  /** Stored IANA timezone. */
   timezone: string;
   cookieCount: number;
   seeded: boolean;
