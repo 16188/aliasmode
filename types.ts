@@ -45,6 +45,39 @@ export interface FirefoxProfileConfig {
   config: Record<string, JsonValue>;
 }
 
+/** Optional Chromium overrides. Missing values keep IDFRI's coherent automatic persona. */
+export interface ProfileFingerprintSettings {
+  userAgent?: string;
+  languages?: string[];
+  locale?: string;
+  hardwareConcurrency?: number;
+  deviceMemory?: number;
+  devicePixelRatio?: number;
+  colorDepth?: number;
+  webglVendor?: string;
+  webglRenderer?: string;
+  webgpuMode?: "match-webgl" | "disabled";
+  webrtcPolicy?: "default" | "default_public_interface_only" | "disable_non_proxied_udp";
+  canvasNoise?: boolean;
+  audioNoise?: boolean;
+  clientRectsNoise?: boolean;
+  mediaDevices?: {
+    audioInputCount: number;
+    audioOutputCount: number;
+    videoInputCount: number;
+  };
+  fonts?: string[];
+  speechVoices?: string[];
+  geolocation?: {
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+  };
+  geolocationPermission?: "prompt" | "granted" | "denied";
+  doNotTrack?: boolean;
+  hardwareAcceleration?: boolean;
+}
+
 export interface ProxySpec {
   /** Canonical lowercase proxy protocol. */
   type: ProxyType;
@@ -80,6 +113,10 @@ export interface Profile {
    * Optional so existing Profile literals/fixtures stay valid; treated as "".
    */
   platform?: string;
+  /** Optional page opened when no previous session or caller URL exists. */
+  startupUrl?: string;
+  /** Operator-only free-form note. */
+  note?: string;
   username: string;
   password: string;
   /** Recovery/contact email associated with the account; empty when none. */
@@ -127,6 +164,8 @@ export interface Profile {
    * inferring it from `ua`, which is what it did before this field existed.
    */
   platformOs?: string;
+  /** Profile-level Chromium fingerprint overrides. Firefox owns its separate persisted config. */
+  fingerprint?: ProfileFingerprintSettings;
   /** Fingerprint measured after the most recent launch. */
   fpObserved?: ObservedFingerprint;
   /** Fingerprint an import claimed this profile has. Never written by a capture. */

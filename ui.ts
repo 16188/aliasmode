@@ -37,7 +37,7 @@ import { handleTrashRequest } from "./trash.ts";
 import { importInbox, importBuffers, prepareImportBuffers, ProfileImportError, type ImportOverrides } from "./inbox.ts";
 import { buildNewProfile, type NewProfileInput } from "./create.ts";
 import { attachTimezones, type FetchLike } from "./geoip.ts";
-import { parseUpdateFile, rowsToUpdates, serializeCsv, serializeAdsTxt, serializeXlsxRows, parseStrictProxy, parseStrictResolution, parseStrictCustomNo, decodeText } from "./parse.ts";
+import { parseUpdateFile, rowsToUpdates, serializeCsv, serializeAdsTxt, serializeXlsxRows, parseStrictProxy, parseStrictResolution, parseStrictCustomNo, parseStartupUrl, parseProfileNote, decodeText } from "./parse.ts";
 import type { ProfileExport } from "./parse.ts";
 import { writeXlsx, readXlsx } from "./xlsx.ts";
 import { generateTotp } from "./totp.ts";
@@ -51,7 +51,7 @@ import {
 import { decodePortableProfile } from "./portable-profile.ts";
 import { isSafeProfileId, PROFILE_ID_ERROR } from "./profile-id.ts";
 import { normalizeProxySpec, proxyHostPort, proxyLegacyString, type ProxyInput } from "./proxy.ts";
-import { convertMobilePersonaToDesktop, isMobileUserAgent } from "./fingerprint.ts";
+import { convertMobilePersonaToDesktop, isMobileUserAgent, parseProfileFingerprintSettings } from "./fingerprint.ts";
 import { addBrowserCookie } from "./session.ts";
 import { join, resolve } from "node:path";
 import { readdirSync, readFileSync } from "node:fs";
@@ -389,6 +389,7 @@ function profileEditView(p: Profile) {
   const conversion = isMobileUserAgent(p.ua) ? convertMobilePersonaToDesktop(p) : null;
   return {
     id: p.id, name: p.name, engine: profileEngine(p), group: p.group, platform: p.platform ?? "",
+    startupUrl: p.startupUrl ?? "", note: p.note ?? "", fingerprint: p.fingerprint ?? {},
     proxyType: px?.type ?? "http", proxy,
     ...(p.proxyError ? { proxyError: p.proxyError } : {}),
     username: p.username, password: p.password,
@@ -420,6 +421,8 @@ function applyEdits(p: Profile, set: Record<string, unknown>): boolean {
   if ("name" in set) p.name = String(set.name ?? "");
   if ("group" in set) p.group = String(set.group ?? "");
   if ("platform" in set) p.platform = String(set.platform ?? "");
+  if ("startupUrl" in set) p.startupUrl = parseStartupUrl(set.startupUrl);
+  if ("note" in set) p.note = parseProfileNote(set.note);
   if ("username" in set) p.username = String(set.username ?? "");
   if ("password" in set) p.password = String(set.password ?? "");
   if ("email" in set) p.email = String(set.email ?? "");
@@ -469,6 +472,17 @@ function applyEdits(p: Profile, set: Record<string, unknown>): boolean {
       : String(set.tags ?? "").split(",").map((t) => t.trim()).filter(Boolean);
   }
   if ("customNo" in set) p.customNo = parseStrictCustomNo(set.customNo);
+  if ("fingerprint" in set) {
+    let raw = set.fingerprint;
+    if (typeof raw === "string" && raw.trim()) {
+      try { raw = JSON.parse(raw); }
+      catch { throw new Error("指纹设置必须是有效的 JSON 对象"); }
+    }
+    const fingerprint = parseProfileFingerprintSettings(raw || undefined);
+    if (profileEngine(p) === "firefox" && fingerprint) throw new Error("Firefox 使用独立的持久指纹配置");
+    if (fingerprint) p.fingerprint = fingerprint;
+    else delete p.fingerprint;
+  }
   return proxyChanged;
 }
 

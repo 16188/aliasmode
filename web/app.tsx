@@ -1,6 +1,7 @@
 import { Channel } from "@tauri-apps/api/core";
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import type { ProfileFingerprintSettings } from "../types.ts";
 import "./styles.css";
 import "./proxies.css";
 import { ProxiesPage } from "./proxies.tsx";
@@ -630,33 +631,119 @@ function CopyField({ label, value, onChange }: { label: string; value: string; o
   );
 }
 
-const AUTOMATIC_FINGERPRINT_FIELDS = [
-  ["用户代理", "自动"],
-  ["浏览器版本", "自动 · 使用已安装的最新版"],
-  ["操作系统", "自动"],
-  ["GPU", "自动"],
-  ["CPU", "自动"],
-  ["内存", "自动"],
-  ["指纹种子", "自动 · 唯一且稳定"],
-  ["时区", "已保存 · 可按代理设置"],
-  ["Canvas / WebGL / 音频", "自动"],
-  ["WebRTC", "自动 · 感知代理"],
-] as const;
+function splitFingerprintList(value: string): string[] | undefined {
+  const list = [...new Set(value.split(/[,\n]/).map((item) => item.trim()).filter(Boolean))];
+  return list.length ? list : undefined;
+}
+
+function fingerprintInput(values: Record<string, string>): ProfileFingerprintSettings | undefined {
+  const out: ProfileFingerprintSettings = {};
+  const text = (key: string) => values[key]?.trim() || undefined;
+  const number = (key: string) => text(key) === undefined ? undefined : Number(text(key));
+  const boolean = (key: string) => values[key] === "true" ? true : values[key] === "false" ? false : undefined;
+  const set = <K extends keyof ProfileFingerprintSettings>(key: K, value: ProfileFingerprintSettings[K]) => {
+    if (value !== undefined) out[key] = value;
+  };
+  set("userAgent", text("fpUserAgent"));
+  set("languages", splitFingerprintList(values.fpLanguages ?? ""));
+  set("locale", text("fpLocale"));
+  set("hardwareConcurrency", number("fpCpu"));
+  set("deviceMemory", number("fpMemory"));
+  set("devicePixelRatio", number("fpPixelRatio"));
+  set("colorDepth", number("fpColorDepth"));
+  set("webglVendor", text("fpWebglVendor"));
+  set("webglRenderer", text("fpWebglRenderer"));
+  set("webgpuMode", text("fpWebgpu") as ProfileFingerprintSettings["webgpuMode"]);
+  set("webrtcPolicy", text("fpWebrtc") as ProfileFingerprintSettings["webrtcPolicy"]);
+  set("canvasNoise", boolean("fpCanvasNoise"));
+  set("audioNoise", boolean("fpAudioNoise"));
+  set("clientRectsNoise", boolean("fpClientRectsNoise"));
+  set("fonts", splitFingerprintList(values.fpFonts ?? ""));
+  set("speechVoices", splitFingerprintList(values.fpSpeechVoices ?? ""));
+  set("geolocationPermission", text("fpGeoPermission") as ProfileFingerprintSettings["geolocationPermission"]);
+  set("doNotTrack", boolean("fpDnt"));
+  set("hardwareAcceleration", boolean("fpHardwareAcceleration"));
+  const mediaCounts = ["fpAudioInputs", "fpAudioOutputs", "fpVideoInputs"].map(text);
+  if (mediaCounts.some((count) => count !== undefined)) {
+    if (mediaCounts.some((count) => count === undefined)) throw new Error("麦克风、扬声器和摄像头数量必须全部填写");
+    out.mediaDevices = {
+      audioInputCount: Number(mediaCounts[0]),
+      audioOutputCount: Number(mediaCounts[1]),
+      videoInputCount: Number(mediaCounts[2]),
+    };
+  }
+  const latitude = text("fpLatitude");
+  const longitude = text("fpLongitude");
+  const accuracy = text("fpAccuracy");
+  if ([latitude, longitude, accuracy].some((coordinate) => coordinate !== undefined)) {
+    if (latitude === undefined || longitude === undefined) throw new Error("纬度和经度必须同时填写");
+    out.geolocation = {
+      latitude: Number(latitude),
+      longitude: Number(longitude),
+      accuracy: Number(accuracy ?? "20000"),
+    };
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+function fingerprintFormFields(settings: ProfileFingerprintSettings = {}): Record<string, string> {
+  const value = (input: unknown) => input === undefined ? "" : String(input);
+  return {
+    fpUserAgent: settings.userAgent ?? "",
+    fpLanguages: settings.languages?.join(", ") ?? "",
+    fpLocale: settings.locale ?? "",
+    fpCpu: value(settings.hardwareConcurrency),
+    fpMemory: value(settings.deviceMemory),
+    fpPixelRatio: value(settings.devicePixelRatio),
+    fpColorDepth: value(settings.colorDepth),
+    fpWebglVendor: settings.webglVendor ?? "",
+    fpWebglRenderer: settings.webglRenderer ?? "",
+    fpWebgpu: settings.webgpuMode ?? "",
+    fpWebrtc: settings.webrtcPolicy ?? "",
+    fpCanvasNoise: value(settings.canvasNoise),
+    fpAudioNoise: value(settings.audioNoise),
+    fpClientRectsNoise: value(settings.clientRectsNoise),
+    fpFonts: settings.fonts?.join(", ") ?? "",
+    fpSpeechVoices: settings.speechVoices?.join(", ") ?? "",
+    fpAudioInputs: value(settings.mediaDevices?.audioInputCount),
+    fpAudioOutputs: value(settings.mediaDevices?.audioOutputCount),
+    fpVideoInputs: value(settings.mediaDevices?.videoInputCount),
+    fpLatitude: value(settings.geolocation?.latitude),
+    fpLongitude: value(settings.geolocation?.longitude),
+    fpAccuracy: value(settings.geolocation?.accuracy),
+    fpGeoPermission: settings.geolocationPermission ?? "",
+    fpDnt: value(settings.doNotTrack),
+    fpHardwareAcceleration: value(settings.hardwareAcceleration),
+  };
+}
 
 function FingerprintSettings({
   engine,
   screen,
+  values,
   onScreenChange,
+  onChange,
 }: {
   engine: "chromium" | "firefox";
   screen: string;
+  values: Record<string, string>;
   onScreenChange: (value: string) => void;
+  onChange: (key: string, value: string) => void;
 }) {
+  const select = (key: string, label: string, options: ReadonlyArray<readonly [string, string]>) => (
+    <label className="fld">
+      <span>{label}</span>
+      <select value={values[key] ?? ""} onChange={(event) => onChange(key, event.target.value)}>
+        {options.map(([value, text]) => <option key={value} value={value}>{text}</option>)}
+      </select>
+    </label>
+  );
+  const automaticBoolean = [["", "自动"], ["true", "开启"], ["false", "关闭"]] as const;
   return (
     <details className="fingerprint-settings">
       <summary>
         <span>指纹设置</span>
-        <span className="automatic-badge">自动</span>
+        <span className="automatic-badge">自动 / 自定义</span>
       </summary>
       <div className="fingerprint-grid">
         <label className="fld">
@@ -664,20 +751,47 @@ function FingerprintSettings({
           <input value={engine === "firefox" ? "AliasMode Firefox" : "IDFRI Browser"} readOnly tabIndex={-1} className="ro" />
         </label>
         {engine === "chromium" && (
-          <label className="fld">
-            <span>屏幕</span>
-            <input value={screen} placeholder="自动 · 例如 1920x1080" onChange={(event) => onScreenChange(event.target.value)} />
-          </label>
+          <>
+            <label className="fld"><span>浏览器版本</span><input value="跟随已安装的 IDFRI Chromium 内核" readOnly tabIndex={-1} className="ro" /></label>
+            <label className="fld"><span>操作系统</span><input value="Windows 桌面（自动一致）" readOnly tabIndex={-1} className="ro" /></label>
+            <label className="fld fingerprint-wide"><span>用户代理（UA）</span><input value={values.fpUserAgent ?? ""} placeholder="自动；自定义值必须与当前 Chromium 主版本一致" onChange={(event) => onChange("fpUserAgent", event.target.value)} /></label>
+            <label className="fld"><span>屏幕分辨率</span><input value={screen} placeholder="自动 · 例如 1920x1080" onChange={(event) => onScreenChange(event.target.value)} /></label>
+            <label className="fld"><span>语言</span><input value={values.fpLanguages ?? ""} placeholder="自动 · zh-CN, zh" onChange={(event) => onChange("fpLanguages", event.target.value)} /></label>
+            <label className="fld"><span>界面语言 / Intl</span><input value={values.fpLocale ?? ""} placeholder="自动 · zh-CN" onChange={(event) => onChange("fpLocale", event.target.value)} /></label>
+            <label className="fld"><span>CPU 核心数</span><input type="number" min="1" max="128" value={values.fpCpu ?? ""} placeholder="自动 · 12" onChange={(event) => onChange("fpCpu", event.target.value)} /></label>
+            <label className="fld"><span>设备内存（GB）</span><select value={values.fpMemory ?? ""} onChange={(event) => onChange("fpMemory", event.target.value)}><option value="">自动 · 8</option>{[0.25, 0.5, 1, 2, 4, 8].map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
+            <label className="fld"><span>设备像素比</span><input type="number" min="0.5" max="4" step="0.25" value={values.fpPixelRatio ?? ""} placeholder="自动 · 1" onChange={(event) => onChange("fpPixelRatio", event.target.value)} /></label>
+            <label className="fld"><span>颜色深度</span><input type="number" min="1" max="64" value={values.fpColorDepth ?? ""} placeholder="自动 · 24" onChange={(event) => onChange("fpColorDepth", event.target.value)} /></label>
+            {select("fpWebrtc", "WebRTC", [["", "自动 · 使用代理时仅走代理"], ["disable_non_proxied_udp", "仅代理 UDP"], ["default_public_interface_only", "仅默认公网接口"], ["default", "真实网络接口"]])}
+            {select("fpWebgpu", "WebGPU", [["", "自动 · 与 WebGL 一致"], ["match-webgl", "与 WebGL 一致"], ["disabled", "关闭"]])}
+            <label className="fld"><span>WebGL 厂商</span><input value={values.fpWebglVendor ?? ""} placeholder="自动" onChange={(event) => onChange("fpWebglVendor", event.target.value)} /></label>
+            <label className="fld fingerprint-wide"><span>WebGL 渲染器</span><input value={values.fpWebglRenderer ?? ""} placeholder="自动" onChange={(event) => onChange("fpWebglRenderer", event.target.value)} /></label>
+            {select("fpCanvasNoise", "Canvas / WebGL 图像", automaticBoolean)}
+            {select("fpAudioNoise", "AudioContext", automaticBoolean)}
+            {select("fpClientRectsNoise", "ClientRects", automaticBoolean)}
+            {select("fpDnt", "请勿跟踪（DNT）", [["", "自动 · 关闭"], ["true", "开启"], ["false", "关闭"]])}
+            {select("fpHardwareAcceleration", "硬件加速", automaticBoolean)}
+            <div className="fingerprint-subhead">媒体设备数量</div>
+            <div className="fld-row fingerprint-wide">
+              <label className="fld grow"><span>麦克风</span><input type="number" min="0" max="32" value={values.fpAudioInputs ?? ""} placeholder="自动" onChange={(event) => onChange("fpAudioInputs", event.target.value)} /></label>
+              <label className="fld grow"><span>扬声器</span><input type="number" min="0" max="32" value={values.fpAudioOutputs ?? ""} placeholder="自动" onChange={(event) => onChange("fpAudioOutputs", event.target.value)} /></label>
+              <label className="fld grow"><span>摄像头</span><input type="number" min="0" max="32" value={values.fpVideoInputs ?? ""} placeholder="自动" onChange={(event) => onChange("fpVideoInputs", event.target.value)} /></label>
+            </div>
+            <label className="fld fingerprint-wide"><span>字体白名单</span><textarea value={values.fpFonts ?? ""} placeholder="自动使用一致的 Windows 字体；自定义时用逗号或换行分隔" onChange={(event) => onChange("fpFonts", event.target.value)} /></label>
+            <label className="fld fingerprint-wide"><span>SpeechVoices 白名单</span><textarea value={values.fpSpeechVoices ?? ""} placeholder="自动使用系统语音；自定义名称必须已安装" onChange={(event) => onChange("fpSpeechVoices", event.target.value)} /></label>
+            {select("fpGeoPermission", "地理位置权限", [["", "自动 · 每次询问"], ["prompt", "询问"], ["granted", "允许"], ["denied", "拒绝"]])}
+            <div className="fld-row fingerprint-wide">
+              <label className="fld grow"><span>纬度</span><input type="number" min="-90" max="90" step="any" value={values.fpLatitude ?? ""} placeholder="自动" onChange={(event) => onChange("fpLatitude", event.target.value)} /></label>
+              <label className="fld grow"><span>经度</span><input type="number" min="-180" max="180" step="any" value={values.fpLongitude ?? ""} placeholder="自动" onChange={(event) => onChange("fpLongitude", event.target.value)} /></label>
+              <label className="fld grow"><span>精度（米）</span><input type="number" min="1" max="1000000" value={values.fpAccuracy ?? ""} placeholder="20000" onChange={(event) => onChange("fpAccuracy", event.target.value)} /></label>
+            </div>
+            <label className="fld"><span>TLS 指纹</span><input value="跟随当前 Chromium 内核" readOnly tabIndex={-1} className="ro" /></label>
+            <label className="fld"><span>指纹种子</span><input value="自动 · 每个资料唯一且稳定" readOnly tabIndex={-1} className="ro" /></label>
+          </>
         )}
-        {AUTOMATIC_FINGERPRINT_FIELDS.map(([label, value]) => (
-          <label className="fld" key={label}>
-            <span>{label}</span>
-            <input value={value} readOnly tabIndex={-1} className="ro" />
-          </label>
-        ))}
         <div className="hint">{engine === "firefox"
           ? "AliasMode Firefox 使用原生资料，不支持 CDP、PDF 和 Chrome 扩展。"
-          : "IDFRI Browser 会协调锁定的指纹值；屏幕尺寸是唯一可覆盖的指纹设置。"}</div>
+          : "留空即使用一致的自动值。Canvas 噪声同时覆盖 WebGL 图像读取；字体、语音和媒体设备只能隐藏本机已有项目，不能伪造不存在的硬件。设备名称、MAC 和端口扫描保护尚需后续内核支持。"}</div>
       </div>
     </details>
   );
@@ -866,7 +980,8 @@ async function storeDesktopCloudCredentials(
 
 const BLANK_FORM = {
   name: "", engine: "chromium" as "chromium" | "firefox", group: "", platform: "", proxyType: "http", host: "", port: "", user: "", pass: "",
-  screen: "", customNo: "", username: "", password: "", email: "", emailPassword: "", twofa: "",
+  startupUrl: "", note: "", tags: "", cookies: "", screen: "", customNo: "", username: "", password: "", email: "", emailPassword: "", twofa: "",
+  ...fingerprintFormFields(),
 };
 
 const BLANK_COOKIE_FORM = { name: "", value: "", domain: "", path: "/" };
@@ -2248,11 +2363,17 @@ function App() {
     setCreating(true);
     setCreateErr(null);
     try {
+      const cookies = form.cookies.trim() ? JSON.parse(form.cookies) : [];
+      if (!Array.isArray(cookies)) throw new Error("Cookie 必须是 JSON 数组");
       const r = await createProfile({
         name: form.name,
         engine: form.engine,
         group: form.group,
         platform: form.platform,
+        startupUrl: form.startupUrl,
+        note: form.note,
+        tags: form.tags,
+        cookies,
         screen: form.screen,
         ...(isCloudMode ? {} : { customNo: form.customNo }),
         username: form.username,
@@ -2260,6 +2381,7 @@ function App() {
         email: form.email,
         emailPassword: form.emailPassword,
         twofa: form.twofa,
+        fingerprint: form.engine === "chromium" ? fingerprintInput(form) : undefined,
         proxy: form.host.trim() ? { type: form.proxyType, host: form.host, port: form.port, user: form.user, pass: form.pass } : null,
       });
       if (r.ok) {
@@ -2307,6 +2429,7 @@ function App() {
         if (editFetchId.current !== id) return;
         setEditForm({
           name: p.name, group: p.group, platform: p.platform,
+          startupUrl: p.startupUrl, note: p.note,
           proxyType: p.proxyType || "http", proxy: p.proxy,
           proxyError: p.proxyError ?? "",
           username: p.username, password: p.password,
@@ -2314,6 +2437,7 @@ function App() {
           resolution: p.resolution, tags: p.tags,
           customNo: p.customNo ?? "",
           timezone: p.timezone,
+          ...fingerprintFormFields(p.fingerprint),
         });
         setEditEngine(p.engine === "firefox" ? "firefox" : "chromium");
         setEditExts(p.extensions ?? []);
@@ -2396,11 +2520,13 @@ function App() {
       if (isCloudMode && !editLive && editExpectedVersion === null) throw new Error("Cloud 资料版本缺失，请关闭并重新打开编辑窗口");
       const r = await updateProfile(editId, {
         name: editForm.name ?? "", group: editForm.group ?? "", platform: editForm.platform ?? "",
+        startupUrl: editForm.startupUrl ?? "", note: editForm.note ?? "",
         proxy: editForm.proxy ?? "", proxyType: editForm.proxyType ?? "http",
         username: editForm.username ?? "", password: editForm.password ?? "",
         email: editForm.email ?? "", emailPassword: editForm.emailPassword ?? "", twofa: editForm.twofa ?? "",
         resolution: editForm.resolution ?? "", tags: editForm.tags ?? "",
         ...(!isCloudMode ? { customNo: editForm.customNo ?? "", timezone: editForm.timezone ?? "" } : {}),
+        ...(!isCloudMode && editEngine === "chromium" ? { fingerprint: fingerprintInput(editForm) } : {}),
         ...(!sameExtensionSelection(editExts, editInitialExts) && editEngine === "chromium" ? { extensions: editExts } : {}),
       }, isCloudMode && !editLive ? editExpectedVersion ?? undefined : undefined);
       if (r.ok) { closeEdit(); await load(); }
@@ -4054,6 +4180,23 @@ function App() {
                   <PlatformPicker value={form.platform} onChange={(v) => setF("platform", v)} />
                 </label>
               </div>
+              <label className="fld">
+                <span>标签 <span className="muted">（逗号分隔）</span></span>
+                <input value={form.tags} placeholder="预热, 美国, 优先" onChange={(e) => setF("tags", e.target.value)} />
+              </label>
+              <label className="fld">
+                <span>启动页</span>
+                <input value={form.startupUrl} placeholder="https://example.com/（留空时按账号平台打开）" onChange={(e) => setF("startupUrl", e.target.value)} />
+              </label>
+              <label className="fld">
+                <span>备注</span>
+                <textarea value={form.note} placeholder="仅保存在本机" onChange={(e) => setF("note", e.target.value)} />
+              </label>
+              <label className="fld">
+                <span>Cookie JSON</span>
+                <textarea value={form.cookies} placeholder='[{"name":"session","value":"...","domain":".example.com","path":"/"}]' onChange={(e) => setF("cookies", e.target.value)} />
+                <small>留空表示不导入；必须是浏览器 Cookie JSON 数组。</small>
+              </label>
               <div className="proxy-paste-row">
                 <label className="fld grow">
                   <span>粘贴代理并自动填充 <span className="muted">（先选择类型 · 主机:端口:用户名:密码）</span></span>
@@ -4108,7 +4251,13 @@ function App() {
                 </button>
               </div>
               <ProxyCheckFeedback hasProxy={createHasProxy} state={createProxyCheck} />
-              <FingerprintSettings engine={form.engine} screen={form.screen} onScreenChange={(value) => setF("screen", value)} />
+              <FingerprintSettings
+                engine={form.engine}
+                screen={form.screen}
+                values={form}
+                onScreenChange={(value) => setF("screen", value)}
+                onChange={(key, value) => setF(key as keyof typeof BLANK_FORM, value)}
+              />
               <div className="browser-options" role="radiogroup" aria-label="浏览器">
                 {([
                   {
@@ -4217,6 +4366,14 @@ function App() {
                     <span>标签 <span className="muted">（逗号分隔）</span></span>
                     <input value={editForm.tags ?? ""} placeholder="预热, 美国, 优先" onChange={(e) => setEF("tags", e.target.value)} />
                   </label>
+                  <label className="fld">
+                    <span>启动页</span>
+                    <input value={editForm.startupUrl ?? ""} placeholder="https://example.com/（留空时按账号平台打开）" onChange={(e) => setEF("startupUrl", e.target.value)} />
+                  </label>
+                  <label className="fld">
+                    <span>备注</span>
+                    <textarea value={editForm.note ?? ""} placeholder="仅保存在本机" onChange={(e) => setEF("note", e.target.value)} />
+                  </label>
                   <div className="fld-row">
                     <label className="fld type">
                       <span>代理类型</span>
@@ -4288,7 +4445,13 @@ function App() {
                       </button>
                     </div>
                   )}
-                  <FingerprintSettings engine={editEngine} screen={editForm.resolution ?? ""} onScreenChange={(value) => setEF("resolution", value)} />
+                  <FingerprintSettings
+                    engine={editEngine}
+                    screen={editForm.resolution ?? ""}
+                    values={editForm}
+                    onScreenChange={(value) => setEF("resolution", value)}
+                    onChange={setEF}
+                  />
                   {editEngine === "chromium" && editExtensionChoices.length > 0 && (
                     <div className="fld">
                       <span>扩展</span>

@@ -426,17 +426,10 @@ button:disabled { cursor: default; }
    App shell
    ========================================================================== */
 
-/* On a very wide monitor the whole shell — sidebar, header and content — caps
-   and centers as one frame, so nothing pins to a far screen edge while the
-   roster sits in the middle. 1704 = sidebar 232 + card 1440 + its margins. */
 .app {
   height: 100%; display: flex; background: var(--bg);
   position: relative; overflow: hidden;
-  max-width: 1704px; margin: 0 auto;
-}
-@media (min-width: 1705px) {
-  /* Once the cap engages, hairlines define the frame against the canvas. */
-  .app { border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+  width: 100%;
 }
 
 /* Sidebar ------------------------------------------------------------------ */
@@ -687,14 +680,10 @@ button.newgroup:disabled { color: var(--faint); border-color: var(--line); backg
 .account-button .who span { color: var(--faint); font-size: 10.5px; }
 .account-button > .icon { color: var(--faint); }
 
-/* Filter row + selection toolbar live on one raised card with the table.
-   The card caps at a readable width and centers on a big monitor: a six-column
-   roster cannot fill 2500px gracefully — stretched that far, the last data
-   column and the action buttons drift apart. Symmetric canvas on both sides
-   reads deliberate; one giant gap inside the table reads broken. */
+/* Filter row + selection toolbar live on one raised card with the table. */
 .workspace {
   flex: 1; min-height: 0; margin: 14px auto 16px;
-  width: min(1440px, 100% - 32px);
+  width: calc(100% - 32px);
   display: flex; flex-direction: column;
   background: var(--surface); border: 1px solid var(--line);
   border-radius: var(--r-xl); box-shadow: var(--sh-sm); overflow: hidden;
@@ -922,9 +911,9 @@ td.col-tags .chip + .chip { margin-left: 4px; }
 
 .error, .update-banner {
   display: flex; align-items: center; gap: 10px; flex: 0 0 auto;
-  /* Tracks the workspace card's cap so banner and card edges line up. */
+  /* Tracks the workspace card so banner and card edges line up. */
   margin: 14px auto -2px; padding: 11px 14px;
-  width: min(1440px, 100% - 32px);
+  width: calc(100% - 32px);
   border-radius: var(--r-lg); font-size: 12.5px;
 }
 .error { color: var(--danger-ink); background: var(--danger-soft); border: 1px solid var(--danger-line); }
@@ -1203,7 +1192,11 @@ td.col-tags .chip + .chip { margin-left: 4px; }
   font-size: 10.5px; font-weight: 650;
 }
 .fingerprint-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; padding: 14px 13px; border-top: 1px solid var(--line); }
-.fingerprint-grid .hint { grid-column: 1 / -1; }
+.fingerprint-grid .hint, .fingerprint-wide, .fingerprint-subhead { grid-column: 1 / -1; }
+.fingerprint-subhead {
+  margin-top: 2px; padding-top: 12px; border-top: 1px solid var(--line-soft);
+  color: var(--ink-soft); font-size: 12px; font-weight: 650;
+}
 
 /* Segmented control: a small either/or choice that shows its options at rest,
    unlike a select. Used to pick one import source instead of stacking both. */

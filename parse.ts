@@ -23,7 +23,7 @@
 
 import { normalizeProfileEngine } from "./firefox-config.ts";
 import type { CookieRecord, Profile, ProxySpec } from "./types.ts";
-import { deterministicSeed, parseResolution, platformFromUA } from "./fingerprint.ts";
+import { deterministicSeed, parseProfileFingerprintSettings, parseResolution, platformFromUA } from "./fingerprint.ts";
 import { normalizeProxyType, parseProxySpec, proxyLegacyString } from "./proxy.ts";
 import { isSafeProfileId, PROFILE_ID_ERROR } from "./profile-id.ts";
 import { attestationFields, expectationFromRecord, FP_BLOCK_KEYS } from "./fingerprint-attestation.ts";
@@ -191,6 +191,25 @@ export function parseStrictCustomNo(value: unknown): string {
     throw new Error(`invalid custom NO.: at most ${MAX_CUSTOM_NO_LENGTH} digits`);
   }
   return raw;
+}
+
+export function parseStartupUrl(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  let url: URL;
+  try { url = new URL(raw); }
+  catch { throw new Error("启动页必须是有效的 http(s) 地址"); }
+  if ((url.protocol !== "http:" && url.protocol !== "https:") || url.username || url.password) {
+    throw new Error("启动页仅支持不含账号密码的 http(s) 地址");
+  }
+  if (url.href.length > 2048) throw new Error("启动页地址最多 2048 个字符");
+  return url.href;
+}
+
+export function parseProfileNote(value: unknown): string {
+  const note = String(value ?? "").trim();
+  if (note.length > 2000) throw new Error("备注最多 2000 个字符");
+  return note;
 }
 
 /** Parse a proxy edit/import strictly while retaining main's URL/IPv6/SOCKS5 support. */
@@ -366,6 +385,17 @@ export function recordToProfile(
 
   const fpExpected = expectationFromRecord(rec);
   const browser = parseFirefoxExport(rec, validationErrors);
+  let startupUrl = "";
+  let note = "";
+  let fingerprint: Profile["fingerprint"];
+  try { startupUrl = parseStartupUrl(rec.startup_url); }
+  catch (error) { validationErrors.push(error instanceof Error ? error.message : String(error)); }
+  try { note = parseProfileNote(rec.remark ?? rec.note); }
+  catch (error) { validationErrors.push(error instanceof Error ? error.message : String(error)); }
+  if (rec.fingerprint?.trim()) {
+    try { fingerprint = parseProfileFingerprintSettings(JSON.parse(rec.fingerprint)); }
+    catch (error) { validationErrors.push(error instanceof Error ? error.message : String(error)); }
+  }
   const profile: Profile = {
     id,
     ...browser,
@@ -373,6 +403,8 @@ export function recordToProfile(
     name: (rec.name ?? "").trim(),
     group: (rec.group ?? "").trim(),
     platform: (rec.platform ?? "").trim(),
+    startupUrl,
+    note,
     // Older account CSV/txt exports often used `email` as the login column.
     // Keep that import behavior while also retaining it in the new email field.
     username: (rec.username ?? rec.email ?? "").trim(),
@@ -395,6 +427,7 @@ export function recordToProfile(
     fingerprintSeed: parseSeed(rec.seed) ?? deterministicSeed(id),
     extensions: splitList(rec.extensions),
     tags: splitList(rec.tags),
+    ...(fingerprint ? { fingerprint } : {}),
     ...(fpExpected ? { fpExpected } : {}),
     cookies,
     seeded: false,
@@ -512,6 +545,10 @@ const UPDATE_KEYMAP: Record<string, string> = {
   customno: "customNo",
   "custom no": "customNo",
   no: "customNo",
+  remark: "note",
+  note: "note",
+  startup_url: "startupUrl",
+  fingerprint: "fingerprint",
 };
 
 /**
@@ -646,6 +683,8 @@ function profileFields(p: ProfileExport): Record<string, string> {
     group: p.group,
     platform: p.platform ?? "",
     name: p.name,
+    remark: p.note ?? "",
+    startup_url: p.startupUrl ?? "",
     username: p.username,
     password: p.password,
     email: p.email ?? "",
@@ -667,6 +706,7 @@ function profileFields(p: ProfileExport): Record<string, string> {
     platform_os: platform || "",
     extensions: (p.extensions ?? []).join(","),
     tags: (p.tags ?? []).join(","),
+    fingerprint: p.fingerprint ? JSON.stringify(p.fingerprint) : "",
     engine: p.engine ?? "chromium",
     firefox_config: p.firefox ? JSON.stringify(p.firefox) : "",
     // Attested fields: a photograph of the identity, never an input to one.
@@ -678,11 +718,11 @@ function profileFields(p: ProfileExport): Record<string, string> {
  * Fields that are read back on import and change what the browser launches as.
  * Distinct from the fp_* group, which is only ever compared against.
  */
-const RESTORED_KEYS = ["seed", "timezone", "platform_os", "extensions", "tags"] as const;
+const RESTORED_KEYS = ["seed", "timezone", "platform_os", "extensions", "tags", "fingerprint"] as const;
 
 /** Field order of the `key=value` block export. */
 const TXT_KEYS = [
-  "acc_id", "id", "group", "platform", "name", "username", "password",
+  "acc_id", "id", "group", "platform", "name", "remark", "startup_url", "username", "password",
   "email", "emailpassword", "fakey", "cookie", "proxytype", "proxy", "ua", "resolution",
   ...RESTORED_KEYS, ...FP_BLOCK_KEYS, "session", "session_source",
 ] as const;
@@ -694,7 +734,7 @@ const FIREFOX_EXPORT_KEYS = ["engine", "firefox_config"] as const;
  * human editing the sheet will see it without scrolling.
  */
 export const XLSX_COLUMNS = [
-  "id", "acc_id", "group", "platform", "name", "username", "password",
+  "id", "acc_id", "group", "platform", "name", "remark", "startup_url", "username", "password",
   "email", "emailpassword", "fakey", "cookie", "proxytype", "proxy", "ua", "resolution",
   ...RESTORED_KEYS, ...FP_BLOCK_KEYS, "session", "session_source",
 ] as const;
@@ -736,9 +776,9 @@ function csvCell(v: string): string {
  * omitted — this view is for editing groups, proxies, and account credentials.
  */
 export function serializeCsv(profiles: Profile[]): string {
-  const cols = ["id", "name", "group", "platform", "proxy", "proxytype", "username", "password", "email", "emailpassword", "twofa", "resolution"];
+  const cols = ["id", "name", "group", "platform", "remark", "startup_url", "proxy", "proxytype", "username", "password", "email", "emailpassword", "twofa", "resolution"];
   const rows = profiles.map((p) => [
-    p.id, p.name, p.group, p.platform ?? "", proxyToString(p), p.proxy?.type ?? "",
+    p.id, p.name, p.group, p.platform ?? "", p.note ?? "", p.startupUrl ?? "", proxyToString(p), p.proxy?.type ?? "",
     p.username, p.password, p.email ?? "", p.emailPassword ?? "", p.twofa, `${p.screenWidth}*${p.screenHeight}`,
   ].map((c) => csvCell(String(c ?? ""))).join(","));
   return [cols.join(","), ...rows].join("\n") + "\n";

@@ -6,6 +6,7 @@ import {
   chromeMajorFromUA,
   deriveClearcoteFingerprintArgs,
   deriveIdfriFingerprintConfig,
+  parseProfileFingerprintSettings,
   proxyServerFlag,
   isMobileUserAgent,
   convertMobilePersonaToDesktop,
@@ -126,6 +127,7 @@ test("IDFRI fingerprint config is deterministic and uses stored identity", () =>
   expect(a.locale.timezone).toBe("Asia/Shanghai");
   expect(a.navigator.userAgent).toContain("Chrome/150.0.0.0");
   expect(a.clientHints.fullVersion).toBe("150.0.7871.114");
+  expect(a.clientHints.fullVersionList).toContain("Chromium/150.0.7871.114");
   expect(a.gpu.webglParams.UNMASKED_RENDERER_WEBGL).toContain("RTX 4060");
 });
 
@@ -138,6 +140,47 @@ test("IDFRI fingerprint config keeps UA, UA-CH, locale, screen and noise coheren
   expect(config.screen.availHeight).toBe(1002);
   expect(config.noise.canvasSeed).toBeGreaterThanOrEqual(0);
   expect(config.noise.canvasSeed).toBeLessThan(0x80000000);
+});
+
+test("profile overrides reach every supported IDFRI fingerprint surface", () => {
+  const fingerprint = parseProfileFingerprintSettings({
+    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/150.0.7871.114 Safari/537.36",
+    languages: ["en-US", "en"], locale: "en-US",
+    hardwareConcurrency: 8, deviceMemory: 4, devicePixelRatio: 1.25, colorDepth: 30,
+    webglVendor: "Google Inc. (Intel)", webglRenderer: "ANGLE (Intel, Intel Iris Xe, D3D11)",
+    canvasNoise: false, audioNoise: false, clientRectsNoise: false,
+    mediaDevices: { audioInputCount: 1, audioOutputCount: 2, videoInputCount: 0 },
+    fonts: ["Arial", "Calibri"], speechVoices: ["Microsoft Huihui"],
+    geolocation: { latitude: 31.23, longitude: 121.47, accuracy: 20_000 },
+    geolocationPermission: "granted", webrtcPolicy: "default_public_interface_only",
+    webgpuMode: "disabled", doNotTrack: true, hardwareAcceleration: false,
+  })!;
+  const config = deriveIdfriFingerprintConfig(profile({ fingerprint }));
+  expect(config.navigator).toMatchObject({ hardwareConcurrency: 8, deviceMemory: 4, languages: ["en-US", "en"] });
+  expect(config.locale.locale).toBe("en-US");
+  expect(config.screen).toMatchObject({ devicePixelRatio: 1.25, colorDepth: 30 });
+  expect(config.gpu.webglParams.UNMASKED_VENDOR_WEBGL).toBe("Google Inc. (Intel)");
+  expect(config.gpu.webgpu.vendor).toBe("intel");
+  expect(config.noise.canvasSeed).toBeUndefined();
+  expect(config.noise.audioSeed).toBeUndefined();
+  expect(config.noise.clientRectsSeed).toBeUndefined();
+  expect(config.mediaDevices).toEqual(fingerprint.mediaDevices);
+  expect(config.speech!.voices).toEqual(["Microsoft Huihui"]);
+  expect(config.geolocation).toEqual(fingerprint.geolocation);
+  expect(config.permissions.geolocation).toBe("granted");
+  expect(config.webrtc.ipHandlingPolicy).toBe("default_public_interface_only");
+  const args = deriveClearcoteFingerprintArgs(profile({ fingerprint }));
+  expect(args).toContain("--idfri-fp-stdin");
+  expect(args).toContain("--disable-features=WebGPU");
+  expect(args).toContain("--disable-gpu");
+  expect(args).toContain("--accept-lang=en-US,en");
+});
+
+test("fingerprint validation rejects incoherent or unsafe custom values", () => {
+  expect(() => parseProfileFingerprintSettings({ userAgent: "Mozilla/5.0 Chrome/149.0.0.0" })).toThrow("当前 Chromium 150");
+  expect(() => parseProfileFingerprintSettings({ userAgent: "Mozilla/5.0 Android Chrome/150.0.0.0 Mobile" })).toThrow("桌面版 Chrome UA");
+  expect(() => parseProfileFingerprintSettings({ geolocation: { latitude: 91, longitude: 0, accuracy: 1 } })).toThrow("纬度");
+  expect(() => parseProfileFingerprintSettings({ deviceMemory: 3 })).toThrow("设备内存必须是");
 });
 
 test("different profile seeds change noise without changing the measured device", () => {
@@ -162,12 +205,13 @@ test("ClearCote Chromium 150 args keep version, locale, screen, GPU and TLS cohe
     "--fingerprint-screen-width=1680",
     "--fingerprint-screen-height=1050",
     "--timezone=America/New_York",
-    "--accept-lang=zh-CN,zh,en-US,en",
+    "--accept-lang=zh-CN,zh",
     "--lang=zh-CN",
+    "--idfri-fp-stdin",
     "--fingerprint-tls-profile=chrome-150",
   ]) expect(args).toContain(expected);
   expect(args.filter((arg) => arg.startsWith("--fingerprint-device-memory="))).toHaveLength(1);
-  expect(args.some((arg) => arg.startsWith("--user-agent="))).toBe(false);
+  expect(args.some((arg) => arg.startsWith("--user-agent="))).toBe(true);
 });
 
 test("proxyServerFlag url-encodes credentials and respects scheme", () => {

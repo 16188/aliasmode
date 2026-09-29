@@ -1,6 +1,7 @@
 import { normalizeProfileEngine } from "./firefox-config.ts";
 import type { CookieRecord, Profile } from "./types.ts";
-import { MAX_CUSTOM_NO_LENGTH, MAX_SCREEN_DIMENSION, MIN_SCREEN_HEIGHT, MIN_SCREEN_WIDTH } from "./parse.ts";
+import { parseProfileFingerprintSettings } from "./fingerprint.ts";
+import { MAX_CUSTOM_NO_LENGTH, MAX_SCREEN_DIMENSION, MIN_SCREEN_HEIGHT, MIN_SCREEN_WIDTH, parseProfileNote, parseStartupUrl } from "./parse.ts";
 import { assertSafeProfileId } from "./profile-id.ts";
 
 const REQUIRED_STRING_FIELDS = [
@@ -67,6 +68,10 @@ export function assertValidProfile(value: unknown): asserts value is Profile {
   if (profile.platform !== undefined && typeof profile.platform !== "string") {
     throw new Error("profile platform must be a string");
   }
+  parseStartupUrl(profile.startupUrl);
+  parseProfileNote(profile.note);
+  const fingerprint = parseProfileFingerprintSettings(profile.fingerprint);
+  if (profile.engine === "firefox" && fingerprint) throw new Error("Firefox profile cannot include Chromium fingerprint settings");
   if (profile.proxy !== null && (typeof profile.proxy !== "object" || Array.isArray(profile.proxy))) {
     throw new Error("profile proxy must be an object or null");
   }

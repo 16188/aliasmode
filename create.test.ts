@@ -65,6 +65,23 @@ test("buildNewProfile stores account credentials for the Edit view", () => {
   expect(p.twofa).toBe("M4YHM7YCL73FLIEV");
 });
 
+test("buildNewProfile stores local metadata, cookies and validated fingerprint choices", () => {
+  const cookies = [{ name: "session", value: "value", domain: ".example.com", path: "/" }];
+  const p = buildNewProfile({
+    startupUrl: "https://example.com/account",
+    note: "本地备注",
+    tags: "预热, 美国",
+    cookies,
+    fingerprint: { hardwareConcurrency: 8, doNotTrack: true },
+  }, () => false);
+  expect(p.startupUrl).toBe("https://example.com/account");
+  expect(p.note).toBe("本地备注");
+  expect(p.tags).toEqual(["预热", "美国"]);
+  expect(p.cookies).toEqual(cookies);
+  expect(p.fingerprint).toEqual({ hardwareConcurrency: 8, doNotTrack: true });
+  expect(() => buildNewProfile({ startupUrl: "file:///secret" }, () => false)).toThrow("仅支持");
+});
+
 test("buildNewProfile parses an http/socks5 proxy and defaults type to http", () => {
   const a = buildNewProfile({ proxy: { type: "socks5", host: "1.2.3.4", port: "1080", user: "u", pass: "p:x" } }, () => false);
   expect(a.proxy).toEqual({ type: "socks5", host: "1.2.3.4", port: "1080", user: "u", pass: "p:x" });

@@ -10,11 +10,11 @@
  * Firefox receives a complete persisted Camoufox config.
  */
 
-import type { Profile, ProfileEngine, ProxySpec } from "./types.ts";
+import type { CookieRecord, Profile, ProfileEngine, ProfileFingerprintSettings, ProxySpec } from "./types.ts";
 import { createFirefoxProfileConfig } from "./firefox-config.ts";
-import { deterministicSeed, hostPlatformOs } from "./fingerprint.ts";
+import { deterministicSeed, hostPlatformOs, parseProfileFingerprintSettings } from "./fingerprint.ts";
 import { normalizeProxySpec } from "./proxy.ts";
-import { parseStrictCustomNo, parseStrictResolution } from "./parse.ts";
+import { parseProfileNote, parseStartupUrl, parseStrictCustomNo, parseStrictResolution } from "./parse.ts";
 
 export interface NewProfileInput {
   /** Browser identity engine. Defaults to Chromium for compatibility. */
@@ -23,6 +23,10 @@ export interface NewProfileInput {
   group?: string;
   /** Account platform: "x.com", "telegram.org", or "" (none). */
   platform?: string;
+  startupUrl?: string;
+  note?: string;
+  tags?: string | string[];
+  cookies?: CookieRecord[];
   username?: string;
   password?: string;
   email?: string;
@@ -33,6 +37,7 @@ export interface NewProfileInput {
   screen?: string;
   /** Operator-chosen serial shown in the roster and the browser window title. */
   customNo?: string;
+  fingerprint?: ProfileFingerprintSettings;
 }
 
 // Realistic desktop resolutions, so each created profile gets a varied screen.
@@ -73,6 +78,8 @@ export function buildNewProfile(input: NewProfileInput, exists: (id: string) => 
     })();
   const engine = input.engine === undefined ? "chromium" : input.engine;
   if (engine !== "chromium" && engine !== "firefox") throw new Error("unsupported profile engine");
+  const fingerprint = parseProfileFingerprintSettings(input.fingerprint);
+  if (engine === "firefox" && fingerprint) throw new Error("Firefox 使用独立的持久指纹配置");
   const firefox = engine === "firefox"
     ? createFirefoxProfileConfig(selected.width, selected.height)
     : undefined;
@@ -89,6 +96,10 @@ export function buildNewProfile(input: NewProfileInput, exists: (id: string) => 
     name: (input.name || "").trim() || id, // AdsPower auto-names blank profiles after the id
     group: (input.group || "").trim(),
     platform: (input.platform || "").trim(),
+    startupUrl: parseStartupUrl(input.startupUrl),
+    note: parseProfileNote(input.note),
+    tags: (Array.isArray(input.tags) ? input.tags : String(input.tags ?? "").split(","))
+      .map((tag) => tag.trim()).filter(Boolean),
     username: (input.username || "").trim(),
     password: input.password || "",
     email: (input.email || "").trim(),
@@ -101,11 +112,12 @@ export function buildNewProfile(input: NewProfileInput, exists: (id: string) => 
     // --fingerprint-platform flag and the browser inherits whatever host it
     // happens to run on — a silent identity change on a move between boxes.
     platformOs: engine === "firefox" ? "windows" : hostPlatformOs(),
+    ...(fingerprint ? { fingerprint } : {}),
     timezone: typeof firefoxTimezone === "string" ? firefoxTimezone : "", // Firefox saves a host timezone in its persisted config
     screenWidth: typeof firefoxScreenWidth === "number" ? firefoxScreenWidth : selected.width,
     screenHeight: typeof firefoxScreenHeight === "number" ? firefoxScreenHeight : selected.height,
     fingerprintSeed: deterministicSeed(id),
-    cookies: [],
+    cookies: input.cookies ?? [],
     seeded: false,
   };
 }

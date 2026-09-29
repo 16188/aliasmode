@@ -283,6 +283,8 @@ test("full profile edit keeps account and mailbox credentials in separate fields
       body: JSON.stringify({ set: {
         username: "account-user", password: "linkedin-pass",
         email: "new-mail@example.com", emailPassword: "new-mail-pass", twofa: "NEWSEED",
+        startupUrl: "https://example.com/start", note: "本地备注",
+        fingerprint: { hardwareConcurrency: 8, canvasNoise: false, doNotTrack: true },
       } }),
     }),
     {} as any,
@@ -292,6 +294,8 @@ test("full profile edit keeps account and mailbox credentials in separate fields
   expect(s.getProfile("k1d0cd11")).toMatchObject({
     username: "account-user", password: "linkedin-pass",
     email: "new-mail@example.com", emailPassword: "new-mail-pass", twofa: "NEWSEED",
+    startupUrl: "https://example.com/start", note: "本地备注",
+    fingerprint: { hardwareConcurrency: 8, canvasNoise: false, doNotTrack: true },
   });
   s.close();
 });

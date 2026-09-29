@@ -27,6 +27,9 @@ test("upsert + get round-trips a full profile", () => {
   const p = parseExport(SAMPLE).profiles[0]!;
   p.email = "mailbox@example.com";
   p.emailPassword = "mailbox-secret";
+  p.startupUrl = "https://example.com/";
+  p.note = "operator-only note";
+  p.fingerprint = { hardwareConcurrency: 8, canvasNoise: false };
   store.upsertProfile(p);
   const got = store.getProfile("k1d0cd11")!;
   expect(got.name).toBe("sophiaskye852");
@@ -36,6 +39,9 @@ test("upsert + get round-trips a full profile", () => {
   expect(got.fingerprintSeed).toBe(p.fingerprintSeed);
   expect(got.email).toBe("mailbox@example.com");
   expect(got.emailPassword).toBe("mailbox-secret");
+  expect(got.startupUrl).toBe("https://example.com/");
+  expect(got.note).toBe("operator-only note");
+  expect(got.fingerprint).toEqual({ hardwareConcurrency: 8, canvasNoise: false });
   expect(got.seeded).toBe(false);
   store.close();
 });
@@ -48,16 +54,18 @@ test("sensitive profile fields and session state are encrypted at rest", () => {
   profile.email = "private@example.com";
   profile.emailPassword = "mail-secret";
   profile.twofa = "TOTPSECRET";
+  profile.note = "private operator note";
   store.upsertProfile(profile);
   store.saveSessionBundle(profile.id, '{"storage":"private"}');
 
   const raw = (store as any)["db"].query(
-    `SELECT acc_id, username, password, email, email_password, twofa, proxy_json, cookies_json, session_json
+    `SELECT acc_id, username, password, email, email_password, twofa, note, proxy_json, cookies_json, session_json
        FROM profiles WHERE id = ?`,
   ).get(profile.id) as Record<string, string>;
   for (const value of Object.values(raw)) expect(value).toStartWith("idfri:v1:");
   expect(JSON.stringify(raw)).not.toContain("private-user");
   expect(JSON.stringify(raw)).not.toContain("mail-secret");
+  expect(JSON.stringify(raw)).not.toContain("private operator note");
   expect(store.getProfile(profile.id)).toMatchObject(profile);
   expect(store.getSessionBundle(profile.id)).toBe('{"storage":"private"}');
   store.close();

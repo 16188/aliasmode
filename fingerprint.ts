@@ -1,6 +1,6 @@
 /** Deterministic IDFRI Browser fingerprint derivation. */
 
-import type { Profile } from "./types.ts";
+import type { Profile, ProfileFingerprintSettings } from "./types.ts";
 import { proxyUrl } from "./proxy.ts";
 
 /** FNV-1a 32-bit hash → positive integer. Stable across runs and platforms. */
@@ -129,6 +129,133 @@ export function convertMobilePersonaToDesktop(profile: Profile): MobilePersonaCo
   };
 }
 
+const WEBRTC_POLICIES = new Set<ProfileFingerprintSettings["webrtcPolicy"]>([
+  "default", "default_public_interface_only", "disable_non_proxied_udp",
+]);
+
+function finiteNumber(value: unknown, label: string, min: number, max: number): number {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < min || number > max) {
+    throw new Error(`${label}必须在 ${min} 到 ${max} 之间`);
+  }
+  return number;
+}
+
+function optionalString(value: unknown, label: string, max = 512): string | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  if (typeof value !== "string") throw new Error(`${label}必须是文本`);
+  const text = value.trim();
+  if (!text) return undefined;
+  if (text.length > max) throw new Error(`${label}最多 ${max} 个字符`);
+  return text;
+}
+
+function stringList(value: unknown, label: string): string[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value) || value.some((item) => typeof item !== "string")) {
+    throw new Error(`${label}必须是文本列表`);
+  }
+  const list = [...new Set(value.map((item) => item.trim()).filter(Boolean))];
+  if (list.length > 128 || list.some((item) => item.length > 128)) {
+    throw new Error(`${label}最多 128 项，每项最多 128 个字符`);
+  }
+  return list.length ? list : undefined;
+}
+
+/** Validate and normalize profile-level settings at every persistence boundary. */
+export function parseProfileFingerprintSettings(value: unknown): ProfileFingerprintSettings | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "object" || Array.isArray(value)) throw new Error("指纹设置必须是对象");
+  const input = value as Record<string, unknown>;
+  const out: ProfileFingerprintSettings = {};
+  const userAgent = optionalString(input.userAgent, "用户代理", 1024);
+  if (userAgent) {
+    if (!/\bChrome\/\d+(?:\.\d+){0,3}\b/.test(userAgent) || isMobileUserAgent(userAgent)) {
+      throw new Error("用户代理必须是桌面版 Chrome UA");
+    }
+    if (chromeMajorFromUA(userAgent) !== CHROMIUM_MAJOR) {
+      throw new Error(`用户代理必须与当前 Chromium ${CHROMIUM_MAJOR} 内核版本一致`);
+    }
+    out.userAgent = userAgent;
+  }
+  const languages = stringList(input.languages, "语言");
+  if (languages) {
+    try { out.languages = Intl.getCanonicalLocales(languages); }
+    catch { throw new Error("语言必须使用有效的 BCP 47 标签，例如 zh-CN"); }
+  }
+  const locale = optionalString(input.locale, "界面语言", 64);
+  if (locale) {
+    try { out.locale = Intl.getCanonicalLocales(locale)[0]!; }
+    catch { throw new Error("界面语言必须使用有效的 BCP 47 标签，例如 zh-CN"); }
+  }
+  if (input.hardwareConcurrency !== undefined) {
+    const count = finiteNumber(input.hardwareConcurrency, "CPU 核心数", 1, 128);
+    if (!Number.isInteger(count)) throw new Error("CPU 核心数必须是整数");
+    out.hardwareConcurrency = count;
+  }
+  if (input.deviceMemory !== undefined) {
+    const memory = finiteNumber(input.deviceMemory, "设备内存", 0.25, 8);
+    if (![0.25, 0.5, 1, 2, 4, 8].includes(memory)) throw new Error("设备内存必须是 0.25、0.5、1、2、4 或 8 GB");
+    out.deviceMemory = memory;
+  }
+  if (input.devicePixelRatio !== undefined) out.devicePixelRatio = finiteNumber(input.devicePixelRatio, "设备像素比", 0.5, 4);
+  if (input.colorDepth !== undefined) {
+    const depth = finiteNumber(input.colorDepth, "颜色深度", 1, 64);
+    if (!Number.isInteger(depth)) throw new Error("颜色深度必须是整数");
+    out.colorDepth = depth;
+  }
+  for (const [key, label] of [["webglVendor", "WebGL 厂商"], ["webglRenderer", "WebGL 渲染器"]] as const) {
+    const text = optionalString(input[key], label, 512);
+    if (text) out[key] = text;
+  }
+  if (input.webgpuMode !== undefined) {
+    if (input.webgpuMode !== "match-webgl" && input.webgpuMode !== "disabled") throw new Error("WebGPU 设置无效");
+    out.webgpuMode = input.webgpuMode;
+  }
+  if (input.webrtcPolicy !== undefined) {
+    if (!WEBRTC_POLICIES.has(input.webrtcPolicy as ProfileFingerprintSettings["webrtcPolicy"])) throw new Error("WebRTC 策略无效");
+    out.webrtcPolicy = input.webrtcPolicy as ProfileFingerprintSettings["webrtcPolicy"];
+  }
+  for (const key of ["canvasNoise", "audioNoise", "clientRectsNoise", "doNotTrack", "hardwareAcceleration"] as const) {
+    if (input[key] !== undefined) {
+      if (typeof input[key] !== "boolean") throw new Error(`${key} 必须是布尔值`);
+      out[key] = input[key];
+    }
+  }
+  if (input.mediaDevices !== undefined) {
+    if (!input.mediaDevices || typeof input.mediaDevices !== "object" || Array.isArray(input.mediaDevices)) throw new Error("媒体设备设置无效");
+    const media = input.mediaDevices as Record<string, unknown>;
+    const count = (key: string, label: string) => {
+      const result = finiteNumber(media[key], label, 0, 32);
+      if (!Number.isInteger(result)) throw new Error(`${label}必须是整数`);
+      return result;
+    };
+    out.mediaDevices = {
+      audioInputCount: count("audioInputCount", "麦克风数量"),
+      audioOutputCount: count("audioOutputCount", "扬声器数量"),
+      videoInputCount: count("videoInputCount", "摄像头数量"),
+    };
+  }
+  const fonts = stringList(input.fonts, "字体");
+  if (fonts) out.fonts = fonts;
+  const speechVoices = stringList(input.speechVoices, "语音列表");
+  if (speechVoices) out.speechVoices = speechVoices;
+  if (input.geolocation !== undefined) {
+    if (!input.geolocation || typeof input.geolocation !== "object" || Array.isArray(input.geolocation)) throw new Error("地理位置设置无效");
+    const geo = input.geolocation as Record<string, unknown>;
+    out.geolocation = {
+      latitude: finiteNumber(geo.latitude, "纬度", -90, 90),
+      longitude: finiteNumber(geo.longitude, "经度", -180, 180),
+      accuracy: finiteNumber(geo.accuracy, "定位精度", 1, 1_000_000),
+    };
+  }
+  if (input.geolocationPermission !== undefined) {
+    if (!["prompt", "granted", "denied"].includes(String(input.geolocationPermission))) throw new Error("地理位置权限无效");
+    out.geolocationPermission = input.geolocationPermission as ProfileFingerprintSettings["geolocationPermission"];
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 const CHROMIUM_VERSION = "150.0.7871.114";
 const CHROMIUM_MAJOR = "150";
 
@@ -207,29 +334,50 @@ function subSeed(seed: number, purpose: string): number {
  * profile-owned screen, timezone and noise seeds stay stable across launches.
  */
 export function deriveIdfriFingerprintConfig(profile: Profile) {
+  const settings = profile.fingerprint ?? {};
   const platform = profile.platformOs || platformFromUA(profile.ua) || "windows";
   if (platform !== "windows") {
     throw new Error(`IDFRI Browser 当前仅支持 Windows 指纹资料，收到：${platform}`);
   }
   const width = Math.max(640, Math.round(profile.screenWidth));
   const height = Math.max(480, Math.round(profile.screenHeight));
+  const userAgent = settings.userAgent
+    ?? `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROMIUM_MAJOR}.0.0.0 Safari/537.36`;
+  const customVersion = settings.userAgent?.match(/\bChrome\/(\d+(?:\.\d+){0,3})\b/)?.[1];
+  const version = customVersion
+    ? customVersion.split(".").concat("0", "0", "0", "0").slice(0, 4).join(".")
+    : CHROMIUM_VERSION;
+  const major = chromeMajorFromUA(userAgent) ?? CHROMIUM_MAJOR;
+  const languages = settings.languages ?? ["zh-CN", "zh"];
+  const locale = settings.locale ?? languages[0] ?? "zh-CN";
+  const webglParams = {
+    ...WEBGL_PARAMS,
+    ...(settings.webglVendor ? { UNMASKED_VENDOR_WEBGL: settings.webglVendor } : {}),
+    ...(settings.webglRenderer ? { UNMASKED_RENDERER_WEBGL: settings.webglRenderer } : {}),
+  };
+  const renderer = webglParams.UNMASKED_RENDERER_WEBGL.toLowerCase();
+  const webgpu = renderer.includes("intel")
+    ? { vendor: "intel", architecture: "gen-12" }
+    : renderer.includes("amd") || renderer.includes("radeon")
+      ? { vendor: "amd", architecture: "rdna" }
+      : { vendor: "nvidia", architecture: "ada" };
   const fullBrands = [
     "Not;A=Brand/8.0.0.0",
-    `Chromium/${CHROMIUM_VERSION}`,
-    `Google Chrome/${CHROMIUM_VERSION}`,
+    `Chromium/${version}`,
+    `Google Chrome/${version}`,
   ];
   return {
     schema_version: 1,
     navigator: {
-      userAgent: `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${CHROMIUM_MAJOR}.0.0.0 Safari/537.36`,
+      userAgent,
       platform: "Win32",
-      languages: ["zh-CN", "zh"],
-      hardwareConcurrency: 12,
-      deviceMemory: 8,
+      languages,
+      hardwareConcurrency: settings.hardwareConcurrency ?? 12,
+      deviceMemory: settings.deviceMemory ?? 8,
       maxTouchPoints: 0,
     },
     clientHints: {
-      brands: ["Not;A=Brand/8", `Chromium/${CHROMIUM_MAJOR}`, `Google Chrome/${CHROMIUM_MAJOR}`],
+      brands: ["Not;A=Brand/8", `Chromium/${major}`, `Google Chrome/${major}`],
       fullVersionList: fullBrands,
       platform: "Windows",
       platformVersion: "15.0.0",
@@ -238,7 +386,7 @@ export function deriveIdfriFingerprintConfig(profile: Profile) {
       model: "",
       mobile: false,
       wow64: false,
-      fullVersion: CHROMIUM_VERSION,
+      fullVersion: version,
       formFactors: [],
     },
     screen: {
@@ -248,18 +396,17 @@ export function deriveIdfriFingerprintConfig(profile: Profile) {
       availHeight: Math.max(480, height - 48),
       availLeft: 0,
       availTop: 0,
-      colorDepth: 24,
-      devicePixelRatio: 1,
+      colorDepth: settings.colorDepth ?? 24,
+      devicePixelRatio: settings.devicePixelRatio ?? 1,
       chromeHeightDelta: 139,
       chromeWidthDelta: 0,
       scrollbarWidth: 15,
     },
     gpu: {
-      webglParams: WEBGL_PARAMS,
+      webglParams,
       webglExtensions: WEBGL_EXTENSIONS,
       webgpu: {
-        vendor: "nvidia",
-        architecture: "ada",
+        ...webgpu,
         device: "",
         description: "",
         limits: {
@@ -286,18 +433,23 @@ export function deriveIdfriFingerprintConfig(profile: Profile) {
       },
     },
     audio: { sampleRate: 48000, baseLatency: 0.01, outputLatency: 0.02 },
-    fonts: WINDOWS_FONTS,
-    locale: { timezone: profile.timezone || "Asia/Shanghai", locale: "zh-CN" },
+    fonts: settings.fonts ?? WINDOWS_FONTS,
+    ...(settings.speechVoices ? { speech: { voices: settings.speechVoices } } : {}),
+    locale: { timezone: profile.timezone || "Asia/Shanghai", locale },
     noise: {
-      canvasSeed: subSeed(profile.fingerprintSeed, "canvas"),
-      audioSeed: subSeed(profile.fingerprintSeed, "audio"),
-      clientRectsSeed: subSeed(profile.fingerprintSeed, "clientRects"),
-      deviceIdSalt: subSeed(profile.fingerprintSeed, "deviceId"),
+      ...(settings.canvasNoise === false ? {} : { canvasSeed: subSeed(profile.fingerprintSeed, "canvas") }),
+      ...(settings.audioNoise === false ? {} : { audioSeed: subSeed(profile.fingerprintSeed, "audio") }),
+      ...(settings.clientRectsNoise === false ? {} : { clientRectsSeed: subSeed(profile.fingerprintSeed, "clientRects") }),
     },
-    permissions: { notifications: "prompt", geolocation: "prompt" },
+    ...(settings.mediaDevices ? { mediaDevices: settings.mediaDevices } : {}),
+    ...(settings.geolocation ? { geolocation: settings.geolocation } : {}),
+    permissions: { notifications: "prompt", geolocation: settings.geolocationPermission ?? "prompt" },
     engine: { jsHeapSizeLimit: 4294705152 },
     automation: { hideTraces: true },
-    webrtc: { ipHandlingPolicy: "disable_non_proxied_udp" },
+    webrtc: {
+      ipHandlingPolicy: settings.webrtcPolicy
+        ?? (profile.proxy ? "disable_non_proxied_udp" : "default"),
+    },
     battery: { charging: true, level: 1, chargingTime: 0, dischargingTime: -1 },
   };
 }
@@ -307,6 +459,8 @@ export function deriveClearcoteFingerprintArgs(profile: Profile): string[] {
   const config = deriveIdfriFingerprintConfig(profile);
   return [
     `--fingerprint=${profile.fingerprintSeed}`,
+    "--idfri-fp-stdin",
+    `--user-agent=${config.navigator.userAgent}`,
     "--fingerprint-platform=windows",
     `--fingerprint-platform-version=${config.clientHints.platformVersion}`,
     "--fingerprint-brand=chrome",
@@ -323,9 +477,12 @@ export function deriveClearcoteFingerprintArgs(profile: Profile): string[] {
     `--fingerprint-device-pixel-ratio=${config.screen.devicePixelRatio}`,
     `--fingerprint-max-touch-points=${config.navigator.maxTouchPoints}`,
     `--timezone=${config.locale.timezone}`,
-    "--accept-lang=zh-CN,zh,en-US,en",
-    "--lang=zh-CN",
+    `--accept-lang=${config.navigator.languages.join(",")}`,
+    `--lang=${config.locale.locale}`,
+    `--force-webrtc-ip-handling-policy=${config.webrtc.ipHandlingPolicy}`,
     `--fingerprint-tls-profile=chrome-${CHROMIUM_MAJOR}`,
+    ...(profile.fingerprint?.webgpuMode === "disabled" ? ["--disable-features=WebGPU"] : []),
+    ...(profile.fingerprint?.hardwareAcceleration === false ? ["--disable-gpu"] : []),
   ];
 }
 

@@ -13,6 +13,7 @@ import {
   CLOUD_DIAGNOSTIC_TYPES,
   type CloudDiagnosticEvent,
 } from "../cloud-diagnostics.ts";
+import type { ProfileFingerprintSettings } from "../types.ts";
 
 export type { CloudDiagnosticEvent } from "../cloud-diagnostics.ts";
 
@@ -620,6 +621,10 @@ export interface NewProfileInput {
   engine?: "chromium" | "firefox";
   group?: string;
   platform?: string;
+  startupUrl?: string;
+  note?: string;
+  tags?: string;
+  cookies?: import("../types.ts").CookieRecord[];
   proxy?: ProxyCheckInput | null;
   screen?: string;
   /** Operator-chosen serial shown in the roster and the browser window title. */
@@ -629,6 +634,7 @@ export interface NewProfileInput {
   email?: string;
   emailPassword?: string;
   twofa?: string;
+  fingerprint?: ProfileFingerprintSettings;
 }
 
 export async function createProfile(input: NewProfileInput): Promise<any> {
@@ -653,6 +659,9 @@ export interface EditProfile {
   engine: "chromium" | "firefox";
   group: string;
   platform: string;
+  startupUrl: string;
+  note: string;
+  fingerprint: ProfileFingerprintSettings;
   proxyType: string;
   /** Full "host:port[:user:pass]". */
   proxy: string;

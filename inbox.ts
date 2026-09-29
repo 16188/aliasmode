@@ -102,6 +102,8 @@ function mergeExisting(existing: Profile, incoming: SourcedImport): Profile {
   if (present.has("name")) out.name = p.name;
   if (present.has("group")) out.group = p.group;
   if (present.has("platform")) out.platform = p.platform ?? "";
+  if (present.has("startup_url")) out.startupUrl = p.startupUrl ?? "";
+  if (present.has("remark") || present.has("note")) out.note = p.note ?? "";
   if (present.has("username")) out.username = p.username;
   if (present.has("password")) out.password = p.password;
   if (present.has("email")) out.email = p.email ?? "";
@@ -121,6 +123,10 @@ function mergeExisting(existing: Profile, incoming: SourcedImport): Profile {
   if (present.has("platform_os") && p.platformOs) out.platformOs = p.platformOs;
   if (present.has("extensions")) out.extensions = [...(p.extensions ?? [])];
   if (present.has("tags")) out.tags = [...(p.tags ?? [])];
+  if (present.has("fingerprint")) {
+    if (p.fingerprint) out.fingerprint = structuredClone(p.fingerprint);
+    else delete out.fingerprint;
+  }
   if (FP_BLOCK_KEYS.some((key) => present.has(key))) {
     if (p.fpExpected) out.fpExpected = { ...p.fpExpected };
     else delete out.fpExpected;

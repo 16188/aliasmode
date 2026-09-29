@@ -27,6 +27,7 @@ import {
   parseDarwinPsSnapshot,
   parseLinuxProcStat,
   platformHomeUrl,
+  profileHomeUrl,
   quoteWindowsCommandArg,
   readSnapshotChildBounded,
   shouldLaunchViaWindowsSession,
@@ -1656,6 +1657,8 @@ test("platformHomeUrl lands supported platforms on their home pages", () => {
   expect(platformHomeUrl("telegram.org", "k")).toBe("https://web.telegram.org/k/");
   expect(platformHomeUrl("")).toBeNull(); // unset platform → keep the browser default page
   expect(platformHomeUrl(undefined)).toBeNull();
+  expect(profileHomeUrl({ platform: "x.com", startupUrl: "https://example.com/start" })).toBe("https://example.com/start");
+  expect(profileHomeUrl({ platform: "x.com", startupUrl: "" })).toBe("https://x.com/home");
 });
 
 test("isTelegramPlatform owns the shared Telegram alias set", () => {
@@ -1786,6 +1789,7 @@ test("buildArgs never forwards startup URLs to chromium argv", () => {
   expect(args).toContain("--no-default-browser-check");
   expect(args).toContain("--fingerprint-brand-version=150.0.7871.114");
   expect(args).toContain("--fingerprint-tls-profile=chrome-150");
+  expect(args).toContain("--idfri-fp-stdin");
   expect(args.some((arg) => arg.includes("schema_version"))).toBe(false);
   expect(args).not.toContain("https://x.com/home");
   store.close();
@@ -2007,6 +2011,7 @@ test("proxied launch preserves stored timezone and routes through the relay", as
     ...original,
     proxy: { type: "socks5", host: "proxy.example", port: "1080", user: "u", pass: "p@ss" },
     timezone: "Europe/London",
+    fingerprint: { hardwareConcurrency: 8, doNotTrack: true },
     cookies: [{ name: "auth_token", value: "live", domain: ".x.com", path: "/" }],
   });
   const f = fleet();
@@ -2050,10 +2055,15 @@ test("proxied launch preserves stored timezone and routes through the relay", as
   expect(spawnedArgs[0]).toContain("--force-webrtc-ip-handling-policy=disable_non_proxied_udp");
   expect(spawnedArgs[0]).toContain("--fingerprint-platform=windows");
   expect(spawnedArgs[0]).toContain("--timezone=Europe/London");
-  expect(fingerprintStdin).toBeUndefined();
+  expect(JSON.parse(fingerprintStdin!)).toMatchObject({
+    schema_version: 1,
+    navigator: { hardwareConcurrency: 8 },
+    locale: { timezone: "Europe/London" },
+  });
   expect(store.getProfile("k1d0cd11")?.timezone).toBe("Europe/London");
   const prefs = JSON.parse(readFileSync(join(dataRoot, "k1d0cd11", "Default", "Preferences"), "utf8"));
   expect(prefs.webrtc.ip_handling_policy).toBe("disable_non_proxied_udp");
+  expect(prefs.enable_do_not_track).toBe(true);
 
   await launcher.stop("k1d0cd11");
   rmSync(dataRoot, { recursive: true, force: true });

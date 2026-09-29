@@ -49,6 +49,16 @@ test("profile forms retain proxy checking and both browser engines", () => {
   expect(createModal).toContain('engine: "firefox", label: "Firefox", runtime: "AliasMode Firefox"');
   expect(editModal).toContain('placeholder="Asia/Kolkata"');
   expect(editModal).toContain("按代理自动设置时区");
+  for (const label of [
+    "启动页", "备注", "Cookie JSON", "用户代理（UA）", "语言", "界面语言 / Intl",
+    "CPU 核心数", "设备内存（GB）", "WebRTC", "WebGL 厂商", "WebGL 渲染器",
+    "WebGPU", "Canvas / WebGL 图像", "AudioContext", "ClientRects", "媒体设备数量",
+    "字体白名单", "SpeechVoices 白名单", "地理位置权限", "请勿跟踪（DNT）", "硬件加速", "TLS 指纹",
+  ]) expect(app).toContain(label);
+  expect(app).toContain("fingerprint: form.engine === \"chromium\" ? fingerprintInput(form) : undefined");
+  expect(app).toContain("fingerprint: fingerprintInput(editForm)");
+  expect(app).toContain("麦克风、扬声器和摄像头数量必须全部填写");
+  expect(app).toContain('accuracy: Number(accuracy ?? "20000")');
 });
 
 test("desktop layout keeps navigation and roster usable", () => {
@@ -57,6 +67,10 @@ test("desktop layout keeps navigation and roster usable", () => {
   expect(app).toContain("PAGE_SIZES = [25, 50, 100, 200]");
   expect(styles).toContain("table-layout: fixed");
   expect(styles).toContain(".sidebar.collapsed");
+  expect(styles).toContain(".app {\n  height: 100%; display: flex; background: var(--bg);\n  position: relative; overflow: hidden;\n  width: 100%;");
+  expect(styles).toContain("width: calc(100% - 32px)");
+  expect(styles).not.toContain("max-width: 1704px");
+  expect(styles).not.toContain("width: min(1440px, 100% - 32px)");
 });
 
 test("required license notices remain present", () => {

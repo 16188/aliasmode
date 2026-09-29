@@ -31,7 +31,7 @@ import type { ProfileStore } from "./store.ts";
 import type { AutofillBridge } from "./autofill-bridge.ts";
 import { AUTOFILL_EXTENSION_REVISION, autofillExtensionDir } from "./autofill-extension.ts";
 import { allocatePort } from "./ports.ts";
-import { deriveClearcoteFingerprintArgs, isMobileUserAgent, platformFromUA, proxyServerFlag } from "./fingerprint.ts";
+import { deriveClearcoteFingerprintArgs, deriveIdfriFingerprintConfig, isMobileUserAgent, platformFromUA, proxyServerFlag } from "./fingerprint.ts";
 export { isMobileUserAgent } from "./fingerprint.ts";
 import { startProxyRelay, type ProxyRelay } from "./proxy-relay.ts";
 import type { SearchProviderBootstrapOptions, SearchProviderSetupResult } from "./search-provider.ts";
@@ -280,6 +280,13 @@ export function platformHomeUrl(platform: string | undefined, telegramClient: "a
   if (isTelegramPlatform(p)) return `https://web.telegram.org/${telegramClient}/`;
   if (p === "linkedin.com" || p === "linkedin") return "https://www.linkedin.com/feed/";
   return null;
+}
+
+export function profileHomeUrl(
+  profile: Pick<Profile, "platform" | "startupUrl">,
+  telegramClient: "a" | "k" = "k",
+): string | null {
+  return profile.startupUrl || platformHomeUrl(profile.platform, telegramClient);
 }
 
 export interface LauncherOptions {
@@ -875,6 +882,7 @@ export class Launcher {
       timezone: profile.timezone,
       screen: [profile.screenWidth, profile.screenHeight],
       fingerprintSeed: profile.fingerprintSeed,
+      fingerprint: profile.fingerprint,
       extensions,
       ...(autofill ? { autofill: AUTOFILL_EXTENSION_REVISION } : {}),
     });
@@ -980,9 +988,6 @@ export class Launcher {
       `--disk-cache-size=${20 * 1024 * 1024}`,
       ...deriveClearcoteFingerprintArgs(profile),
     ];
-    if (profile.proxy) {
-      args.push("--force-webrtc-ip-handling-policy=disable_non_proxied_udp");
-    }
     // We launch the raw stealth chromium binary, which behaves like stock
     // Chromium: the PRESENCE of --headless (any value, even "false") turns
     // headless ON. So headful = omit the flag entirely; headless = pass it.
@@ -1051,6 +1056,7 @@ export class Launcher {
       profile.screenWidth,
       profile.screenHeight,
       profile.fingerprintSeed,
+      profile.fingerprint,
       launch.debugPort,
       launch.ws,
       launch.startedAt,
@@ -1465,7 +1471,7 @@ export class Launcher {
     const nativeSessionAvailable = nativeRestoreRequested && this.hasNativeSessionArtifacts(userDataDir);
     const restoreLastSession = nativeSessionAvailable;
 
-    if (profile.proxy) this.persistWebRtcPolicyPreference(profileId);
+    this.persistFingerprintPreferences(profile);
 
     // Identity bookmark (#2): `<name> · #<serial>` on a visible bookmark bar, pointing at the card.
     if (SESSION_LAUNCH) {
@@ -1564,7 +1570,11 @@ export class Launcher {
       this.autofill?.install(provisionalLaunch);
       spawnAttempted = true;
       try {
-        proc = this.spawnFn(spawnVerifiedBinary.path, args);
+        proc = this.spawnFn(
+          spawnVerifiedBinary.path,
+          args,
+          JSON.stringify(deriveIdfriFingerprintConfig(profile)),
+        );
       } catch {
         throw new BrowserLaunchError("process_spawn");
       }
@@ -1594,7 +1604,7 @@ export class Launcher {
         log: (msg) => this.log(msg),
         // Mirrors buildArgs exactly: aliasmode forces the policy whenever the
         // profile has a proxy, so the recorded value must use the same test.
-        webrtc: profile.proxy ? "disable_non_proxied_udp" : "",
+        webrtc: profile.fingerprint?.webrtcPolicy ?? (profile.proxy ? "disable_non_proxied_udp" : "default"),
       });
       if (capturedFingerprint) {
         // Our own bookkeeping write makes the identity snapshot stale, and the
@@ -1665,7 +1675,7 @@ export class Launcher {
       // Cookie-only import remains best-effort; a failure must not fail the launch.
       profile = this.requireUnchangedProfile(profileId, profileSnapshot, "session injection");
       if (pendingSession) {
-        const home = platformHomeUrl(profile.platform, bundleTelegramClient(pendingSession));
+        const home = profileHomeUrl(profile, bundleTelegramClient(pendingSession));
         const urls = (opts.autoNavigate ?? true)
           ? startupUrls.length ? startupUrls : !bundleTabUrls(pendingSession).length && home ? [home] : []
           : [];
@@ -1707,7 +1717,7 @@ export class Launcher {
         profile = this.requireUnchangedProfile(profileId, profileSnapshot, "account navigation");
         // Standalone mode has no roamed bundle carrying the last A/K choice, so platformHomeUrl keeps
         // its historical K fallback. Remote mode passes the captured client explicitly (defaulting A).
-        const home = platformHomeUrl(profile.platform);
+        const home = profileHomeUrl(profile);
         // Native artifacts remain authoritative even when the bounded target
         // probe sees no user page. A late restore must not race a platform-home
         // fallback and leave an extra tab beside the restored session.
@@ -1956,7 +1966,8 @@ export class Launcher {
       const captured = await recordCapture({
         profile, capture: () => this.captureFingerprintFn(launch.ws),
         save: (id, observed, verdict) => this.store.saveObservedFingerprint(id, observed, verdict),
-        log: (msg) => this.log(msg), webrtc: profile.proxy ? "disable_non_proxied_udp" : "",
+        log: (msg) => this.log(msg),
+        webrtc: profile.fingerprint?.webrtcPolicy ?? (profile.proxy ? "disable_non_proxied_udp" : "default"),
       });
       if (captured) {
         profile = this.store.getProfile(profileId)!;
@@ -1967,7 +1978,7 @@ export class Launcher {
         await this.labelWindowFn(launch.ws, buildWindowLabel(profile.name, displayNo)).catch(() => {});
       }
       if (pendingSession) {
-        const home = platformHomeUrl(profile.platform, bundleTelegramClient(pendingSession));
+        const home = profileHomeUrl(profile, bundleTelegramClient(pendingSession));
         const urls = (opts.autoNavigate ?? true)
           ? startupUrls.length ? startupUrls : !bundleTabUrls(pendingSession).length && home ? [home] : []
           : [];
@@ -1981,7 +1992,7 @@ export class Launcher {
         if (cookies.length) await this.ensureCookiesFn(launch.ws, cookies);
         if (opts.autoNavigate ?? true) {
           const savedTabs = opts.restoreLastSession === false ? [] : bundleTabUrls(this.store.getSessionBundle(profileId) ?? "");
-          const home = platformHomeUrl(profile.platform);
+          const home = profileHomeUrl(profile);
           const urls = startupUrls.length ? startupUrls : nativeSessionRestored ? [] : savedTabs.length ? savedTabs : home ? [home] : [];
           await this.navigate(launch.ws, urls).catch(() => {
             this.log(`${profileId}: startup navigation failed; open the site manually`);
@@ -3353,10 +3364,11 @@ export class Launcher {
     }
   }
 
-  /** Persist the WebRTC routing floor as profile state as well as argv state. */
-  private persistWebRtcPolicyPreference(profileId: string): void {
-    const base = this.containedUserDataDir(profileId, "persistWebRtcPolicyPreference");
-    if (!base) throw new Error(`cannot persist WebRTC policy for unsafe profile id ${JSON.stringify(profileId)}`);
+  /** Persist preference-backed fingerprint choices before Chromium starts. */
+  private persistFingerprintPreferences(profile: Profile): void {
+    const profileId = profile.id;
+    const base = this.containedUserDataDir(profileId, "persistFingerprintPreferences");
+    if (!base) throw new Error(`cannot persist fingerprint preferences for unsafe profile id ${JSON.stringify(profileId)}`);
     const dir = join(base, "Default");
     const file = join(dir, "Preferences");
     mkdirSync(dir, { recursive: true });
@@ -3366,22 +3378,23 @@ export class Launcher {
         prefs = JSON.parse(readFileSync(file, "utf8"));
       } catch (error) {
         throw new Error(
-          `cannot persist WebRTC policy for ${profileId}: Preferences is unreadable (${error instanceof Error ? error.message : error})`,
+          `cannot persist fingerprint preferences for ${profileId}: Preferences is unreadable (${error instanceof Error ? error.message : error})`,
         );
       }
     }
     if (!prefs || typeof prefs !== "object" || Array.isArray(prefs)) {
-      throw new Error(`cannot persist WebRTC policy for ${profileId}: Preferences root is not an object`);
+      throw new Error(`cannot persist fingerprint preferences for ${profileId}: Preferences root is not an object`);
     }
     const prior = prefs.webrtc;
     prefs.webrtc = {
       ...(prior && typeof prior === "object" && !Array.isArray(prior) ? prior : {}),
-      ip_handling_policy: "disable_non_proxied_udp",
+      ip_handling_policy: deriveIdfriFingerprintConfig(profile).webrtc.ipHandlingPolicy,
     };
+    prefs.enable_do_not_track = profile.fingerprint?.doNotTrack ?? false;
     try {
       writeFileSync(file, JSON.stringify(prefs));
     } catch (error) {
-      throw new Error(`cannot persist WebRTC policy for ${profileId}: ${error instanceof Error ? error.message : error}`);
+      throw new Error(`cannot persist fingerprint preferences for ${profileId}: ${error instanceof Error ? error.message : error}`);
     }
   }
 
@@ -4375,9 +4388,18 @@ async function killProcessGroup(processGroupId: number): Promise<void> {
   await signalUnixTarget(-processGroupId);
 }
 
-export const defaultSpawn: SpawnFn = (binary, args) => {
+export const defaultSpawn: SpawnFn = (binary, args, stdin) => {
   const detached = process.platform === "linux";
-  const proc = Bun.spawn([binary, ...args], { stdout: "ignore", stderr: "ignore", detached });
+  const proc = Bun.spawn([binary, ...args], {
+    stdin: stdin === undefined ? "ignore" : "pipe",
+    stdout: "ignore",
+    stderr: "ignore",
+    detached,
+  });
+  if (stdin !== undefined) {
+    proc.stdin!.write(stdin);
+    proc.stdin!.end();
+  }
   const root = detached ? readLinuxProcessRecord(proc.pid) : null;
   const ownsGroup = root?.processGroupId === proc.pid;
   return {

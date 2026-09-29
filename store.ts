@@ -42,6 +42,8 @@ export class ProfileStore {
         name TEXT NOT NULL DEFAULT '',
         "group" TEXT NOT NULL DEFAULT '',
         platform TEXT NOT NULL DEFAULT '',
+        startup_url TEXT NOT NULL DEFAULT '',
+        note TEXT NOT NULL DEFAULT '',
         username TEXT NOT NULL DEFAULT '',
         password TEXT NOT NULL DEFAULT '',
         email TEXT NOT NULL DEFAULT '',
@@ -54,6 +56,7 @@ export class ProfileStore {
         screen_height INTEGER NOT NULL DEFAULT 1080,
         fingerprint_seed INTEGER NOT NULL,
         platform_os TEXT NOT NULL DEFAULT '',
+        fingerprint_json TEXT NOT NULL DEFAULT '',
         fp_observed_json TEXT NOT NULL DEFAULT '',
         fp_expected_json TEXT NOT NULL DEFAULT '',
         fp_verdict_json TEXT NOT NULL DEFAULT '',
@@ -264,6 +267,17 @@ export class ProfileStore {
     if (existing && storedProfileEngine(existing.engine) !== browser.engine) {
       throw new Error("profile engine cannot change in place");
     }
+    for (const col of [
+      "startup_url TEXT NOT NULL DEFAULT ''",
+      "note TEXT NOT NULL DEFAULT ''",
+      "fingerprint_json TEXT NOT NULL DEFAULT ''",
+    ]) {
+      try {
+        this.db.exec(`ALTER TABLE profiles ADD COLUMN ${col}`);
+      } catch {
+        /* column already exists */
+      }
+    }
     const seeded = existing ? existing.seeded : p.seeded ? 1 : 0;
     const incomingProxyJson = proxy ? JSON.stringify(proxy) : null;
     const existingProxyJson = existing
@@ -274,16 +288,16 @@ export class ProfileStore {
     this.db
       .query(
         `INSERT INTO profiles
-           (id, engine, firefox_config_json, acc_id, name, "group", platform, username, password, email, email_password, twofa, proxy_json, proxy_error, extensions_json, tags_json, custom_no, ua, timezone,
-            screen_width, screen_height, fingerprint_seed, platform_os, fp_observed_json, fp_expected_json, fp_verdict_json, cookies_json, seeded, created_at)
+           (id, engine, firefox_config_json, acc_id, name, "group", platform, startup_url, note, username, password, email, email_password, twofa, proxy_json, proxy_error, extensions_json, tags_json, custom_no, ua, timezone,
+            screen_width, screen_height, fingerprint_seed, platform_os, fingerprint_json, fp_observed_json, fp_expected_json, fp_verdict_json, cookies_json, seeded, created_at)
          -- fp_verdict_json is literal '': a verdict is a COMPUTED fact, written
          -- only by saveObservedFingerprint from a real measurement. If a caller
          -- could supply one, an import could hand itself a "verified" badge and
          -- the badge would mean nothing.
-         VALUES ($id,$engine,$firefox,$acc,$name,$group,$platform,$user,$pass,$email,$emailPass,$twofa,$proxy,$proxyError,$ext,$tags,$customNo,$ua,$tz,$w,$h,$seed,$platformOs,$fpObserved,$fpExpected,'',$cookies,$seeded,$created)
+         VALUES ($id,$engine,$firefox,$acc,$name,$group,$platform,$startupUrl,$note,$user,$pass,$email,$emailPass,$twofa,$proxy,$proxyError,$ext,$tags,$customNo,$ua,$tz,$w,$h,$seed,$platformOs,$fingerprint,$fpObserved,$fpExpected,'',$cookies,$seeded,$created)
          ON CONFLICT(id) DO UPDATE SET
            engine=$engine, firefox_config_json=$firefox,
-           acc_id=$acc, name=$name, "group"=$group, platform=$platform, username=$user, password=$pass,
+           acc_id=$acc, name=$name, "group"=$group, platform=$platform, startup_url=$startupUrl, note=$note, username=$user, password=$pass,
            email=$email, email_password=$emailPass, twofa=$twofa,
            -- A quarantined legacy proxy is re-encrypted unchanged; a valid
            -- replacement or explicit clear removes the quarantine.
@@ -303,7 +317,7 @@ export class ProfileStore {
              ELSE ''
            END,
            screen_width=$w, screen_height=$h,
-           fingerprint_seed=$seed, platform_os=$platformOs,
+           fingerprint_seed=$seed, platform_os=$platformOs, fingerprint_json=$fingerprint,
            -- An ordinary profile edit carries no capture. Preserving the stored
            -- one keeps a rename from erasing a measurement that is still true.
            fp_observed_json = CASE WHEN $fpObserved <> '' THEN $fpObserved ELSE fp_observed_json END,
@@ -327,6 +341,8 @@ export class ProfileStore {
         $name: p.name,
         $group: p.group,
         $platform: p.platform ?? "",
+        $startupUrl: p.startupUrl ?? "",
+        $note: this.cipher.encrypt(p.note ?? "", p.id, "note"),
         $user: this.cipher.encrypt(p.username, p.id, "username"),
         $pass: this.cipher.encrypt(p.password, p.id, "password"),
         $email: this.cipher.encrypt(p.email ?? "", p.id, "email"),
@@ -344,6 +360,7 @@ export class ProfileStore {
         $h: p.screenHeight,
         $seed: p.fingerprintSeed,
         $platformOs: p.platformOs ?? "",
+        $fingerprint: p.fingerprint ? JSON.stringify(p.fingerprint) : "",
         $fpObserved: p.fpObserved ? JSON.stringify(p.fpObserved) : "",
         $fpExpected: p.fpExpected ? JSON.stringify(p.fpExpected) : "",
         $cookies: this.cipher.encrypt(JSON.stringify(p.cookies), p.id, "cookies_json"),
@@ -871,6 +888,8 @@ function rowToProfile(row: any, cipher: ProfileFieldCipher): Profile {
     name: row.name ?? "",
     group: row.group ?? "",
     platform: row.platform ?? "",
+    startupUrl: row.startup_url ?? "",
+    note: decrypt("note"),
     username: decrypt("username"),
     password: decrypt("password"),
     email: decrypt("email"),
@@ -887,6 +906,7 @@ function rowToProfile(row: any, cipher: ProfileFieldCipher): Profile {
     screenHeight: row.screen_height ?? 1080,
     fingerprintSeed: row.fingerprint_seed,
     platformOs: row.platform_os ?? "",
+    ...optionalJson<Profile["fingerprint"]>("fingerprint", row.fingerprint_json),
     ...optionalJson<ObservedFingerprint>("fpObserved", row.fp_observed_json),
     ...optionalJson<ObservedFingerprint>("fpExpected", row.fp_expected_json),
     ...optionalJson<FingerprintVerdict>("fpVerdict", row.fp_verdict_json),

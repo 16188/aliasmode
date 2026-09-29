@@ -362,6 +362,22 @@ test("an import honours an exported fingerprint seed", () => {
   expect(out.profile.fingerprintSeed).toBe(2847193055);
 });
 
+test("local export round-trips startup page, note and custom fingerprint settings", () => {
+  const profile = parseExport(SAMPLE).profiles[0]!;
+  profile.startupUrl = "https://example.com/start";
+  profile.note = "本地备注";
+  profile.fingerprint = {
+    languages: ["en-US", "en"],
+    hardwareConcurrency: 8,
+    canvasNoise: false,
+    doNotTrack: true,
+  };
+  const restored = parseExport(serializeAdsTxt([profile])).profiles[0]!;
+  expect(restored.startupUrl).toBe("https://example.com/start");
+  expect(restored.note).toBe("本地备注");
+  expect(restored.fingerprint).toEqual(profile.fingerprint);
+});
+
 test("a profile whose seed was never id-derived survives a round trip", () => {
   // marketplace.ts seeds from "marketplace:<username>", so deterministicSeed(id)
   // is the WRONG answer for these — this is the bug the export closes.
