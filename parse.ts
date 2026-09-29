@@ -722,9 +722,9 @@ const RESTORED_KEYS = ["seed", "timezone", "platform_os", "extensions", "tags", 
 
 /** Field order of the `key=value` block export. */
 const TXT_KEYS = [
-  "acc_id", "id", "group", "platform", "name", "remark", "startup_url", "username", "password",
+  "acc_id", "id", "group", "platform", "name", "username", "password",
   "email", "emailpassword", "fakey", "cookie", "proxytype", "proxy", "ua", "resolution",
-  ...RESTORED_KEYS, ...FP_BLOCK_KEYS, "session", "session_source",
+  ...RESTORED_KEYS, ...FP_BLOCK_KEYS, "session", "session_source", "remark", "startup_url",
 ] as const;
 const FIREFOX_EXPORT_KEYS = ["engine", "firefox_config"] as const;
 
@@ -734,9 +734,9 @@ const FIREFOX_EXPORT_KEYS = ["engine", "firefox_config"] as const;
  * human editing the sheet will see it without scrolling.
  */
 export const XLSX_COLUMNS = [
-  "id", "acc_id", "group", "platform", "name", "remark", "startup_url", "username", "password",
+  "id", "acc_id", "group", "platform", "name", "username", "password",
   "email", "emailpassword", "fakey", "cookie", "proxytype", "proxy", "ua", "resolution",
-  ...RESTORED_KEYS, ...FP_BLOCK_KEYS, "session", "session_source",
+  ...RESTORED_KEYS, ...FP_BLOCK_KEYS, "session", "session_source", "remark", "startup_url",
 ] as const;
 const FIREFOX_XLSX_COLUMNS = [...XLSX_COLUMNS, ...FIREFOX_EXPORT_KEYS] as const;
 
@@ -776,9 +776,9 @@ function csvCell(v: string): string {
  * omitted — this view is for editing groups, proxies, and account credentials.
  */
 export function serializeCsv(profiles: Profile[]): string {
-  const cols = ["id", "name", "group", "platform", "remark", "startup_url", "proxy", "proxytype", "username", "password", "email", "emailpassword", "twofa", "resolution"];
+  const cols = ["id", "name", "group", "platform", "proxy", "proxytype", "username", "password", "email", "emailpassword", "twofa", "resolution"];
   const rows = profiles.map((p) => [
-    p.id, p.name, p.group, p.platform ?? "", p.note ?? "", p.startupUrl ?? "", proxyToString(p), p.proxy?.type ?? "",
+    p.id, p.name, p.group, p.platform ?? "", proxyToString(p), p.proxy?.type ?? "",
     p.username, p.password, p.email ?? "", p.emailPassword ?? "", p.twofa, `${p.screenWidth}*${p.screenHeight}`,
   ].map((c) => csvCell(String(c ?? ""))).join(","));
   return [cols.join(","), ...rows].join("\n") + "\n";

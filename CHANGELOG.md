@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- 增加资料级启动页、加密备注、新建资料标签与 Cookie 导入，以及真正传入 IDFRI Chromium 内核的 UA、语言、CPU、内存、像素比、WebRTC、WebGL/WebGPU、Canvas/音频/ClientRects 噪声、媒体设备、字体、SpeechVoices、地理位置、DNT 和硬件加速设置；自定义配置随本地导出完整保留，并校验媒体设备与地理位置的成组输入。
+- 增加资料级启动页、加密备注、新建资料标签与 Cookie 导入，以及真正传入 IDFRI Chromium 内核的 UA、语言、CPU、内存、像素比、WebRTC、WebGL/WebGPU、Canvas/音频/ClientRects 噪声、媒体设备、字体、SpeechVoices、地理位置、DNT 和硬件加速设置；自定义配置随本地导出完整保留，并校验媒体设备与地理位置的成组输入，同时保持旧 CSV/XLSX 列位置不变。
 - 移除桌面主界面和资料列表的固定宽度上限，使软件最大化后完整铺满可用窗口，同时保持内容区安全边距。
 - 允许本地资料手动填写并校验 IANA 时区，同步 Firefox 持久指纹配置，并在代理时区自动查询失败时明确提示而不是静默保留旧值。
 - 临时接入经过归档与可执行文件双重 SHA-256 校验的 ClearCote Chromium 150 开源内核，同步桌面运行时元数据、Local API 启动契约、许可证回归测试和未签名预览发布校验；预览内核不再因其设置页不兼容而强制修改默认搜索引擎，使用无重复项的确定性中文 Windows 指纹参数，并继续并行构建最终的 IDFRI Chromium 153。
