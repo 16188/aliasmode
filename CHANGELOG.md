@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- 按每个资料的代理真实出口 IP 自动同步 IANA 时区、浏览器时间、`Accept-Language`、`navigator.languages` 与 Intl locale；新建、更换代理、缺少设置时启动和手动同步均覆盖 Chromium 与 AliasMode Firefox，并保留手动时区/语言覆盖，轮换出口会明确提示使用固定会话代理。
+- 按每个资料的代理真实出口 IP 自动同步 IANA 时区、浏览器时间、`Accept-Language`、`navigator.languages` 与 Intl locale；新建、更换代理、缺少设置时启动和手动同步均覆盖 Chromium 与 AliasMode Firefox，并保留手动时区/语言覆盖；动态住宅代理按本次实时出口同步，检测失败只跳过自动同步，绝不阻止资料新建、保存或打开。
 - 增加资料级启动页、加密备注、新建资料标签与 Cookie 导入，以及真正传入 IDFRI Chromium 内核的 UA、语言、CPU、内存、像素比、WebRTC、WebGL/WebGPU、Canvas/音频/ClientRects 噪声、媒体设备、字体、SpeechVoices、地理位置、DNT 和硬件加速设置；自定义配置随本地导出完整保留，并校验媒体设备与地理位置的成组输入，同时保持旧 CSV/XLSX 列位置不变。
 - 移除桌面主界面和资料列表的固定宽度上限，使软件最大化后完整铺满可用窗口，同时保持内容区安全边距。
 - 允许本地资料手动填写并校验 IANA 时区，同步 Firefox 持久指纹配置，并在代理时区自动查询失败时明确提示而不是静默保留旧值。

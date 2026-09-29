@@ -146,9 +146,6 @@ async function syncProfileProxyIdentity(
   if (check.status === "failed" || check.status === "unavailable" || !check.ip) {
     throw new Error("无法获取代理的真实出口 IP，请检查代理或手动填写时区和语言");
   }
-  if (check.rotating) {
-    throw new Error("检测到轮换出口 IP，无法保证时区和语言完全对应；请使用固定会话代理或手动填写");
-  }
   const timezone = parts.timezone !== false;
   const locale = parts.locale !== false;
   const result = await attachTimezones([profile], options.timezoneFetch, {
@@ -157,10 +154,10 @@ async function syncProfileProxyIdentity(
     locale,
   });
   const browserLocale = profileBrowserLocale(profile);
+  syncFirefoxTimezone(profile);
   if ((timezone && !result.resolved) || (locale && (!result.localeResolved || !browserLocale))) {
     throw new Error("无法根据代理出口确定时区和语言，请手动填写 IANA 时区与 BCP 47 语言");
   }
-  syncFirefoxTimezone(profile);
   return browserLocale!;
 }
 
@@ -1221,7 +1218,7 @@ export async function handleUiRequest(
           await syncProfileProxyIdentity(profile, options, {
             timezone: !manualTimezone,
             locale: !manualLocale,
-          });
+          }).catch(() => {});
         }
       }
       if (options.cloudBrowser && profile.proxy) {
@@ -2064,7 +2061,7 @@ export async function handleUiRequest(
         await syncProfileProxyIdentity(p, options, {
           timezone: !timezoneChanged,
           locale: !localeChanged,
-        });
+        }).catch(() => {});
       }
       if ("timezone" in set) syncFirefoxTimezone(p);
       if (!remote) store.applyGroupExtensionDefaults(p, previousGroup, "extensions" in set);
@@ -2179,11 +2176,11 @@ export async function handleUiRequest(
     try {
       if (action[2] === "open") {
         if (profile.proxy && (!profile.timezone || !profileBrowserLocale(profile))) {
-          await syncProfileProxyIdentity(profile, options, {
+          const synchronized = await syncProfileProxyIdentity(profile, options, {
             timezone: !profile.timezone,
             locale: !profileBrowserLocale(profile),
-          });
-          store.upsertProfile(profile);
+          }).then(() => true, () => false);
+          if (synchronized) store.upsertProfile(profile);
         }
         const r = await launcher.start(id);
         return openResponse(profile, r);

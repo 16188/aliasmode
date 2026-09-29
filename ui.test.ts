@@ -1511,7 +1511,7 @@ test("an unresolved automatic timezone lookup reports the failure", async () => 
   s.close();
 });
 
-test("automatic synchronization rejects rotating proxy exits", async () => {
+test("automatic synchronization uses the current exit of a rotating residential proxy", async () => {
   const s = store();
   const res = await handleUiRequest(
     new Request("http://x/ui/api/profiles/k1d0cd11/timezone", {
@@ -1522,13 +1522,37 @@ test("automatic synchronization rejects rotating proxy exits", async () => {
     {} as any,
     s,
     null,
-    { proxyCheck: async () => ({ ...await stableProxyCheck()(), rotating: true }) },
+    {
+      proxyCheck: async () => ({ ...await stableProxyCheck()(), rotating: true }),
+      timezoneFetch: timezoneFetch({ "203.0.113.10": "Europe/London" }),
+    },
   );
-  expect(res!.status).toBe(502);
+  expect(res!.status).toBe(200);
   expect(await res!.json()).toMatchObject({
-    ok: false,
-    error: expect.stringContaining("固定会话代理"),
+    ok: true,
+    timezone: "Europe/London",
+    locale: "en-GB",
   });
+  s.close();
+});
+
+test("automatic proxy identity failure never blocks opening a profile", async () => {
+  const s = store();
+  const before = s.getProfile("k1d0cd11")!;
+  before.timezone = "";
+  delete before.fingerprint;
+  s.upsertProfile(before);
+  let opened = 0;
+  const res = await handleUiRequest(
+    new Request("http://x/ui/api/profiles/k1d0cd11/open", { method: "POST" }),
+    { start: async () => { opened++; return { port: 9333 }; } } as any,
+    s,
+    null,
+    { proxyCheck: async () => ({ status: "unavailable", attempts: 3, successes: 0 }) },
+  );
+  expect(res!.status).toBe(200);
+  expect(await res!.json()).toMatchObject({ ok: true, port: 9333 });
+  expect(opened).toBe(1);
   s.close();
 });
 
