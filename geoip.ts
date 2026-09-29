@@ -1,9 +1,111 @@
-/** Best-effort import-time timezone enrichment and shared SOCKS5 tunneling. */
+/** Best-effort proxy timezone/locale enrichment and shared SOCKS5 tunneling. */
 
 import { connect as netConnect, type Socket } from "node:net";
-import type { ProxySpec } from "./types.ts";
+import type { FirefoxProfileConfig, ProfileFingerprintSettings, ProxySpec } from "./types.ts";
 
 export type FetchLike = (url: string, init: RequestInit) => Promise<{ json(): Promise<any> }>;
+
+export interface BrowserLocale {
+  locale: string;
+  languages: string[];
+}
+
+export interface ProxyLocation {
+  timezone: string;
+  countryCode?: string;
+  locale?: string;
+  languages?: string[];
+}
+
+type LocalizedProfile = {
+  proxy: { host: string } | null;
+  timezone: string;
+  engine?: string;
+  fingerprint?: ProfileFingerprintSettings;
+  firefox?: FirefoxProfileConfig;
+};
+
+/** Validate an operator-supplied IANA timezone while preserving an empty automatic value. */
+export function parseIanaTimezone(value: unknown): string {
+  const timezone = String(value ?? "").trim();
+  if (!timezone) return "";
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format();
+  } catch {
+    throw new Error("时区无效，请使用 IANA 时区名称，例如 Asia/Kolkata");
+  }
+  return timezone;
+}
+
+/** Normalize locale controls shared by Chromium and Camoufox. */
+export function parseBrowserLocale(localeValue: unknown, languagesValue: unknown): BrowserLocale | null {
+  const rawLanguages = Array.isArray(languagesValue)
+    ? languagesValue.map(String)
+    : String(languagesValue ?? "").split(",");
+  const filtered = rawLanguages.map((value) => value.trim()).filter(Boolean);
+  const rawLocale = String(localeValue ?? "").trim() || filtered[0] || "";
+  if (!rawLocale && filtered.length === 0) return null;
+  try {
+    const parsed = new Intl.Locale(Intl.getCanonicalLocales(rawLocale)[0]!).maximize();
+    const locale = Intl.getCanonicalLocales([
+      [parsed.language, parsed.script && new Intl.Locale(rawLocale).script, parsed.region].filter(Boolean).join("-"),
+    ])[0]!;
+    const languages = Intl.getCanonicalLocales([locale, ...filtered]);
+    return { locale, languages: [...new Set(languages)] };
+  } catch {
+    throw new Error("语言必须使用有效的 BCP 47 标签，例如 zh-CN");
+  }
+}
+
+/** Pick the dominant browser language for a two-letter proxy country code. */
+export function browserLocaleForCountry(countryCode: string): BrowserLocale | null {
+  const region = countryCode.trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(region)) return null;
+  try {
+    const language = new Intl.Locale(`und-${region}`).maximize().language;
+    return parseBrowserLocale(`${language}-${region}`, [language]);
+  } catch {
+    return null;
+  }
+}
+
+export function profileBrowserLocale(profile: LocalizedProfile): BrowserLocale | null {
+  if (profile.engine === "firefox") {
+    const config = profile.firefox?.config;
+    const language = typeof config?.["locale:language"] === "string" ? config["locale:language"] : "";
+    const region = typeof config?.["locale:region"] === "string" ? config["locale:region"] : "";
+    const script = typeof config?.["locale:script"] === "string" ? config["locale:script"] : "";
+    const all = typeof config?.["locale:all"] === "string" ? config["locale:all"] : "";
+    return language && region
+      ? parseBrowserLocale([language, script, region].filter(Boolean).join("-"), all || [language])
+      : null;
+  }
+  return parseBrowserLocale(profile.fingerprint?.locale, profile.fingerprint?.languages);
+}
+
+/** Apply one coherent Intl / navigator.languages identity to either browser engine. */
+export function applyProfileLocale(profile: LocalizedProfile, locale: BrowserLocale | null): void {
+  if (profile.engine === "firefox") {
+    if (!profile.firefox) throw new Error("Firefox 资料缺少已保存的配置");
+    const config = { ...profile.firefox.config };
+    for (const key of ["locale:language", "locale:region", "locale:script", "locale:all"]) delete config[key];
+    if (locale) {
+      const parsed = new Intl.Locale(locale.locale);
+      config["locale:language"] = parsed.language;
+      config["locale:region"] = parsed.region!;
+      if (parsed.script) config["locale:script"] = parsed.script;
+      if (locale.languages.length > 1) config["locale:all"] = locale.languages.join(", ");
+    }
+    profile.firefox = { ...profile.firefox, config };
+    return;
+  }
+  const fingerprint = { ...profile.fingerprint };
+  delete fingerprint.locale;
+  delete fingerprint.languages;
+  if (locale) Object.assign(fingerprint, locale);
+  if (Object.keys(fingerprint).length) profile.fingerprint = fingerprint;
+  else delete profile.fingerprint;
+}
 
 function readExactly(socket: Socket, length: number, timeoutMs: number): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -117,25 +219,36 @@ export async function openSocks5Tunnel(
   }
 }
 
-/** Map of proxy host/IP → IANA timezone for the ones that resolved. */
-export async function lookupTimezones(
-  hosts: string[],
+/** Map of proxy exit IP → timezone and browser locale for resolved locations. */
+export async function lookupProxyLocations(
+  queries: string[],
   fetchFn: FetchLike = (url, init) => fetch(url, init),
-): Promise<Map<string, string>> {
-  const out = new Map<string, string>();
-  const unique = [...new Set(hosts.filter((h) => h && h.trim()))];
+): Promise<Map<string, ProxyLocation>> {
+  const out = new Map<string, ProxyLocation>();
+  const unique = [...new Set(queries.filter((query) => query && query.trim()))];
   for (let i = 0; i < unique.length; i += 100) {
     const chunk = unique.slice(i, i + 100);
     try {
-      const res = await fetchFn("http://ip-api.com/batch?fields=query,timezone,status", {
+      const res = await fetchFn("http://ip-api.com/batch?fields=query,timezone,countryCode,status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(chunk.map((q) => ({ query: q }))),
         signal: AbortSignal.timeout(10_000),
       });
-      const data = (await res.json()) as Array<{ query?: string; timezone?: string; status?: string }>;
+      const data = (await res.json()) as Array<{
+        query?: string;
+        timezone?: string;
+        countryCode?: string;
+        status?: string;
+      }>;
       for (const row of Array.isArray(data) ? data : []) {
-        if (row.status === "success" && row.query && row.timezone) out.set(row.query, row.timezone);
+        if (row.status !== "success" || !row.query || !row.timezone) continue;
+        const locale = row.countryCode ? browserLocaleForCountry(row.countryCode) : null;
+        out.set(row.query, {
+          ...(locale ?? {}),
+          timezone: row.timezone,
+          ...(row.countryCode ? { countryCode: row.countryCode.toUpperCase() } : {}),
+        });
       }
     } catch {
       /* offline / blocked / rate-limited → leave this chunk unresolved */
@@ -144,25 +257,41 @@ export async function lookupTimezones(
   return out;
 }
 
+/** Compatibility wrapper for callers that only need timezone values. */
+export async function lookupTimezones(hosts: string[], fetchFn?: FetchLike): Promise<Map<string, string>> {
+  const locations = await lookupProxyLocations(hosts, fetchFn);
+  return new Map([...locations].map(([query, location]) => [query, location.timezone]));
+}
+
 /**
- * Resolve and attach `timezone` to each profile from its proxy host. Mutates
- * and returns the same array. Profiles without a proxy (or unresolved) keep
- * whatever timezone they already had (default "").
+ * Resolve and attach timezone and browser locale to each profile. Callers may
+ * replace the default proxy-host query with the verified proxy exit IP.
  */
-export async function attachTimezones<T extends { proxy: { host: string } | null; timezone: string }>(
+export async function attachTimezones<T extends LocalizedProfile>(
   profiles: T[],
   fetchFn?: FetchLike,
-): Promise<{ profiles: T[]; resolved: number }> {
-  const hosts = profiles.map((p) => p.proxy?.host).filter((h): h is string => !!h);
-  if (hosts.length === 0) return { profiles, resolved: 0 };
-  const tz = await lookupTimezones(hosts, fetchFn);
-  let resolved = 0;
+  options: {
+    query?: (profile: T) => string | undefined;
+    timezone?: boolean;
+    locale?: boolean;
+  } = {},
+): Promise<{ profiles: T[]; resolved: number; localeResolved: number }> {
+  const query = options.query ?? ((profile: T) => profile.proxy?.host);
+  const queries = profiles.map(query).filter((value): value is string => !!value);
+  if (queries.length === 0) return { profiles, resolved: 0, localeResolved: 0 };
+  const locations = await lookupProxyLocations(queries, fetchFn);
+  let resolved = 0, localeResolved = 0;
   for (const p of profiles) {
-    const host = p.proxy?.host;
-    if (host && tz.has(host)) {
-      p.timezone = tz.get(host)!;
+    const location = locations.get(query(p) ?? "");
+    if (!location) continue;
+    if (options.timezone !== false) {
+      p.timezone = location.timezone;
       resolved++;
     }
+    if (options.locale !== false && location.locale && location.languages) {
+      applyProfileLocale(p, { locale: location.locale, languages: location.languages });
+      localeResolved++;
+    }
   }
-  return { profiles, resolved };
+  return { profiles, resolved, localeResolved };
 }

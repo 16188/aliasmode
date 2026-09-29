@@ -645,8 +645,6 @@ function fingerprintInput(values: Record<string, string>): ProfileFingerprintSet
     if (value !== undefined) out[key] = value;
   };
   set("userAgent", text("fpUserAgent"));
-  set("languages", splitFingerprintList(values.fpLanguages ?? ""));
-  set("locale", text("fpLocale"));
   set("hardwareConcurrency", number("fpCpu"));
   set("deviceMemory", number("fpMemory"));
   set("devicePixelRatio", number("fpPixelRatio"));
@@ -750,14 +748,14 @@ function FingerprintSettings({
           <span>浏览器</span>
           <input value={engine === "firefox" ? "AliasMode Firefox" : "IDFRI Browser"} readOnly tabIndex={-1} className="ro" />
         </label>
+        <label className="fld"><span>浏览器语言</span><input value={values.fpLanguages ?? ""} placeholder="自动 · zh-CN, zh" onChange={(event) => onChange("fpLanguages", event.target.value)} /></label>
+        <label className="fld"><span>界面语言 / Intl</span><input value={values.fpLocale ?? ""} placeholder="自动 · zh-CN" onChange={(event) => onChange("fpLocale", event.target.value)} /></label>
         {engine === "chromium" && (
           <>
             <label className="fld"><span>浏览器版本</span><input value="跟随已安装的 IDFRI Chromium 内核" readOnly tabIndex={-1} className="ro" /></label>
             <label className="fld"><span>操作系统</span><input value="Windows 桌面（自动一致）" readOnly tabIndex={-1} className="ro" /></label>
             <label className="fld fingerprint-wide"><span>用户代理（UA）</span><input value={values.fpUserAgent ?? ""} placeholder="自动；自定义值必须与当前 Chromium 主版本一致" onChange={(event) => onChange("fpUserAgent", event.target.value)} /></label>
             <label className="fld"><span>屏幕分辨率</span><input value={screen} placeholder="自动 · 例如 1920x1080" onChange={(event) => onScreenChange(event.target.value)} /></label>
-            <label className="fld"><span>语言</span><input value={values.fpLanguages ?? ""} placeholder="自动 · zh-CN, zh" onChange={(event) => onChange("fpLanguages", event.target.value)} /></label>
-            <label className="fld"><span>界面语言 / Intl</span><input value={values.fpLocale ?? ""} placeholder="自动 · zh-CN" onChange={(event) => onChange("fpLocale", event.target.value)} /></label>
             <label className="fld"><span>CPU 核心数</span><input type="number" min="1" max="128" value={values.fpCpu ?? ""} placeholder="自动 · 12" onChange={(event) => onChange("fpCpu", event.target.value)} /></label>
             <label className="fld"><span>设备内存（GB）</span><select value={values.fpMemory ?? ""} onChange={(event) => onChange("fpMemory", event.target.value)}><option value="">自动 · 8</option>{[0.25, 0.5, 1, 2, 4, 8].map((item) => <option key={item} value={item}>{item}</option>)}</select></label>
             <label className="fld"><span>设备像素比</span><input type="number" min="0.5" max="4" step="0.25" value={values.fpPixelRatio ?? ""} placeholder="自动 · 1" onChange={(event) => onChange("fpPixelRatio", event.target.value)} /></label>
@@ -980,7 +978,7 @@ async function storeDesktopCloudCredentials(
 
 const BLANK_FORM = {
   name: "", engine: "chromium" as "chromium" | "firefox", group: "", platform: "", proxyType: "http", host: "", port: "", user: "", pass: "",
-  startupUrl: "", note: "", tags: "", cookies: "", screen: "", customNo: "", username: "", password: "", email: "", emailPassword: "", twofa: "",
+  startupUrl: "", note: "", tags: "", cookies: "", screen: "", customNo: "", timezone: "", username: "", password: "", email: "", emailPassword: "", twofa: "",
   ...fingerprintFormFields(),
 };
 
@@ -2381,6 +2379,9 @@ function App() {
         email: form.email,
         emailPassword: form.emailPassword,
         twofa: form.twofa,
+        timezone: form.timezone,
+        locale: (form as Record<string, string>).fpLocale,
+        languages: splitFingerprintList((form as Record<string, string>).fpLanguages ?? "") ?? [],
         fingerprint: form.engine === "chromium" ? fingerprintInput(form) : undefined,
         proxy: form.host.trim() ? { type: form.proxyType, host: form.host, port: form.port, user: form.user, pass: form.pass } : null,
       });
@@ -2438,6 +2439,8 @@ function App() {
           customNo: p.customNo ?? "",
           timezone: p.timezone,
           ...fingerprintFormFields(p.fingerprint),
+          fpLocale: p.locale,
+          fpLanguages: p.languages.join(", "),
         });
         setEditEngine(p.engine === "firefox" ? "firefox" : "chromium");
         setEditExts(p.extensions ?? []);
@@ -2504,8 +2507,8 @@ function App() {
     setTimezoneBusy(true);
     setEditErr(null);
     try {
-      const { timezone } = await refreshProfileTimezone(editId);
-      setEditForm((form) => ({ ...form, timezone }));
+      const { timezone, locale, languages } = await refreshProfileTimezone(editId);
+      setEditForm((form) => ({ ...form, timezone, fpLocale: locale, fpLanguages: languages.join(", ") }));
     } catch (error) {
       setEditErr(error instanceof Error ? error.message : String(error));
     } finally {
@@ -2525,7 +2528,12 @@ function App() {
         username: editForm.username ?? "", password: editForm.password ?? "",
         email: editForm.email ?? "", emailPassword: editForm.emailPassword ?? "", twofa: editForm.twofa ?? "",
         resolution: editForm.resolution ?? "", tags: editForm.tags ?? "",
-        ...(!isCloudMode ? { customNo: editForm.customNo ?? "", timezone: editForm.timezone ?? "" } : {}),
+        ...(!isCloudMode ? {
+          customNo: editForm.customNo ?? "",
+          timezone: editForm.timezone ?? "",
+          locale: editForm.fpLocale ?? "",
+          languages: splitFingerprintList(editForm.fpLanguages ?? "") ?? [],
+        } : {}),
         ...(!isCloudMode && editEngine === "chromium" ? { fingerprint: fingerprintInput(editForm) } : {}),
         ...(!sameExtensionSelection(editExts, editInitialExts) && editEngine === "chromium" ? { extensions: editExts } : {}),
       }, isCloudMode && !editLive ? editExpectedVersion ?? undefined : undefined);
@@ -4251,6 +4259,13 @@ function App() {
                 </button>
               </div>
               <ProxyCheckFeedback hasProxy={createHasProxy} state={createProxyCheck} />
+              {!isCloudMode && (
+                <label className="fld">
+                  <span>时区</span>
+                  <input value={form.timezone} placeholder="自动 · 例如 Asia/Tokyo" onChange={(e) => setF("timezone", e.target.value)} />
+                  <small>留空时根据代理真实出口自动同步；浏览器时间会按该时区自然计算。</small>
+                </label>
+              )}
               <FingerprintSettings
                 engine={form.engine}
                 screen={form.screen}
@@ -4411,7 +4426,7 @@ function App() {
                           placeholder="Asia/Kolkata"
                           onChange={(e) => setEF("timezone", e.target.value)}
                         />
-                        <small>填写 IANA 时区名称，保存后在下次启动生效。</small>
+                        <small>填写 IANA 时区名称；浏览器时间会按该时区自然计算。</small>
                       </label>
                       <div className="proxy-check-actions">
                         <button
@@ -4421,7 +4436,7 @@ function App() {
                           onClick={refreshEditedTimezone}
                         >
                           <Icon name="activity" className="sm" />
-                          {timezoneBusy ? "正在查询时区…" : "按代理自动设置时区"}
+                          {timezoneBusy ? "正在同步时区和语言…" : "按代理同步时区和语言"}
                         </button>
                       </div>
                     </>

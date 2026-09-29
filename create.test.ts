@@ -42,6 +42,34 @@ test("buildNewProfile generates and fixes a Windows Camoufox identity for Firefo
   expect(p.platformOs).toBe("windows");
 });
 
+test("buildNewProfile accepts manual timezone and language for both browsers", () => {
+  const chromium = buildNewProfile({
+    timezone: "Europe/Paris",
+    locale: "fr-FR",
+    languages: ["fr-FR", "fr"],
+  }, () => false);
+  expect(chromium).toMatchObject({
+    timezone: "Europe/Paris",
+    fingerprint: { locale: "fr-FR", languages: ["fr-FR", "fr"] },
+  });
+
+  const firefox = buildNewProfile({
+    engine: "firefox",
+    timezone: "Asia/Tokyo",
+    locale: "ja-JP",
+    languages: ["ja-JP", "ja"],
+  }, () => false);
+  expect(firefox).toMatchObject({
+    timezone: "Asia/Tokyo",
+    firefox: { config: {
+      timezone: "Asia/Tokyo",
+      "locale:language": "ja",
+      "locale:region": "JP",
+      "locale:all": "ja-JP, ja",
+    } },
+  });
+});
+
 test("buildNewProfile rejects an unknown browser engine", () => {
   expect(() => buildNewProfile({ engine: "webkit" as any }, () => false)).toThrow("unsupported profile engine");
 });

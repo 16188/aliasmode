@@ -48,15 +48,16 @@ test("profile forms retain proxy checking and both browser engines", () => {
   expect(createModal).toContain('engine: "chromium", label: "IDFRI Browser", runtime: "IDFRI Chromium 内核"');
   expect(createModal).toContain('engine: "firefox", label: "Firefox", runtime: "AliasMode Firefox"');
   expect(editModal).toContain('placeholder="Asia/Kolkata"');
-  expect(editModal).toContain("按代理自动设置时区");
+  expect(editModal).toContain("按代理同步时区和语言");
   for (const label of [
-    "启动页", "备注", "Cookie JSON", "用户代理（UA）", "语言", "界面语言 / Intl",
+    "启动页", "备注", "Cookie JSON", "用户代理（UA）", "浏览器语言", "界面语言 / Intl",
     "CPU 核心数", "设备内存（GB）", "WebRTC", "WebGL 厂商", "WebGL 渲染器",
     "WebGPU", "Canvas / WebGL 图像", "AudioContext", "ClientRects", "媒体设备数量",
     "字体白名单", "SpeechVoices 白名单", "地理位置权限", "请勿跟踪（DNT）", "硬件加速", "TLS 指纹",
   ]) expect(app).toContain(label);
   expect(app).toContain("fingerprint: form.engine === \"chromium\" ? fingerprintInput(form) : undefined");
   expect(app).toContain("fingerprint: fingerprintInput(editForm)");
+  expect(app).toContain("浏览器时间会按该时区自然计算");
   expect(app).toContain("麦克风、扬声器和摄像头数量必须全部填写");
   expect(app).toContain('accuracy: Number(accuracy ?? "20000")');
 });

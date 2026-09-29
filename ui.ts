@@ -36,7 +36,15 @@ import { handleProxyToolsRequest } from "./proxy-tools.ts";
 import { handleTrashRequest } from "./trash.ts";
 import { importInbox, importBuffers, prepareImportBuffers, ProfileImportError, type ImportOverrides } from "./inbox.ts";
 import { buildNewProfile, type NewProfileInput } from "./create.ts";
-import { attachTimezones, type FetchLike } from "./geoip.ts";
+import {
+  applyProfileLocale,
+  attachTimezones,
+  parseBrowserLocale,
+  parseIanaTimezone,
+  profileBrowserLocale,
+  type BrowserLocale,
+  type FetchLike,
+} from "./geoip.ts";
 import { parseUpdateFile, rowsToUpdates, serializeCsv, serializeAdsTxt, serializeXlsxRows, parseStrictProxy, parseStrictResolution, parseStrictCustomNo, parseStartupUrl, parseProfileNote, decodeText } from "./parse.ts";
 import type { ProfileExport } from "./parse.ts";
 import { writeXlsx, readXlsx } from "./xlsx.ts";
@@ -116,12 +124,44 @@ function profileEngine(profile: unknown): "chromium" | "firefox" {
 
 function syncFirefoxTimezone(profile: Profile): void {
   if (profileEngine(profile) !== "firefox") return;
-  if (!profile.firefox) throw new Error("Firefox profile is missing its saved configuration");
+  if (!profile.firefox) throw new Error("Firefox 资料缺少已保存的配置");
   const { timezone: _timezone, ...config } = profile.firefox.config;
   profile.firefox = {
     ...profile.firefox,
     config: { ...config, ...(profile.timezone ? { timezone: profile.timezone } : {}) },
   };
+}
+
+function sameBrowserLocale(left: BrowserLocale | null, right: BrowserLocale | null): boolean {
+  return left?.locale === right?.locale && left?.languages.join(",") === right?.languages.join(",");
+}
+
+async function syncProfileProxyIdentity(
+  profile: Profile,
+  options: UiRuntimeOptions,
+  parts: { timezone?: boolean; locale?: boolean } = {},
+): Promise<BrowserLocale> {
+  if (!profile.proxy) throw new Error("资料没有设置代理");
+  const check = await (options.proxyCheck ?? runProxyCheck)(profile.proxy);
+  if (check.status === "failed" || check.status === "unavailable" || !check.ip) {
+    throw new Error("无法获取代理的真实出口 IP，请检查代理或手动填写时区和语言");
+  }
+  if (check.rotating) {
+    throw new Error("检测到轮换出口 IP，无法保证时区和语言完全对应；请使用固定会话代理或手动填写");
+  }
+  const timezone = parts.timezone !== false;
+  const locale = parts.locale !== false;
+  const result = await attachTimezones([profile], options.timezoneFetch, {
+    query: () => check.ip,
+    timezone,
+    locale,
+  });
+  const browserLocale = profileBrowserLocale(profile);
+  if ((timezone && !result.resolved) || (locale && (!result.localeResolved || !browserLocale))) {
+    throw new Error("无法根据代理出口确定时区和语言，请手动填写 IANA 时区与 BCP 47 语言");
+  }
+  syncFirefoxTimezone(profile);
+  return browserLocale!;
 }
 
 function openResponse(
@@ -387,6 +427,7 @@ function profileEditView(p: Profile) {
   const px = p.proxy;
   const proxy = px ? proxyLegacyString(px) : "";
   const conversion = isMobileUserAgent(p.ua) ? convertMobilePersonaToDesktop(p) : null;
+  const locale = profileBrowserLocale(p);
   return {
     id: p.id, name: p.name, engine: profileEngine(p), group: p.group, platform: p.platform ?? "",
     startupUrl: p.startupUrl ?? "", note: p.note ?? "", fingerprint: p.fingerprint ?? {},
@@ -399,6 +440,8 @@ function profileEditView(p: Profile) {
     tags: (p.tags ?? []).join(", "),
     customNo: p.customNo ?? "",
     timezone: p.timezone,
+    locale: locale?.locale ?? "",
+    languages: locale?.languages ?? [],
     cookieCount: p.cookies.length, seeded: p.seeded,
     mobilePersona: !!conversion,
     ...(conversion ? {
@@ -429,15 +472,7 @@ function applyEdits(p: Profile, set: Record<string, unknown>): boolean {
   if ("emailPassword" in set) p.emailPassword = String(set.emailPassword ?? "");
   if ("twofa" in set) p.twofa = String(set.twofa ?? "");
   if ("timezone" in set) {
-    const timezone = String(set.timezone ?? "").trim();
-    if (timezone) {
-      try {
-        new Intl.DateTimeFormat("en-US", { timeZone: timezone }).format();
-      } catch {
-        throw new Error("时区无效，请使用 IANA 时区名称，例如 Asia/Kolkata");
-      }
-    }
-    p.timezone = timezone;
+    p.timezone = parseIanaTimezone(set.timezone);
   }
   if ("resolution" in set) {
     const r = parseStrictResolution(set.resolution);
@@ -482,6 +517,13 @@ function applyEdits(p: Profile, set: Record<string, unknown>): boolean {
     if (profileEngine(p) === "firefox" && fingerprint) throw new Error("Firefox 使用独立的持久指纹配置");
     if (fingerprint) p.fingerprint = fingerprint;
     else delete p.fingerprint;
+  }
+  if ("locale" in set || "languages" in set) {
+    const current = profileBrowserLocale(p);
+    applyProfileLocale(p, parseBrowserLocale(
+      "locale" in set ? set.locale : current?.locale,
+      "languages" in set ? set.languages : current?.languages,
+    ));
   }
   return proxyChanged;
 }
@@ -1169,8 +1211,19 @@ export async function handleUiRequest(
       }
       const profile = buildNewProfile(input, (id) => !!store.getProfile(id));
       if (!options.cloudBrowser) store.applyGroupExtensionDefaults(profile, null, false);
-      // Cloud keeps its existing server-side identity flow. Local profiles only
-      // resolve proxy geography after the operator explicitly requests it.
+      if (!options.cloudBrowser && profile.proxy) {
+        const manualTimezone = !!String(input.timezone ?? "").trim();
+        const manualLocale = !!parseBrowserLocale(
+          input.locale ?? input.fingerprint?.locale,
+          input.languages ?? input.fingerprint?.languages,
+        );
+        if (!manualTimezone || !manualLocale) {
+          await syncProfileProxyIdentity(profile, options, {
+            timezone: !manualTimezone,
+            locale: !manualLocale,
+          });
+        }
+      }
       if (options.cloudBrowser && profile.proxy) {
         await attachTimezones([profile], options.timezoneFetch).catch(() => {});
         syncFirefoxTimezone(profile);
@@ -1798,18 +1851,11 @@ export async function handleUiRequest(
       const profile = store.getProfile(id);
       if (!profile) return Response.json({ ok: false, error: "no such profile" }, { status: 404 });
       if (!profile.proxy) return Response.json({ ok: false, error: "profile has no proxy" }, { status: 400 });
-      const { resolved } = await attachTimezones([profile], options.timezoneFetch);
-      if (!resolved) {
-        return Response.json(
-          { ok: false, error: "无法根据代理确定时区，请手动填写 IANA 时区名称" },
-          { status: 502 },
-        );
-      }
-      syncFirefoxTimezone(profile);
+      const locale = await syncProfileProxyIdentity(profile, options);
       store.upsertProfile(profile);
-      return Response.json({ ok: true, timezone: profile.timezone });
+      return Response.json({ ok: true, timezone: profile.timezone, ...locale });
     } catch (error) {
-      return Response.json({ ok: false, error: msg(error) }, { status: 500 });
+      return Response.json({ ok: false, error: msg(error) }, { status: 502 });
     }
   }
 
@@ -2009,7 +2055,17 @@ export async function handleUiRequest(
       const p = remote ? await remote.getProfile(id).catch(() => null) : store.getProfile(id);
       if (!p) return Response.json({ ok: false, error: "no such profile" }, { status: 404 });
       const previousGroup = p.group;
-      applyEdits(p, set);
+      const previousTimezone = p.timezone;
+      const previousLocale = profileBrowserLocale(p);
+      const proxyChanged = applyEdits(p, set);
+      const timezoneChanged = p.timezone !== previousTimezone;
+      const localeChanged = !sameBrowserLocale(profileBrowserLocale(p), previousLocale);
+      if (!remote && proxyChanged && p.proxy && (!timezoneChanged || !localeChanged)) {
+        await syncProfileProxyIdentity(p, options, {
+          timezone: !timezoneChanged,
+          locale: !localeChanged,
+        });
+      }
       if ("timezone" in set) syncFirefoxTimezone(p);
       if (!remote) store.applyGroupExtensionDefaults(p, previousGroup, "extensions" in set);
       if (remote) await remote.saveProfile(p);
@@ -2122,6 +2178,13 @@ export async function handleUiRequest(
     if (!profile) return Response.json({ ok: false, error: "no such profile" }, { status: 404 });
     try {
       if (action[2] === "open") {
+        if (profile.proxy && (!profile.timezone || !profileBrowserLocale(profile))) {
+          await syncProfileProxyIdentity(profile, options, {
+            timezone: !profile.timezone,
+            locale: !profileBrowserLocale(profile),
+          });
+          store.upsertProfile(profile);
+        }
         const r = await launcher.start(id);
         return openResponse(profile, r);
       }

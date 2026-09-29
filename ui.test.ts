@@ -61,12 +61,21 @@ function timezoneFetch(timezones: Record<string, string>, calls?: string[][]) {
     return {
       async json() {
         return queries.map((query) => timezones[query]
-          ? { query, timezone: timezones[query], status: "success" }
+          ? { query, timezone: timezones[query], countryCode: "GB", status: "success" }
           : { query, status: "fail" });
       },
     };
   };
 }
+
+const stableProxyCheck = (ip = "203.0.113.10"): (() => Promise<ProxyCheckResult>) => async () => ({
+  status: "working",
+  attempts: 3,
+  successes: 3,
+  ip,
+  country: "GB",
+  rotating: false,
+});
 
 const EXTENSION_ZIP = Buffer.from(
   "UEsDBBQAAAAAAFtxHl1SmQ+hOwAAADsAAAANAAAAbWFuaWZlc3QuanNvbnsibWFuaWZlc3RfdmVyc2lvbiI6MywibmFtZSI6IlJvdXRlIEZpeHR1cmUiLCJ2ZXJzaW9uIjoiMSJ9UEsBAhQDFAAAAAAAW3EeXVKZD6E7AAAAOwAAAA0AAAAAAAAAAAAAAIABAAAAAG1hbmlmZXN0Lmpzb25QSwUGAAAAAAEAAQA7AAAAZgAAAAAA",
@@ -317,7 +326,16 @@ test("open/close routes call the launcher", async () => {
     stop: async (id: string) => { calls.push(`stop:${id}`); return true; },
     captureLocalSession: async (id: string) => { calls.push(`capture:${id}`); return false; },
   };
-  const open = await handleUiRequest(new Request("http://x/ui/api/profiles/k1d0cd11/open", { method: "POST" }), launcher, s);
+  const open = await handleUiRequest(
+    new Request("http://x/ui/api/profiles/k1d0cd11/open", { method: "POST" }),
+    launcher,
+    s,
+    null,
+    {
+      proxyCheck: stableProxyCheck(),
+      timezoneFetch: timezoneFetch({ "203.0.113.10": "Europe/London" }),
+    },
+  );
   expect((await open!.json()).ok).toBe(true);
   const close = await handleUiRequest(new Request("http://x/ui/api/profiles/k1d0cd11/close", { method: "POST" }), launcher, s);
   expect((await close!.json()).ok).toBe(true);
@@ -332,6 +350,11 @@ test("Firefox open responses do not expose the internal port", async () => {
     new Request("http://x/ui/api/profiles/firefox-open/open", { method: "POST" }),
     { start: async () => ({ port: 9333 }) } as any,
     s,
+    null,
+    {
+      proxyCheck: stableProxyCheck(),
+      timezoneFetch: timezoneFetch({ "203.0.113.10": "Europe/London" }),
+    },
   );
   expect(await response!.json()).toEqual({
     ok: true,
@@ -1312,7 +1335,7 @@ test("a malformed nonblank proxy edit is rejected without removing the existing 
   s.close();
 });
 
-test("a changed proxy preserves its stored timezone without a lookup", async () => {
+test("a changed proxy automatically updates timezone and language from its exit IP", async () => {
   const s = store();
   const before = s.getProfile("k1d0cd11")!;
   before.timezone = "America/Los_Angeles";
@@ -1327,14 +1350,18 @@ test("a changed proxy preserves its stored timezone without a lookup", async () 
     {} as any,
     s,
     null,
-    { timezoneFetch: timezoneFetch({ "new-proxy.example": "Europe/Paris" }, calls) },
+    {
+      proxyCheck: stableProxyCheck("203.0.113.20"),
+      timezoneFetch: timezoneFetch({ "203.0.113.20": "Europe/London" }, calls),
+    },
   );
 
   expect(res!.status).toBe(200);
-  expect(calls).toEqual([]);
+  expect(calls).toEqual([["203.0.113.20"]]);
   expect(s.getProfile("k1d0cd11")).toMatchObject({
     proxy: { type: "socks5", host: "new-proxy.example", port: "1080", user: "user", pass: "pass" },
-    timezone: "America/Los_Angeles",
+    timezone: "Europe/London",
+    fingerprint: { locale: "en-GB", languages: ["en-GB", "en"] },
   });
   s.close();
 });
@@ -1351,12 +1378,23 @@ test("an explicit timezone action updates a Local proxy timezone", async () => {
     {} as any,
     s,
     null,
-    { timezoneFetch: timezoneFetch({ "1.2.3.4": "Europe/London" }, calls) },
+    {
+      proxyCheck: stableProxyCheck(),
+      timezoneFetch: timezoneFetch({ "203.0.113.10": "Europe/London" }, calls),
+    },
   );
   expect(res!.status).toBe(200);
-  expect(await res!.json()).toMatchObject({ ok: true, timezone: "Europe/London" });
-  expect(calls).toEqual([["1.2.3.4"]]);
-  expect(s.getProfile("k1d0cd11")!.timezone).toBe("Europe/London");
+  expect(await res!.json()).toMatchObject({
+    ok: true,
+    timezone: "Europe/London",
+    locale: "en-GB",
+    languages: ["en-GB", "en"],
+  });
+  expect(calls).toEqual([["203.0.113.10"]]);
+  expect(s.getProfile("k1d0cd11")).toMatchObject({
+    timezone: "Europe/London",
+    fingerprint: { locale: "en-GB", languages: ["en-GB", "en"] },
+  });
   s.close();
 });
 
@@ -1372,12 +1410,49 @@ test("an explicit timezone action updates Firefox configuration", async () => {
     {} as any,
     s,
     null,
-    { timezoneFetch: timezoneFetch({ "1.2.3.4": "Europe/London" }) },
+    {
+      proxyCheck: stableProxyCheck(),
+      timezoneFetch: timezoneFetch({ "203.0.113.10": "Europe/London" }),
+    },
   );
   expect(res!.status).toBe(200);
   expect(s.getProfile("firefox-timezone")!).toMatchObject({
     timezone: "Europe/London",
-    firefox: { config: { timezone: "Europe/London" } },
+    firefox: { config: {
+      timezone: "Europe/London",
+      "locale:language": "en",
+      "locale:region": "GB",
+      "locale:all": "en-GB, en",
+    } },
+  });
+  s.close();
+});
+
+test("manual timezone and language edits win when the proxy changes", async () => {
+  const s = store();
+  let checks = 0;
+  const res = await handleUiRequest(
+    new Request("http://x/ui/api/profiles/k1d0cd11/update", {
+      method: "POST",
+      body: JSON.stringify({ set: {
+        proxyType: "http",
+        proxy: "fixed.example:8080:user:pass",
+        timezone: "Asia/Tokyo",
+        locale: "ja-JP",
+        languages: ["ja-JP", "ja"],
+      } }),
+    }),
+    {} as any,
+    s,
+    null,
+    { proxyCheck: async () => { checks++; return stableProxyCheck()(); } },
+  );
+
+  expect(res!.status).toBe(200);
+  expect(checks).toBe(0);
+  expect(s.getProfile("k1d0cd11")).toMatchObject({
+    timezone: "Asia/Tokyo",
+    fingerprint: { locale: "ja-JP", languages: ["ja-JP", "ja"] },
   });
   s.close();
 });
@@ -1425,14 +1500,35 @@ test("an unresolved automatic timezone lookup reports the failure", async () => 
     {} as any,
     s,
     null,
-    { timezoneFetch: timezoneFetch({}) },
+    { proxyCheck: stableProxyCheck(), timezoneFetch: timezoneFetch({}) },
   );
   expect(res!.status).toBe(502);
   expect(await res!.json()).toMatchObject({
     ok: false,
-    error: "无法根据代理确定时区，请手动填写 IANA 时区名称",
+    error: "无法根据代理出口确定时区和语言，请手动填写 IANA 时区与 BCP 47 语言",
   });
   expect(s.getProfile("k1d0cd11")!.timezone).toBe("Asia/Shanghai");
+  s.close();
+});
+
+test("automatic synchronization rejects rotating proxy exits", async () => {
+  const s = store();
+  const res = await handleUiRequest(
+    new Request("http://x/ui/api/profiles/k1d0cd11/timezone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    }),
+    {} as any,
+    s,
+    null,
+    { proxyCheck: async () => ({ ...await stableProxyCheck()(), rotating: true }) },
+  );
+  expect(res!.status).toBe(502);
+  expect(await res!.json()).toMatchObject({
+    ok: false,
+    error: expect.stringContaining("固定会话代理"),
+  });
   s.close();
 });
 
@@ -1823,23 +1919,68 @@ test("export route fails explicitly in remote mode", async () => {
   s.close();
 });
 
-test("create (local mode) does not look up a proxy timezone", async () => {
+test("create (local mode) automatically syncs timezone and language from the proxy exit", async () => {
+  for (const engine of ["chromium", "firefox"] as const) {
+    const s = new ProfileStore(":memory:");
+    const calls: string[][] = [];
+    const res = await handleUiRequest(
+      new Request("http://x/ui/api/profiles", {
+        method: "POST",
+        body: JSON.stringify({ engine, name: "fresh", proxy: { type: "http", host: "new-proxy.example", port: "8080" } }),
+      }),
+      {} as any,
+      s,
+      null,
+      {
+        proxyCheck: stableProxyCheck(),
+        timezoneFetch: timezoneFetch({ "203.0.113.10": "Europe/London" }, calls),
+      },
+    );
+    const body = await res!.json();
+    expect(body.ok).toBe(true);
+    expect(calls).toEqual([["203.0.113.10"]]);
+    const profile = s.getProfile(body.id)!;
+    expect(profile.timezone).toBe("Europe/London");
+    if (engine === "chromium") {
+      expect(profile.fingerprint).toMatchObject({ locale: "en-GB", languages: ["en-GB", "en"] });
+    } else {
+      expect(profile.firefox?.config).toMatchObject({
+        timezone: "Europe/London",
+        "locale:language": "en",
+        "locale:region": "GB",
+        "locale:all": "en-GB, en",
+      });
+    }
+    s.close();
+  }
+});
+
+test("create keeps complete manual timezone and language settings without a proxy lookup", async () => {
   const s = new ProfileStore(":memory:");
-  const calls: string[][] = [];
+  let checks = 0;
   const res = await handleUiRequest(
     new Request("http://x/ui/api/profiles", {
       method: "POST",
-      body: JSON.stringify({ name: "fresh", proxy: { type: "http", host: "new-proxy.example", port: "8080" } }),
+      body: JSON.stringify({
+        name: "manual",
+        proxy: { type: "http", host: "proxy.example", port: "8080" },
+        timezone: "Asia/Tokyo",
+        locale: "ja-JP",
+        languages: ["ja-JP", "ja"],
+      }),
     }),
     {} as any,
     s,
     null,
-    { timezoneFetch: timezoneFetch({ "new-proxy.example": "Europe/Paris" }, calls) },
+    { proxyCheck: async () => { checks++; return stableProxyCheck()(); } },
   );
   const body = await res!.json();
   expect(body.ok).toBe(true);
-  expect(calls).toEqual([]);
-  expect(s.getProfile(body.id)!.timezone).toBe("");
+  expect(checks).toBe(0);
+  expect(s.getProfile(body.id)).toMatchObject({
+    timezone: "Asia/Tokyo",
+    fingerprint: { locale: "ja-JP", languages: ["ja-JP", "ja"] },
+  });
   s.close();
 });
 

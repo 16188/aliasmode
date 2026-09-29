@@ -629,6 +629,9 @@ export interface NewProfileInput {
   screen?: string;
   /** Operator-chosen serial shown in the roster and the browser window title. */
   customNo?: string;
+  timezone?: string;
+  locale?: string;
+  languages?: string[];
   username?: string;
   password?: string;
   email?: string;
@@ -681,6 +684,9 @@ export interface EditProfile {
   customNo?: string;
   /** Stored IANA timezone. */
   timezone: string;
+  /** Stored BCP 47 Intl locale and navigator.languages values. */
+  locale: string;
+  languages: string[];
   cookieCount: number;
   seeded: boolean;
   mobilePersona: boolean;
@@ -724,7 +730,7 @@ export async function updateProfile(id: string, set: Record<string, unknown>, ex
   return { ...body, status: r.status };
 }
 
-export async function refreshProfileTimezone(id: string): Promise<{ timezone: string }> {
+export async function refreshProfileTimezone(id: string): Promise<{ timezone: string; locale: string; languages: string[] }> {
   const path = `/ui/api/profiles/${encodeURIComponent(id)}/timezone`;
   const response = await fetch(path, {
     method: "POST",
@@ -732,10 +738,13 @@ export async function refreshProfileTimezone(id: string): Promise<{ timezone: st
     body: "{}",
   });
   const body = await apiJson(response, path);
-  if (!response.ok || body.ok !== true || typeof body.timezone !== "string") {
-    throw new Error(body.error || "时区查询失败");
+  if (
+    !response.ok || body.ok !== true || typeof body.timezone !== "string" ||
+    typeof body.locale !== "string" || !Array.isArray(body.languages)
+  ) {
+    throw new Error(body.error || "时区和语言查询失败");
   }
-  return { timezone: body.timezone };
+  return { timezone: body.timezone, locale: body.locale, languages: body.languages.map(String) };
 }
 
 export async function convertMobileProfile(id: string): Promise<any> {

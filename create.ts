@@ -13,6 +13,7 @@
 import type { CookieRecord, Profile, ProfileEngine, ProfileFingerprintSettings, ProxySpec } from "./types.ts";
 import { createFirefoxProfileConfig } from "./firefox-config.ts";
 import { deterministicSeed, hostPlatformOs, parseProfileFingerprintSettings } from "./fingerprint.ts";
+import { applyProfileLocale, parseBrowserLocale, parseIanaTimezone } from "./geoip.ts";
 import { normalizeProxySpec } from "./proxy.ts";
 import { parseProfileNote, parseStartupUrl, parseStrictCustomNo, parseStrictResolution } from "./parse.ts";
 
@@ -37,6 +38,11 @@ export interface NewProfileInput {
   screen?: string;
   /** Operator-chosen serial shown in the roster and the browser window title. */
   customNo?: string;
+  /** Manual IANA timezone. Empty leaves automatic proxy synchronization enabled. */
+  timezone?: string;
+  /** Manual BCP 47 locale/language controls shared by Chromium and Firefox. */
+  locale?: string;
+  languages?: string[];
   fingerprint?: ProfileFingerprintSettings;
 }
 
@@ -88,7 +94,7 @@ export function buildNewProfile(input: NewProfileInput, exists: (id: string) => 
   const firefoxScreenHeight = firefox?.config["screen.height"];
   const firefoxTimezone = firefox?.config.timezone;
 
-  return {
+  const profile: Profile = {
     id,
     engine,
     ...(firefox ? { firefox } : {}),
@@ -113,11 +119,19 @@ export function buildNewProfile(input: NewProfileInput, exists: (id: string) => 
     // happens to run on — a silent identity change on a move between boxes.
     platformOs: engine === "firefox" ? "windows" : hostPlatformOs(),
     ...(fingerprint ? { fingerprint } : {}),
-    timezone: typeof firefoxTimezone === "string" ? firefoxTimezone : "", // Firefox saves a host timezone in its persisted config
+    timezone: input.timezone === undefined
+      ? (typeof firefoxTimezone === "string" ? firefoxTimezone : "")
+      : parseIanaTimezone(input.timezone),
     screenWidth: typeof firefoxScreenWidth === "number" ? firefoxScreenWidth : selected.width,
     screenHeight: typeof firefoxScreenHeight === "number" ? firefoxScreenHeight : selected.height,
     fingerprintSeed: deterministicSeed(id),
     cookies: input.cookies ?? [],
     seeded: false,
   };
+  const locale = parseBrowserLocale(input.locale, input.languages);
+  if (locale) applyProfileLocale(profile, locale);
+  if (profile.firefox && profile.timezone) {
+    profile.firefox = { ...profile.firefox, config: { ...profile.firefox.config, timezone: profile.timezone } };
+  }
+  return profile;
 }
