@@ -73,7 +73,7 @@ import { hostname } from "node:os";
 import net from "node:net";
 import { defaultOperatorName } from "./operator.ts";
 import { ensureDuckDuckGoDefault, type SearchProviderSetupResult } from "./search-provider.ts";
-import { installOpenChromium, OPEN_CHROMIUM_RUNTIME_VERSION } from "./browser-install.ts";
+import { installOpenChromium } from "./browser-install.ts";
 import { installFirefox } from "./firefox-install.ts";
 import { applySourceRuntime, setupSourceRuntime } from "./source-runtime.ts";
 import { resolveEgressEndpoints } from "./egress.ts";
@@ -1844,10 +1844,6 @@ async function runWindowsWindowAcceptance(paths: StatePaths, rest: string[]): Pr
       },
       async verifySearchProvider(profileId) {
         const result = searchProviderResults.get(launcher.userDataDir(profileId));
-        if (OPEN_CHROMIUM_RUNTIME_VERSION.startsWith("clearcote@")) {
-          if (!result) console.log(`[idfri] ClearCote 150 暂不强制修改 ${profileId} 的默认搜索引擎`);
-          return;
-        }
         if (
           !result
           || (result.status !== "configured" && result.status !== "already-default")

@@ -397,20 +397,20 @@ export async function prepareWindowsBundle(
   const cacheReal = realpathSync(browserCache);
   const installedReal = realpathSync(installed.path);
   if (!statSync(installedReal).isFile() || !isWithin(cacheReal, installedReal)) {
-    throw new Error("ClearCote Chromium 150 安装程序返回了缓存目录之外的路径");
+    throw new Error("IDFRI Browser 153 安装程序返回了缓存目录之外的路径");
   }
 
   const runtimeRoot = dirname(installedReal);
   const executableRelative = relative(runtimeRoot, installedReal).replaceAll("\\", "/");
   if (executableRelative !== "chrome.exe") {
-    throw new Error("ClearCote Chromium 150 安装程序未提供 Windows chrome.exe");
+    throw new Error("IDFRI Browser 153 安装程序未提供 Windows chrome.exe");
   }
   cpSync(runtimeRoot, resourceRoot, { recursive: true, errorOnExist: false });
   cpSync(join(cwd, "NOTICE"), join(resourceRoot, "IDFRI-NOTICE.txt"));
   const copiedExecutable = join(resourceRoot, executableRelative);
   const copiedHash = (await (options.hashFile ?? sha256File)(copiedExecutable)).toLowerCase();
   if (!/^[a-f0-9]{64}$/.test(copiedHash) || copiedHash !== installed.sha256.toLowerCase()) {
-    throw new Error("已打包的 ClearCote Chromium 150 可执行文件与安装时的 SHA-256 不一致");
+    throw new Error("已打包的 IDFRI Browser 153 可执行文件与安装时的 SHA-256 不一致");
   }
 
   const metadata: PreparedBrowserMetadata = {
@@ -427,7 +427,7 @@ export async function prepareWindowsBundle(
 if (import.meta.main) {
   try {
     const metadata = await prepareWindowsBundle();
-    console.log(`IDFRI Windows 包已准备完成：ClearCote Chromium 150 SHA-256 ${metadata.sha256}，Firefox SHA-256 ${metadata.firefox.sha256}`);
+    console.log(`IDFRI Windows 包已准备完成：IDFRI Browser 153 SHA-256 ${metadata.sha256}，Firefox SHA-256 ${metadata.firefox.sha256}`);
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);

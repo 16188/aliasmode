@@ -17,9 +17,10 @@ web/fonts/inter-latin-ext.woff2), Copyright (c) 2016 The Inter Project Authors,
 licensed under the SIL Open Font License, Version 1.1. The full license text is
 in web/fonts/Inter-LICENSE.txt.
 
-The Windows development preview includes ClearCote Chromium 150 from
-clearcotelabs/clearcote-browser, Copyright (c) 2026, Clearcote Labs and the
-Clearcote contributors, under the BSD 3-Clause License:
+The Windows development preview includes IDFRI Browser 153 from
+16188/idfri-browser, based on ungoogled-chromium-windows, Copyright 2022 The
+ungoogled-chromium Authors, and fingerprint patches, Copyright 2026 The Fury
+Authors, under the BSD 3-Clause License:
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:

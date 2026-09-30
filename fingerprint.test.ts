@@ -4,7 +4,7 @@ import {
   parseResolution,
   platformFromUA,
   chromeMajorFromUA,
-  deriveClearcoteFingerprintArgs,
+  deriveChromiumFingerprintArgs,
   deriveIdfriFingerprintConfig,
   parseProfileFingerprintSettings,
   proxyServerFlag,
@@ -125,9 +125,9 @@ test("IDFRI fingerprint config is deterministic and uses stored identity", () =>
   expect(a.screen.width).toBe(1680);
   expect(a.screen.height).toBe(1050);
   expect(a.locale.timezone).toBe("Asia/Shanghai");
-  expect(a.navigator.userAgent).toContain("Chrome/150.0.0.0");
-  expect(a.clientHints.fullVersion).toBe("150.0.7871.114");
-  expect(a.clientHints.fullVersionList).toContain("Chromium/150.0.7871.114");
+  expect(a.navigator.userAgent).toContain("Chrome/153.0.0.0");
+  expect(a.clientHints.fullVersion).toBe("153.0.8010.52");
+  expect(a.clientHints.fullVersionList).toContain("Chromium/153.0.8010.52");
   expect(a.gpu.webglParams.UNMASKED_RENDERER_WEBGL).toContain("RTX 4060");
 });
 
@@ -135,7 +135,7 @@ test("IDFRI fingerprint config keeps UA, UA-CH, locale, screen and noise coheren
   const config = deriveIdfriFingerprintConfig(profile({ timezone: "America/New_York" }));
   expect(config.navigator.platform).toBe("Win32");
   expect(config.clientHints.platform).toBe("Windows");
-  expect(config.clientHints.brands).toContain("Chromium/150");
+  expect(config.clientHints.brands).toContain("Chromium/153");
   expect(config.locale.timezone).toBe("America/New_York");
   expect(config.screen.availHeight).toBe(1002);
   expect(config.noise.canvasSeed).toBeGreaterThanOrEqual(0);
@@ -144,7 +144,7 @@ test("IDFRI fingerprint config keeps UA, UA-CH, locale, screen and noise coheren
 
 test("profile overrides reach every supported IDFRI fingerprint surface", () => {
   const fingerprint = parseProfileFingerprintSettings({
-    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/150.0.7871.114 Safari/537.36",
+    userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/153.0.8010.52 Safari/537.36",
     languages: ["en-US", "en"], locale: "en-US",
     hardwareConcurrency: 8, deviceMemory: 4, devicePixelRatio: 1.25, colorDepth: 30,
     webglVendor: "Google Inc. (Intel)", webglRenderer: "ANGLE (Intel, Intel Iris Xe, D3D11)",
@@ -169,7 +169,7 @@ test("profile overrides reach every supported IDFRI fingerprint surface", () => 
   expect(config.geolocation).toEqual(fingerprint.geolocation);
   expect(config.permissions.geolocation).toBe("granted");
   expect(config.webrtc.ipHandlingPolicy).toBe("default_public_interface_only");
-  const args = deriveClearcoteFingerprintArgs(profile({ fingerprint }));
+  const args = deriveChromiumFingerprintArgs(profile({ fingerprint }));
   expect(args).toContain("--idfri-fp-stdin");
   expect(args).toContain("--disable-features=WebGPU");
   expect(args).toContain("--disable-gpu");
@@ -177,8 +177,8 @@ test("profile overrides reach every supported IDFRI fingerprint surface", () => 
 });
 
 test("fingerprint validation rejects incoherent or unsafe custom values", () => {
-  expect(() => parseProfileFingerprintSettings({ userAgent: "Mozilla/5.0 Chrome/149.0.0.0" })).toThrow("当前 Chromium 150");
-  expect(() => parseProfileFingerprintSettings({ userAgent: "Mozilla/5.0 Android Chrome/150.0.0.0 Mobile" })).toThrow("桌面版 Chrome UA");
+  expect(() => parseProfileFingerprintSettings({ userAgent: "Mozilla/5.0 Chrome/149.0.0.0" })).toThrow("当前 Chromium 153");
+  expect(() => parseProfileFingerprintSettings({ userAgent: "Mozilla/5.0 Android Chrome/153.0.0.0 Mobile" })).toThrow("桌面版 Chrome UA");
   expect(() => parseProfileFingerprintSettings({ geolocation: { latitude: 91, longitude: 0, accuracy: 1 } })).toThrow("纬度");
   expect(() => parseProfileFingerprintSettings({ deviceMemory: 3 })).toThrow("设备内存必须是");
 });
@@ -196,19 +196,19 @@ test("IDFRI Chromium refuses a non-Windows persona instead of partially spoofing
     .toThrow("当前仅支持 Windows 指纹资料");
 });
 
-test("ClearCote Chromium 150 args keep version, locale, screen, GPU and TLS coherent", () => {
-  const args = deriveClearcoteFingerprintArgs(profile({ timezone: "America/New_York" }));
+test("IDFRI Browser 153 args keep version, locale, screen, GPU and TLS coherent", () => {
+  const args = deriveChromiumFingerprintArgs(profile({ timezone: "America/New_York" }));
   for (const expected of [
     "--fingerprint-platform=windows",
     "--fingerprint-brand=chrome",
-    "--fingerprint-brand-version=150.0.7871.114",
+    "--fingerprint-brand-version=153.0.8010.52",
     "--fingerprint-screen-width=1680",
     "--fingerprint-screen-height=1050",
     "--timezone=America/New_York",
     "--accept-lang=zh-CN,zh",
     "--lang=zh-CN",
     "--idfri-fp-stdin",
-    "--fingerprint-tls-profile=chrome-150",
+    "--fingerprint-tls-profile=chrome-153",
   ]) expect(args).toContain(expected);
   expect(args.filter((arg) => arg.startsWith("--fingerprint-device-memory="))).toHaveLength(1);
   expect(args.some((arg) => arg.startsWith("--user-agent="))).toBe(true);

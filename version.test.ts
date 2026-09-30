@@ -120,7 +120,7 @@ test("release version and updater trust stay aligned across the desktop bundle",
     installedAcceptance.indexOf('    "browser" {'),
   );
   const cacheStep = (job: string) => {
-    const start = job.indexOf("      - name: Cache ClearCote Chromium 150");
+    const start = job.indexOf("      - name: Cache IDFRI Browser 153");
     return job.slice(start, job.indexOf("\n      - ", start + 1));
   };
   const baselineStep = (job: string, nextStep: string) => job.slice(
@@ -141,16 +141,16 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(tauriConfig.bundle.createUpdaterArtifacts).toBe(true);
   expect(updaterConfig.bundle.createUpdaterArtifacts).toBe(true);
   expect(updaterConfig.bundle.windows.webviewInstallMode.type).toBe("downloadBootstrapper");
-  expect(browserInstallSource).toContain('IDFRI_BROWSER_RELEASE = "v0.1.0-pre.23"');
-  expect(browserInstallSource).toContain('OPEN_CHROMIUM_RUNTIME_VERSION = "clearcote@150.0.7871.114-pre.23"');
-  expect(browserInstallSource).toContain('OPEN_CHROMIUM_REVISION = "150.0.7871.114-pre.23"');
-  expect(ciWorkflow).toContain("name: Cache ClearCote Chromium 150");
+  expect(browserInstallSource).toContain('IDFRI_BROWSER_RELEASE = "browser-v153.0.8010.52-idfri.2"');
+  expect(browserInstallSource).toContain('OPEN_CHROMIUM_RUNTIME_VERSION = "idfri-browser@153.0.8010.52-idfri.2"');
+  expect(browserInstallSource).toContain('OPEN_CHROMIUM_REVISION = "153.0.8010.52-1.idfri2"');
+  expect(ciWorkflow).toContain("name: Cache IDFRI Browser 153");
   expect(ciWorkflow).toContain("path: src-tauri/target/chromium-cache");
-  expect(releaseWorkflow).not.toContain("name: Cache ClearCote Chromium 150");
-  expect(ciWorkflow).toContain("chromium-source=clearcotelabs/clearcote-browser@c1c4a03aee4b24d2ab43139463e435614c4b9fb0");
-  expect(ciWorkflow).toContain("chromium-runtime=clearcote@150.0.7871.114-pre.23");
-  expect(ciWorkflow).toContain("chromium-release=v0.1.0-pre.23");
-  expect(ciWorkflow).toContain("chromium-executable-sha256=f49b0d6bc5a08857e34f951ddc456abc643283ae45ff330ee7c2c39cd75b4869");
+  expect(releaseWorkflow).not.toContain("name: Cache IDFRI Browser 153");
+  expect(ciWorkflow).toContain("chromium-source=16188/idfri-browser@c106bfa7f1c40d5e253fa6d1f47e645e8b01aa9b");
+  expect(ciWorkflow).toContain("chromium-runtime=idfri-browser@153.0.8010.52-idfri.2");
+  expect(ciWorkflow).toContain("chromium-release=browser-v153.0.8010.52-idfri.2");
+  expect(ciWorkflow).toContain("chromium-executable-sha256=74a095427ba38407405eb63ea330070278236838cf8f91532d8d66a42243096a");
   expect(releasesSource).toContain('const UPDATE_MANIFEST: &str = "latest-v2.json";');
   expect(releasesSource).toContain(".on_before_exit(move || {");
   expect(releasesSource).toContain("let _ = sidecar.kill_owned();");
@@ -167,7 +167,7 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(ciSuccessorJob).toContain("workspaces: src-tauri -> target");
   expect(ciSuccessorJob).toContain("cache-on-failure: true");
   expect(ciSuccessorJob.indexOf("uses: Swatinem/rust-cache@v2")).toBeLessThan(
-    ciSuccessorJob.indexOf("name: Cache ClearCote Chromium 150"),
+    ciSuccessorJob.indexOf("name: Cache IDFRI Browser 153"),
   );
   expect(cacheStep(ciSuccessorJob)).toBe(cacheStep(windowsFullJob));
   expect(ciSuccessorVersionFiles).toBe([
@@ -240,7 +240,7 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(signSuccessorInputStep).toContain('Status -cne "NotSigned"');
   expect(signSuccessorInputStep).toContain("Copy-Item $installer $signedInstaller");
   expect(signSuccessorInputStep).not.toContain("TAURI_SIGNING_PRIVATE_KEY");
-  expect(signSuccessorJob).not.toContain("Cache ClearCote Chromium 150");
+  expect(signSuccessorJob).not.toContain("Cache IDFRI Browser 153");
   expect(signSuccessorJob).not.toContain("prepare-windows-bundle.ts");
   expect(signSuccessorJob).not.toContain("build-windows-installer.ps1");
   expect(signSuccessorJob).not.toContain("src-tauri -> target");
@@ -312,10 +312,10 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(windowsFullJob).not.toContain("windows_prepare");
   expect(cacheStep(windowsFullJob)).toBe(cacheStep(windowsPrepareJob));
   expect(windowsFullJob.indexOf("uses: Swatinem/rust-cache@v2")).toBeLessThan(
-    windowsFullJob.indexOf("name: Cache ClearCote Chromium 150"),
+    windowsFullJob.indexOf("name: Cache IDFRI Browser 153"),
   );
   expect(cacheStep(windowsFullJob)).toContain(
-    "key: clearcote-windows-x64-v1-150.0.7871.114-pre.23-93fc03c45b931d8d82f714814318892929f44dd671b0993788332071d53f3135",
+    "key: idfri-browser-windows-x64-v1-153.0.8010.52-idfri.2-66df4bf70ba1f54145961a7e567acc0a019ac3c9df850f6d42e7fbbe7a825626",
   );
   const fullBaselineStep = baselineStep(
     windowsFullJob,

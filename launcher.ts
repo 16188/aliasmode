@@ -31,7 +31,7 @@ import type { ProfileStore } from "./store.ts";
 import type { AutofillBridge } from "./autofill-bridge.ts";
 import { AUTOFILL_EXTENSION_REVISION, autofillExtensionDir } from "./autofill-extension.ts";
 import { allocatePort } from "./ports.ts";
-import { deriveClearcoteFingerprintArgs, deriveIdfriFingerprintConfig, isMobileUserAgent, platformFromUA, proxyServerFlag } from "./fingerprint.ts";
+import { deriveChromiumFingerprintArgs, deriveIdfriFingerprintConfig, isMobileUserAgent, platformFromUA, proxyServerFlag } from "./fingerprint.ts";
 export { isMobileUserAgent } from "./fingerprint.ts";
 import { startProxyRelay, type ProxyRelay } from "./proxy-relay.ts";
 import type { SearchProviderBootstrapOptions, SearchProviderSetupResult } from "./search-provider.ts";
@@ -958,7 +958,7 @@ export class Launcher {
     // Open the window at a FRACTION of the profile's resolution (default: 65% width,
     // 90% height → a tall, narrow window so the operator can line several profiles up
     // side by side instead of each browser filling the display. This is only the OS
-    // window size — the spoofed screen.width/height come from the ClearCote flags,
+    // window size — the spoofed screen.width/height come from the IDFRI Browser flags,
     // so it doesn't change the fingerprint (it just looks like a normal
     // non-maximized window, which real users have). The WIDTH floor (800) stops a profile
     // that drew a small seed resolution (e.g. 1366 -> 683px) from opening as an unusable sliver.
@@ -986,7 +986,7 @@ export class Launcher {
       // and across thousands of Cloud profiles that reached 166 GB on one operator's
       // machine. Cookies/site data are separate stores; this only trims asset caching.
       `--disk-cache-size=${20 * 1024 * 1024}`,
-      ...deriveClearcoteFingerprintArgs(profile),
+      ...deriveChromiumFingerprintArgs(profile),
     ];
     // We launch the raw stealth chromium binary, which behaves like stock
     // Chromium: the PRESENCE of --headless (any value, even "false") turns

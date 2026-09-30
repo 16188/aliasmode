@@ -256,8 +256,8 @@ export function parseProfileFingerprintSettings(value: unknown): ProfileFingerpr
   return Object.keys(out).length ? out : undefined;
 }
 
-const CHROMIUM_VERSION = "150.0.7871.114";
-const CHROMIUM_MAJOR = "150";
+const CHROMIUM_VERSION = "153.0.8010.52";
+const CHROMIUM_MAJOR = "153";
 
 const WINDOWS_FONTS = [
   "Arial", "Arial Black", "Bahnschrift", "Calibri", "Cambria", "Candara",
@@ -454,8 +454,8 @@ export function deriveIdfriFingerprintConfig(profile: Profile) {
   };
 }
 
-/** Map the stored IDFRI persona to ClearCote Chromium 150's native switches. */
-export function deriveClearcoteFingerprintArgs(profile: Profile): string[] {
+/** Map the stored IDFRI persona to IDFRI Browser's native switches. */
+export function deriveChromiumFingerprintArgs(profile: Profile): string[] {
   const config = deriveIdfriFingerprintConfig(profile);
   return [
     `--fingerprint=${profile.fingerprintSeed}`,

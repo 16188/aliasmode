@@ -94,9 +94,9 @@ jobs:
           }
           $browser = Get-Content ".\candidate\browser.json" -Raw | ConvertFrom-Json
           if ($browser.executable -cne "chrome.exe" -or
-              [string]$browser.runtimeVersion -cne "clearcote@150.0.7871.114-pre.23" -or
-              [string]$browser.sha256 -cne "f49b0d6bc5a08857e34f951ddc456abc643283ae45ff330ee7c2c39cd75b4869") {
-            throw "candidate does not contain the approved ClearCote Chromium 150 runtime"
+              [string]$browser.runtimeVersion -cne "idfri-browser@153.0.8010.52-idfri.2" -or
+              [string]$browser.sha256 -cne "74a095427ba38407405eb63ea330070278236838cf8f91532d8d66a42243096a") {
+            throw "candidate does not contain the approved IDFRI Browser 153 runtime"
           }
 
           $hash = (Get-FileHash -LiteralPath $installer -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -106,8 +106,8 @@ jobs:
             [Text.UTF8Encoding]::new($false)
           )
           "installer=$fullName" | Add-Content $env:GITHUB_OUTPUT
-          "tag=preview-$version-clearcote150-$env:GITHUB_RUN_NUMBER" | Add-Content $env:GITHUB_OUTPUT
-          "title=IDFRI $version 中文开发预览版（Chromium 150）" | Add-Content $env:GITHUB_OUTPUT
+          "tag=preview-$version-chromium153-$env:GITHUB_RUN_NUMBER" | Add-Content $env:GITHUB_OUTPUT
+          "title=IDFRI $version 中文开发预览版（Chromium 153）" | Add-Content $env:GITHUB_OUTPUT
       - name: Publish GitHub prerelease
         shell: pwsh
         env:
@@ -124,4 +124,4 @@ jobs:
             --target $env:GITHUB_SHA `
             --prerelease `
             --title $env:RELEASE_TITLE `
-            --notes "IDFRI 中文本地版开发预览。临时内置经过双重 SHA-256 校验的开源 ClearCote Chromium 150；IDFRI Chromium 153 仍在构建。本安装包尚未进行 Authenticode 代码签名，仅供当前开发测试使用。"
+            --notes "IDFRI 中文本地版开发预览，内置经过归档与可执行文件双重 SHA-256 校验的自构建 IDFRI Browser 153。本安装包尚未进行 Authenticode 代码签名，仅供当前开发测试使用。"

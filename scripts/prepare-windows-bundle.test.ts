@@ -74,7 +74,7 @@ test("Windows sidecar supports x64 CPUs without AVX2", () => {
 function workspace(): string {
   const cwd = mkdtempSync(join(tmpdir(), "idfri-windows-bundle-"));
   mkdirSync(join(cwd, "src-tauri"), { recursive: true });
-  writeFileSync(join(cwd, "NOTICE"), "ClearCote BSD-3-Clause");
+  writeFileSync(join(cwd, "NOTICE"), "IDFRI Browser BSD-3-Clause");
   writeFileSync(join(cwd, "playwright-worker.mjs"), "worker");
   writeFileSync(join(cwd, "firefox-worker.mjs"), "firefox worker");
   mkdirSync(join(cwd, "agent"), { recursive: true });
@@ -114,7 +114,7 @@ async function installPython(root: string): Promise<void> {
   writeFileSync(join(python, "Lib", "site-packages", "playwright", "driver", "node.exe"), "driver");
 }
 
-test("Windows bundle preparation packages ClearCote Chromium 150 and owned Firefox with verified hashes", async () => {
+test("Windows bundle preparation packages IDFRI Browser 153 and owned Firefox with verified hashes", async () => {
   const cwd = workspace();
   const browserBytes = "official-browser";
   const firefox = firefoxArchive();
@@ -155,7 +155,7 @@ test("Windows bundle preparation packages ClearCote Chromium 150 and owned Firef
     expect(metadata).toEqual({
       executable: "chrome.exe",
       sha256: sha256(browserBytes),
-      runtimeVersion: "clearcote@150.0.7871.114-pre.23",
+      runtimeVersion: "idfri-browser@153.0.8010.52-idfri.2",
       firefox: {
         executable: "firefox/aliasmode.exe",
         sha256: firefox.executableSha256,
@@ -164,7 +164,7 @@ test("Windows bundle preparation packages ClearCote Chromium 150 and owned Firef
       },
     });
     expect(readFileSync(join(cwd, "src-tauri", "resources", "chromium", "chrome.dll"), "utf8")).toBe("dll");
-    expect(readFileSync(join(cwd, "src-tauri", "resources", "chromium", "IDFRI-NOTICE.txt"), "utf8")).toBe("ClearCote BSD-3-Clause");
+    expect(readFileSync(join(cwd, "src-tauri", "resources", "chromium", "IDFRI-NOTICE.txt"), "utf8")).toBe("IDFRI Browser BSD-3-Clause");
     expect(readFileSync(join(cwd, "src-tauri", "resources", "firefox", "firefox", "aliasmode.exe"), "utf8")).toBe("owned-firefox");
     expect(existsSync(join(cwd, "src-tauri", "resources", "firefox", "fonts"))).toBe(false);
     expect(readFileSync(join(cwd, "src-tauri", "resources", "playwright", "node", "node.exe"), "utf8")).toBe("node");

@@ -402,7 +402,7 @@ test("start forwards launch_args and stored identity flags to the browser", asyn
   expect(args).toContain("--automation-launcher-pid=999");
   expect(args).toContain("--disable-sync");
   expect(args).toContain("--fingerprint-platform=windows");
-  expect(args).toContain("--fingerprint-brand-version=150.0.7871.114");
+  expect(args).toContain("--fingerprint-brand-version=153.0.8010.52");
   expect(args.some((a) => a.startsWith("--fingerprint="))).toBe(true);
   // An authenticated proxy is reached via the loopback relay — the upstream creds must NOT be on the
   // command line (Chromium would ignore them anyway); the relay injects them instead.
