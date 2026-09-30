@@ -80,6 +80,6 @@ test("required license notices remain present", () => {
   expect(notice).toContain("Mozilla Public License 2.0");
   expect(notice).toContain("SIL Open Font License");
   expect(notice).toContain("ungoogled-chromium Authors");
-  expect(notice).toContain("The Fury Authors");
+  expect(notice).toMatch(/The Fury\s+Authors/);
   expect(notice).toContain("BSD 3-Clause License");
 });
