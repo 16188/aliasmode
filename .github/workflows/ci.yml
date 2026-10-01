@@ -206,7 +206,7 @@ jobs:
           ) -join "`n"
           $externalIdentity = @(
             "node-win-x64=22.23.2:1177b4137ba5adaa56354ae40f1080c7450e8ae09cecb47da459d1c52ac99f97"
-            "chromium-source=16188/idfri-browser@c106bfa7f1c40d5e253fa6d1f47e645e8b01aa9b"
+            "chromium-source=16188/idfri-browser@c7b0c258a280c4ae6dc5c9256f4f08a837bf5f13"
             "chromium-runtime=idfri-browser@153.0.8010.52-idfri.2"
             "chromium-platform=windows-x64"
             "chromium-release=browser-v153.0.8010.52-idfri.2"

@@ -54,7 +54,7 @@ MCP 工具沿用 `aliasmode_*` 名称，以兼容已有客户端配置；产品�
 
 ## 浏览器与字体
 
-当前开发预览版使用 [IDFRI Browser 153](https://github.com/16188/idfri-browser/releases/tag/browser-v153.0.8010.52-idfri.2)。版本固定为 `153.0.8010.52`，源码固定到提交 `c106bfa7f1c40d5e253fa6d1f47e645e8b01aa9b`；下载时校验发布归档 SHA-256，打包和每次启动时继续校验 `chrome.exe` 的 SHA-256。它无需账号，指纹参数由 IDFRI 资料确定，产品名、开发者信息、项目链接和默认界面均使用 IDFRI 中文配置。
+当前开发预览版使用 [IDFRI Browser 153](https://github.com/16188/idfri-browser/releases/tag/browser-v153.0.8010.52-idfri.2)。版本固定为 `153.0.8010.52`，源码固定到独立仓库初始提交 `c7b0c258a280c4ae6dc5c9256f4f08a837bf5f13`；下载时校验发布归档 SHA-256，打包和每次启动时继续校验 `chrome.exe` 的 SHA-256。它无需账号，指纹参数由 IDFRI 资料确定，产品名、开发者信息、项目链接和默认界面均使用 IDFRI 中文配置。
 
 `AliasMode Firefox` 基于 Camoufox/Firefox，代码采用 MPL-2.0。上游构建曾捆绑 Windows 和 macOS 专有字体；IDFRI 在源码安装和 Windows 打包阶段都会剔除整个 `fonts` 目录，改用用户操作系统已经安装的字体。因此不会随 IDFRI 安装包再分发这些字体，但不同系统版本的字体指纹可能存在差异。
 

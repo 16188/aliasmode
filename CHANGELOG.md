@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- 将 Chromium 153 源码迁移到独立的 `16188/idfri-browser` 单提交仓库，固定主程序到新的初始提交，并重新发布原 ZIP、安装器与 SHA-256 校验文件；旧 Fork 仅改名备份，法定许可证与第三方声明继续保留。
 - 完成自构建 IDFRI Browser 153 Windows x64 内核发布并替换临时 ClearCote Chromium 150；桌面安装包固定校验归档与 `chrome.exe` SHA-256，并同步更新 CI 来源证明、缓存和中文预览发布校验。
 - 同步 IDFRI Browser 153 的 BSD-3-Clause 作者 NOTICE 回归校验，并保留 ungoogled-chromium 设置页不兼容时不强制修改默认搜索引擎的启动兼容策略。
 - 按每个资料的代理真实出口 IP 自动同步 IANA 时区、浏览器时间、`Accept-Language`、`navigator.languages` 与 Intl locale；新建、更换代理、缺少设置时启动和手动同步均覆盖 Chromium 与 AliasMode Firefox，并保留手动时区/语言覆盖；动态住宅代理按本次实时出口同步，检测失败只跳过自动同步，绝不阻止资料新建、保存或打开。

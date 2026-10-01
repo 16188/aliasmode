@@ -147,7 +147,7 @@ test("release version and updater trust stay aligned across the desktop bundle",
   expect(ciWorkflow).toContain("name: Cache IDFRI Browser 153");
   expect(ciWorkflow).toContain("path: src-tauri/target/chromium-cache");
   expect(releaseWorkflow).not.toContain("name: Cache IDFRI Browser 153");
-  expect(ciWorkflow).toContain("chromium-source=16188/idfri-browser@c106bfa7f1c40d5e253fa6d1f47e645e8b01aa9b");
+  expect(ciWorkflow).toContain("chromium-source=16188/idfri-browser@c7b0c258a280c4ae6dc5c9256f4f08a837bf5f13");
   expect(ciWorkflow).toContain("chromium-runtime=idfri-browser@153.0.8010.52-idfri.2");
   expect(ciWorkflow).toContain("chromium-release=browser-v153.0.8010.52-idfri.2");
   expect(ciWorkflow).toContain("chromium-executable-sha256=74a095427ba38407405eb63ea330070278236838cf8f91532d8d66a42243096a");
